@@ -1,4 +1,4 @@
-# hpo-aas
+# hpo
 
 ## Goal:
 - Provide Hyperparameter Optimization(HPO) as a service to choose the optimal hyperparameters provided by the user for any model. 
