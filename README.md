@@ -80,5 +80,7 @@ Get the next config from HPO
 
 Input: 
     -    layer tunables yaml
+    
     -    slo yaml  ( Validate if obj function is based on function variables defined)
+    
     -    no.of trials ; no.of parallel jobs
