@@ -46,7 +46,7 @@ LABEL name="Kruize HPO" \
       vendor="Red Hat" \
       version=${HPO_VERSION} \
       release=${HPO_VERSION} \
-      run="docker run --rm -it -p 8080:8080 <image_name:tag>" \
+      run="docker run --rm -it -p 8085:8085 <image_name:tag>" \
       summary="Docker Image for HPO with ubi-minimal" \
       description="For more information on this image please see https://github.com/kruize/hpo/blob/main/README.md"
 
