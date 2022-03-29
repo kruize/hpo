@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2021 Red Hat, IBM Corporation and others.
+# Copyright (c) 2022, 2022 Red Hat, IBM Corporation and others.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,9 +16,11 @@
 #
 ROOT_DIR="${PWD}"
 HPO_DOCKERFILE="Dockerfile.hpo"
+SEARCH_SPACE_DOCKERFILE="Dockerfile.search_space"
 HPO_DOCKER_REPO="kruize/hpo"
 HPO_VERSION="0.0.8"
 HPO_DOCKER_IMAGE=${HPO_DOCKER_REPO}:${HPO_VERSION}
+SEARCH_SPACE_DOCKER_IMAGE=${HPO_DOCKER_REPO}:search_space_${HPO_VERSION}
 DEV_MODE=0
 BUILD_PARAMS="--pull --no-cache"
 
@@ -26,6 +28,7 @@ function usage() {
 	echo "Usage: $0 [-d] [-v version_string][-o hpo_docker_image]"
 	echo " -d: build in dev friendly mode"
 	echo " -o: build with specific hpo docker image name"
+	echo " -ss: build with specific search space docker image name"
 	echo " -v: build as specific hpo version"
 	exit -1
 }
@@ -58,7 +61,7 @@ function set_tags() {
 }
 
 # Iterate through the commandline options
-while getopts di:o:pv: gopts
+while getopts di:o:ss:pv: gopts
 do
 	case ${gopts} in
 	d)
@@ -69,6 +72,9 @@ do
 		;;
 	o)
 		HPO_DOCKER_IMAGE="${OPTARG}"
+		;;
+	ss)
+		SEARCH_SPACE_DOCKER_IMAGE="${OPTARG}"
 		;;
 	v)
 		HPO_VERSION="${OPTARG}"
@@ -89,4 +95,6 @@ fi
 echo ${BUILD_PARAMS}
 docker build ${BUILD_PARAMS} --build-arg HPO_VERSION=${DOCKER_TAG} -t ${HPO_DOCKER_IMAGE} -f ${HPO_DOCKERFILE} .
 check_err "Docker build of ${HPO_DOCKER_IMAGE} failed."
+docker build ${BUILD_PARAMS} -t ${SEARCH_SPACE_DOCKER_IMAGE} -f ${SEARCH_SPACE_DOCKERFILE} .
+check_err "Docker build of ${SEARCH_SPACE_DOCKER_IMAGE} failed."
 docker images | grep -e "TAG" -e "${HPO_REPO}" | grep "${DOCKER_TAG}"

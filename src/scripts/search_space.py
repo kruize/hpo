@@ -1,5 +1,5 @@
 """
-Copyright (c) 2020, 2021 Red Hat, IBM Corporation and others.
+Copyright (c) 2020, 2022 Red Hat, IBM Corporation and others.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,11 +16,7 @@ limitations under the License.
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import re
-import cgi
 import json
-import requests
-import threading
-import time
 import sys
 from urllib.parse import urlparse, parse_qs
 
