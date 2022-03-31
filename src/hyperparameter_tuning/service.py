@@ -29,6 +29,7 @@ from tunables import get_all_tunables
 from bayes_optuna import optuna_hpo
 
 autotune_object_ids = {}
+search_space_json = []
 
 api_endpoint = "/experiment_trials"
 host_name = "localhost"
@@ -88,11 +89,13 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
     def handle_generate_new_operation(self, json_object):
         """Process EXP_TRIAL_GENERATE_NEW operation."""
+        print("-------- TESTING------ ", json_object["search_space"]["experiment_id"] )
         is_valid_json_object = validate_trial_generate_json(json_object)
 
-        if is_valid_json_object and json_object["experiment_id"] not in autotune_object_ids.keys():
-            get_search_create_study(json_object["experiment_id"], json_object["operation"], json_object["url"])
-            trial_number = get_trial_number(json_object["experiment_id"])
+        search_space_json = json_object["search_space"]
+        if is_valid_json_object and json_object["search_space"]["experiment_id"] not in autotune_object_ids.keys():            
+            get_search_create_study(search_space_json, json_object["operation"])
+            trial_number = get_trial_number(json_object["search_space"]["experiment_id"])
             self._set_response(200, str(trial_number))
         else:
             self._set_response(400, "-1")
@@ -102,7 +105,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         is_valid_json_object = validate_trial_generate_json(json_object)
 
         if is_valid_json_object and json_object["experiment_id"] in autotune_object_ids.keys():
-            get_search_create_study(json_object["experiment_id"], json_object["operation"], json_object["url"])
+            get_search_create_study(search_space_json, json_object["operation"])
             trial_number = get_trial_number(json_object["experiment_id"])
             self._set_response(200, str(trial_number))
         else:
@@ -119,9 +122,10 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self._set_response(400, "-1")
 
 
-def get_search_create_study(id_, operation, url):
+def get_search_create_study(search_space_json, operation):
     # TODO: validate structure of search_space_json
-    search_space_json = get_search_space(id_, url)
+    # search_space_json = get_search_space(id_, url)
+    
     if operation == "EXP_TRIAL_GENERATE_NEW":
         experiment_name, direction, hpo_algo_impl, id_, objective_function, tunables, value_type = get_all_tunables(
             search_space_json)
