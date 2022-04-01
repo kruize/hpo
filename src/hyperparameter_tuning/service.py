@@ -28,11 +28,13 @@ from tunables import get_all_tunables
 
 from bayes_optuna import optuna_hpo
 
+# Importing socket library
+import socket
+
 autotune_object_ids = {}
 search_space_json = []
 
 api_endpoint = "/experiment_trials"
-host_name = "localhost"
 server_port = 8085
 
 
@@ -89,7 +91,6 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
     def handle_generate_new_operation(self, json_object):
         """Process EXP_TRIAL_GENERATE_NEW operation."""
-        print("-------- TESTING------ ", json_object["search_space"]["experiment_id"] )
         is_valid_json_object = validate_trial_generate_json(json_object)
 
         search_space_json = json_object["search_space"]
@@ -124,7 +125,6 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
 def get_search_create_study(search_space_json, operation):
     # TODO: validate structure of search_space_json
-    # search_space_json = get_search_space(id_, url)
     
     if operation == "EXP_TRIAL_GENERATE_NEW":
         experiment_name, direction, hpo_algo_impl, id_, objective_function, tunables, value_type = get_all_tunables(
@@ -170,10 +170,19 @@ def set_result(id_, trial_result, result_value_type, result_value):
 
 
 def main():
+    host_name = get_Host_name_IP()
     server = HTTPServer((host_name, server_port), HTTPRequestHandler)
-    print("Starting server at http://%s:%s" % (host_name, server_port))
+    print("Access server at http://%s:%s" % (host_name, server_port))
     server.serve_forever()
 
+
+def get_Host_name_IP():
+    try:
+        host_ip = socket.gethostbyname(socket.gethostname())
+        print("IP : ",host_ip)
+        return host_ip
+    except:
+        print("Unable to get Hostname and IP")
 
 if __name__ == '__main__':
     main()

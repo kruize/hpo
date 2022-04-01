@@ -16,19 +16,20 @@
 #
 
 ROOT_DIR="${PWD}"
-HPO_DOCKER_REPO="kruize/hpo"
-HPO_VERSION="0.0.8"
-HPO_DOCKER_IMAGE=${HPO_DOCKER_REPO}:${HPO_VERSION}
+SCRIPTS_DIR="${ROOT_DIR}/scripts"
+HPO_REPO="kruize/hpo"
+HPO_VERSION="0.0.1"
+HPO_CONTAINER_IMAGE=${HPO_REPO}:${HPO_VERSION}
 
-# Defaults for the script
-cluster_type="docker"
+# source the helpers script
+. ${SCRIPTS_DIR}/cluster-helpers.sh
 
 function usage() {
 	echo
-	echo "Usage: $0 [-c [docker|minikube|native]] [-h hpo docker image]"
+	echo "Usage: $0 [-c [docker|minikube|native]] [-h hpo container image]"
 	echo "       -s = start(default), -t = terminate"
 	echo " -c: cluster type."
-	echo " -h: build with specific hpo docker image name [Default - kruize/hpo:<version>]"
+	echo " -h: build with specific hpo container image name [Default - kruize/hpo:<version>]"
 	exit -1
 }
 
@@ -44,7 +45,7 @@ function check_cluster_type() {
 }
 
 # Iterate through the commandline options
-while getopts c:n:h:p:st:-: gopts
+while getopts c:h:st gopts
 do
 	case ${gopts} in
 	c)
@@ -52,7 +53,7 @@ do
 		check_cluster_type
 		;;
 	h)
-		HPO_DOCKER_IMAGE="${OPTARG}"
+		HPO_CONTAINER_IMAGE="${OPTARG}"
 		;;
 	s)
 		setup=1
@@ -64,6 +65,11 @@ do
 		usage
 	esac
 done
+
+resolve_container_runtime
+
+echo "Deploying with runtime: ${CONTAINER_RUNTIME}"
+
 
 # Call the proper setup function based on the cluster_type
 if [ ${setup} == 1 ]; then

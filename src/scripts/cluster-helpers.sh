@@ -15,159 +15,88 @@
 # limitations under the License.
 #
 
-###############################  v MiniKube v #################################
-
-function minikube_first() {
-
-	kubectl_cmd="kubectl -n ${autotune_ns}"
-	echo "Info: One time setup - Create a service account to deploy autotune"
-	
-	${kubectl_cmd} apply -f ${AUTOTUNE_SA_MANIFEST}
-	check_err "Error: Failed to create service account and RBAC"
-
-	${kubectl_cmd} apply -f ${AUTOTUNE_OPERATOR_CRD}
-	check_err "Error: Failed to create autotune CRD"
-
-	${kubectl_cmd} apply -f ${AUTOTUNE_CONFIG_CRD}
-	check_err "Error: Failed to create autotuneconfig CRD"
-
-	${kubectl_cmd} apply -f ${AUTOTUNE_QUERY_VARIABLE_CRD}
-	check_err "Error: Failed to create autotunequeryvariable CRD"
-
-	${kubectl_cmd} apply -f ${AUTOTUNE_ROLE_MANIFEST}
-	check_err "Error: Failed to create role"
-
-	sed -e "s|{{ AUTOTUNE_NAMESPACE }}|${autotune_ns}|" ${AUTOTUNE_RB_MANIFEST_TEMPLATE} > ${AUTOTUNE_RB_MANIFEST}
-	${kubectl_cmd} apply -f ${AUTOTUNE_RB_MANIFEST}
-	check_err "Error: Failed to create role binding"
-
-	${kubectl_cmd} apply -f ${SERVICE_MONITOR_MANIFEST}
-	check_err "Error: Failed to create service monitor for Prometheus"
+# Resolve Container runtime
+function resolve_container_runtime() {
+	IFS='=' read -r -a dockerDeamonState <<< $(systemctl show --property ActiveState docker)
+	[[ "${dockerDeamonState[1]}" == "inactive" ]] && CONTAINER_RUNTIME="podman"
+	if ! command -v podman &> /dev/null; then
+	    echo "No Container Runtime available: Docker daemon is not running and podman command could not be found"
+	    exit 1
+	fi
 }
 
-# You can deploy using kubectl
-function minikube_deploy() {
-	echo
-	echo "Creating environment variable in minikube cluster using configMap"
-	${kubectl_cmd} apply -f ${AUTOTUNE_CONFIGMAPS}/${cluster_type}-config.yaml
-
-	echo
-	echo "Deploying AutotuneConfig objects"
-	${kubectl_cmd} apply -f ${AUTOTUNE_CONFIGS}
-
-	echo
-	echo "Deploying AutotuneQueryVariable objects"
-	${kubectl_cmd} apply -f ${AUTOTUNE_QUERY_VARIABLES}
-	
-	echo "Info: Deploying autotune yaml to minikube cluster"
-
-	# Replace autotune docker image in deployment yaml
-	sed -e "s|{{ AUTOTUNE_IMAGE }}|${AUTOTUNE_DOCKER_IMAGE}|" ${AUTOTUNE_DEPLOY_MANIFEST_TEMPLATE} > ${AUTOTUNE_DEPLOY_MANIFEST}
-	sed -i "s|{{ OPTUNA_IMAGE }}|${OPTUNA_DOCKER_IMAGE}|" ${AUTOTUNE_DEPLOY_MANIFEST}
-
-	${kubectl_cmd} apply -f ${AUTOTUNE_DEPLOY_MANIFEST}
-	sleep 2
-	check_running autotune
-	if [ "${err}" != "0" ]; then
-		# Indicate deploy failed on error
-		exit 1
+# Check error code from last command, exit on error
+function check_err() {
+	err=$?
+	if [ ${err} -ne 0 ]; then
+		echo "$*"
+		exit -1
 	fi
-
-	# Get the Autotune application port in minikube
-	MINIKUBE_IP=$(minikube ip)
-	AUTOTUNE_PORT=$(${kubectl_cmd} get svc autotune --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
-	echo "Info: Access Autotune at http://${MINIKUBE_IP}:${AUTOTUNE_PORT}/listAutotuneTunables"
-	echo
 }
 
-function minikube_start() {
-	echo
-	echo "###   Installing autotune for minikube"
-	echo
+###############################  v Docker v #################################
 
-	# If autotune_ns was not set by the user
-	if [ -z "$autotune_ns" ]; then
-		autotune_ns="monitoring"
-	fi
-
-	check_prometheus_installation
-	minikube_first
-	minikube_deploy
-}
-
-function check_prometheus_installation() {
-	echo
-	echo "Info: Checking pre requisites for minikube..."
-	kubectl_tool=$(which kubectl)
-	check_err "Error: Please install the kubectl tool"
-	# Check to see if kubectl supports kustomize
-	kubectl kustomize --help >/dev/null 2>/dev/null
-	check_err "Error: Please install a newer version of kubectl tool that supports the kustomize option (>=v1.12)"
-
-	kubectl_cmd="kubectl"
-	prometheus_pod_running=$(${kubectl_cmd} get pods --all-namespaces | grep "prometheus-k8s-1")
-	if [ "${prometheus_pod_running}" == "" ]; then
-		echo "Prometheus is not running, use 'scripts/prometheus_on_minikube.sh' to install."
-		exit 1
-	fi
-	echo "Prometheus is installed and running."
-}
-
-
-function minikube_terminate() {
-	# If autotune_ns was not set by the user
-	if [ -z "$autotune_ns" ]; 	then
-		autotune_ns="monitoring"
-	fi
-
-	echo -n "###   Removing autotune for minikube"
-
-	kubectl_cmd="kubectl -n ${autotune_ns}"
-
-	echo
-	echo "Removing autotune"
-	${kubectl_cmd} delete -f ${AUTOTUNE_DEPLOY_MANIFEST} 2>/dev/null
-
-	echo
-	echo "Removing autotune service account"
-	${kubectl_cmd} delete -f ${AUTOTUNE_SA_MANIFEST} 2>/dev/null
-
-	echo
-	echo "Removing autotune role"
-	${kubectl_cmd} delete -f ${AUTOTUNE_ROLE_MANIFEST} 2>/dev/null
-
-	echo
-	echo "Removing autotune rolebinding"
-	${kubectl_cmd} delete -f ${AUTOTUNE_RB_MANIFEST} 2>/dev/null
-
-	echo
-	echo "Removing autotune serviceMonitor"
-	${kubectl_cmd} delete -f ${SERVICE_MONITOR_MANIFEST} 2>/dev/null
-
-	echo
-	echo "Removing AutotuneConfig objects"
-	${kubectl_cmd} delete -f ${AUTOTUNE_CONFIGS} 2>/dev/null
-
-	echo
-	echo "Removing AutotuneQueryVariable objects"
-	${kubectl_cmd} delete -f ${AUTOTUNE_QUERY_VARIABLES} 2>/dev/null
+function docker_start() {
 	
 	echo
-	echo "Removing Autotune configmap"
-	${kubectl_cmd} delete -f ${AUTOTUNE_CONFIGMAPS}/${cluster_type}-config.yaml 2>/dev/null
+	echo "###   Starting HPO on Docker"
+	echo
+
+	${CONTAINER_RUNTIME} run -d --name hpo_docker_container -p 8085:8085 ${HPO_CONTAINER_IMAGE} >/dev/null 2>&1
+	check_err "Unexpected error occured. Service Stopped!"
 
 	echo
-	echo "Removing Autotune CRD"
-	${kubectl_cmd} delete -f ${AUTOTUNE_OPERATOR_CRD} 2>/dev/null
+	echo "### HPO Docker Service started successfully"
+	echo
+
+	sleep 1
+	${CONTAINER_RUNTIME} logs hpo_docker_container
+	echo
+}
+
+function docker_terminate() {
 
 	echo
-	echo "Removing AutotuneConfig CRD"
-	${kubectl_cmd} delete -f ${AUTOTUNE_CONFIG_CRD} 2>/dev/null
+	echo "###   Removing HPO Docker Container"
+	echo
+
+	${CONTAINER_RUNTIME} rm -f  hpo_docker_container >/dev/null 2>&1
+	check_err "Failed to stop hpo_docker_container!"
 
 	echo
-	echo "Removing AutotuneQueryVariables CRD"
-	${kubectl_cmd} delete -f ${AUTOTUNE_QUERY_VARIABLE_CRD} 2>/dev/null
+	echo "###   Successfully Terminated"
+	echo
 
-	rm ${AUTOTUNE_DEPLOY_MANIFEST}
-	rm ${AUTOTUNE_RB_MANIFEST}
+}
+
+###############################  v Native v #################################
+
+
+function native_start() {
+	echo
+	echo "###   Installing HPO as a native App"
+	echo
+
+	echo
+	echo "### Installing dependencies.........."
+	echo
+	python3 -m pip install -r requirements.txt
+
+	echo
+	echo "### Starting the service..."
+	echo
+
+	python3 hyperparameter_tuning/service.py
+}
+
+function native_terminate() {
+
+	echo
+	echo -n "###   Stopping HPO Service"
+	echo
+		
+	echo
+	echo "### Press Ctrl-C in the HPO terminal to stop the service"
+	echo
+
 }
