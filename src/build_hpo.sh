@@ -17,18 +17,19 @@
 ROOT_DIR="${PWD}"
 HPO_DOCKERFILE="Dockerfile.hpo"
 SEARCH_SPACE_DOCKERFILE="Dockerfile.search_space"
-HPO_DOCKER_REPO="kruize/hpo"
+HPO_CONTAINER_REPO="kruize/hpo"
 HPO_VERSION="0.0.8"
-HPO_DOCKER_IMAGE=${HPO_DOCKER_REPO}:${HPO_VERSION}
-SEARCH_SPACE_DOCKER_IMAGE=${HPO_DOCKER_REPO}:search_space_${HPO_VERSION}
+HPO_CONTAINER_IMAGE=${HPO_CONTAINER_REPO}:${HPO_VERSION}
+SEARCH_SPACE_CONTAINER_IMAGE=${HPO_CONTAINER_REPO}:search_space_${HPO_VERSION}
 DEV_MODE=0
 BUILD_PARAMS="--pull --no-cache"
+CONTAINER_RUNTIME="docker"
 
 function usage() {
-	echo "Usage: $0 [-d] [-v version_string][-o hpo_docker_image]"
+	echo "Usage: $0 [-d] [-v version_string][-o HPO_CONTAINER_IMAGE]"
 	echo " -d: build in dev friendly mode"
-	echo " -o: build with specific hpo docker image name"
-	echo " -ss: build with specific search space docker image name"
+	echo " -o: build with specific hpo container image name"
+	echo " -ss: build with specific search space container image name"
 	echo " -v: build as specific hpo version"
 	exit -1
 }
@@ -45,18 +46,27 @@ function check_err() {
 # Remove any previous images of hpo
 function cleanup() {
 	echo -n "Cleanup any previous kruize images..."
-	docker stop hpo >/dev/null 2>/dev/null
+	eval "${CONTAINER_RUNTIME} stop hpo >/dev/null 2>/dev/null"
 	sleep 5
-	docker rmi $(docker images | grep hpo | awk '{ print $3 }') >/dev/null 2>/dev/null
-	docker rmi $(docker images | grep hpo | awk '{ printf "%s:%s\n", $1, $2 }') >/dev/null 2>/dev/null
+	eval "${CONTAINER_RUNTIME} rmi $(${CONTAINER_RUNTIME} images | grep hpo | awk '{ print $3 }') >/dev/null 2>/dev/null"
+	eval "${CONTAINER_RUNTIME} rmi $(${CONTAINER_RUNTIME} images | grep hpo | awk '{ printf "%s:%s\n", $1, $2 }') >/dev/null 2>/dev/null"
 	echo "done"
 }
 
 function set_tags() {
-	HPO_REPO=$(echo ${HPO_DOCKER_IMAGE} | awk -F":" '{ print $1 }')
-	DOCKER_TAG=$(echo ${HPO_DOCKER_IMAGE} | awk -F":" '{ print $2 }')
+	HPO_REPO=$(echo ${HPO_CONTAINER_IMAGE} | awk -F":" '{ print $1 }')
+	DOCKER_TAG=$(echo ${HPO_CONTAINER_IMAGE} | awk -F":" '{ print $2 }')
 	if [ -z "${DOCKER_TAG}" ]; then
 		DOCKER_TAG="latest"
+	fi
+}
+
+function resolve_container_runtime() {
+	IFS='=' read -r -a dockerDeamonState <<< $(systemctl show --property ActiveState docker)
+	[[ "${dockerDeamonState[1]}" == "inactive" ]] && CONTAINER_RUNTIME="podman"
+	if ! command -v podman &> /dev/null; then
+	    echo "No Container Runtime available: Docker daemon is not running and podman command could not be found"
+	    exit 1
 	fi
 }
 
@@ -71,10 +81,10 @@ do
 		CONTAINER_COMMAND="podman-remote"
 		;;
 	o)
-		HPO_DOCKER_IMAGE="${OPTARG}"
+		HPO_CONTAINER_IMAGE="${OPTARG}"
 		;;
 	ss)
-		SEARCH_SPACE_DOCKER_IMAGE="${OPTARG}"
+		SEARCH_SPACE_CONTAINER_IMAGE="${OPTARG}"
 		;;
 	v)
 		HPO_VERSION="${OPTARG}"
@@ -84,8 +94,13 @@ do
 	esac
 done
 
+resolve_container_runtime
+
+echo "Building with runtime: ${CONTAINER_RUNTIME}"
+
 git pull
 set_tags
+
 # Build the docker image with the given version string
 if [ ${DEV_MODE} -eq 0 ]; then
 	cleanup
@@ -93,8 +108,8 @@ else
 	unset BUILD_PARAMS
 fi
 echo ${BUILD_PARAMS}
-docker build ${BUILD_PARAMS} --build-arg HPO_VERSION=${DOCKER_TAG} -t ${HPO_DOCKER_IMAGE} -f ${HPO_DOCKERFILE} .
-check_err "Docker build of ${HPO_DOCKER_IMAGE} failed."
-docker build ${BUILD_PARAMS} -t ${SEARCH_SPACE_DOCKER_IMAGE} -f ${SEARCH_SPACE_DOCKERFILE} .
-check_err "Docker build of ${SEARCH_SPACE_DOCKER_IMAGE} failed."
-docker images | grep -e "TAG" -e "${HPO_REPO}" | grep "${DOCKER_TAG}"
+eval "${CONTAINER_RUNTIME} build ${BUILD_PARAMS} --build-arg HPO_VERSION=${DOCKER_TAG} -t ${HPO_CONTAINER_IMAGE} -f ${HPO_DOCKERFILE} ."
+check_err "Docker build of ${HPO_CONTAINER_IMAGE} failed."
+eval "${CONTAINER_RUNTIME} build ${BUILD_PARAMS} -t ${SEARCH_SPACE_CONTAINER_IMAGE} -f ${SEARCH_SPACE_DOCKERFILE} ."
+check_err "Docker build of ${SEARCH_SPACE_CONTAINER_IMAGE} failed."
+eval "${CONTAINER_RUNTIME} images" | grep -e "TAG" -e "${HPO_REPO}" | grep "${DOCKER_TAG}"
