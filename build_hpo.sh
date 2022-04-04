@@ -15,21 +15,22 @@
 # limitations under the License.
 #
 ROOT_DIR="${PWD}"
+SCRIPTS_DIR="${ROOT_DIR}/scripts"
 HPO_DOCKERFILE="Dockerfile.hpo"
-SEARCH_SPACE_DOCKERFILE="Dockerfile.search_space"
 HPO_CONTAINER_REPO="kruize/hpo"
-HPO_VERSION="0.0.8"
+HPO_VERSION="0.0.1"
 HPO_CONTAINER_IMAGE=${HPO_CONTAINER_REPO}:${HPO_VERSION}
-SEARCH_SPACE_CONTAINER_IMAGE=${HPO_CONTAINER_REPO}:search_space_${HPO_VERSION}
 DEV_MODE=0
 BUILD_PARAMS="--pull --no-cache"
 CONTAINER_RUNTIME="docker"
 
+# source the helpers script
+. ${SCRIPTS_DIR}/cluster-helpers.sh
+
 function usage() {
-	echo "Usage: $0 [-d] [-v version_string][-o HPO_CONTAINER_IMAGE]"
+	echo "Usage: $0 [-d] [-v version_string][-h HPO_CONTAINER_IMAGE]"
 	echo " -d: build in dev friendly mode"
-	echo " -o: build with specific hpo container image name"
-	echo " -ss: build with specific search space container image name"
+	echo " -h: build with specific hpo container image name"
 	echo " -v: build as specific hpo version"
 	exit -1
 }
@@ -61,17 +62,8 @@ function set_tags() {
 	fi
 }
 
-function resolve_container_runtime() {
-	IFS='=' read -r -a dockerDeamonState <<< $(systemctl show --property ActiveState docker)
-	[[ "${dockerDeamonState[1]}" == "inactive" ]] && CONTAINER_RUNTIME="podman"
-	if ! command -v podman &> /dev/null; then
-	    echo "No Container Runtime available: Docker daemon is not running and podman command could not be found"
-	    exit 1
-	fi
-}
-
 # Iterate through the commandline options
-while getopts di:o:ss:pv: gopts
+while getopts do:pv: gopts
 do
 	case ${gopts} in
 	d)
@@ -80,11 +72,8 @@ do
 	p)
 		CONTAINER_COMMAND="podman-remote"
 		;;
-	o)
+	h)
 		HPO_CONTAINER_IMAGE="${OPTARG}"
-		;;
-	ss)
-		SEARCH_SPACE_CONTAINER_IMAGE="${OPTARG}"
 		;;
 	v)
 		HPO_VERSION="${OPTARG}"
@@ -110,6 +99,4 @@ fi
 echo ${BUILD_PARAMS}
 eval "${CONTAINER_RUNTIME} build ${BUILD_PARAMS} --build-arg HPO_VERSION=${DOCKER_TAG} -t ${HPO_CONTAINER_IMAGE} -f ${HPO_DOCKERFILE} ."
 check_err "Docker build of ${HPO_CONTAINER_IMAGE} failed."
-eval "${CONTAINER_RUNTIME} build ${BUILD_PARAMS} -t ${SEARCH_SPACE_CONTAINER_IMAGE} -f ${SEARCH_SPACE_DOCKERFILE} ."
-check_err "Docker build of ${SEARCH_SPACE_CONTAINER_IMAGE} failed."
 eval "${CONTAINER_RUNTIME} images" | grep -e "TAG" -e "${HPO_REPO}" | grep "${DOCKER_TAG}"

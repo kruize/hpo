@@ -17,7 +17,7 @@ limitations under the License.
 
 def get_all_tunables(search_space_json):
     """
-    Query Autotune API for the experiment_name, direction, hpo_algo_impl, id_, objective_function, tunables and
+    Query API for the experiment_name, direction, hpo_algo_impl, id_, objective_function, tunables and
     value_type, and return them.
 
     Parameters: search_space_json (json array): A JSON array containing the input search space to hyperparameter
@@ -32,13 +32,6 @@ def get_all_tunables(search_space_json):
         tunables (list): A list containing the details of each tunable in a dictionary format.
         value_type (string): Value type of the objective function.
     """
-    # JSON returned by the Autotune API
-    # search_space_json = {"experiment_id": "auto123", "experiment_name": "galaxies-autotune-min-http-response-time",
-    # "objective_function": "transaction_response_time", "value_type": "double", "direction": "minimize",
-    # "hpo_algo_impl": "optuna_tpe", "tunables": [{"name": "cpu_request", "value_type": "double", "upper_bound": 6,
-    # "lower_bound": 1, "step": 0.01}, {"name": "memory_request", "value_type": "integer", "upper_bound": 1024,
-    # "lower_bound": 100, "step": 1}]}
-    search_space_json = search_space_json[0]
     id_ = search_space_json["experiment_id"]
     experiment_name = search_space_json["experiment_name"]
     objective_function = search_space_json["objective_function"]
