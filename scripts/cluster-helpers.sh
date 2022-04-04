@@ -86,7 +86,7 @@ function native_start() {
 	echo "### Starting the service..."
 	echo
 
-	python3 hyperparameter_tuning/service.py
+	python3 src/service.py
 }
 
 function native_terminate() {
