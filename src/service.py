@@ -26,24 +26,30 @@ from urllib.parse import urlparse, parse_qs
 from json_validate import validate_trial_generate_json
 from tunables import get_all_tunables
 
-from bayes_optuna import optuna_hpo
-
 # Importing socket and os library
 import socket
 import os
+
+# Default values
+n_trials = os.getenv("N_TRIALS")
+n_jobs = os.getenv("N_JOBS")
+if n_trials == None :
+    os.environ['N_TRIALS'] = '10'
+
+if n_jobs == None :
+    os.environ['N_JOBS'] = '1'
+
+print("No. of Trials = ",n_trials)
+print("No. of Jobs = ",n_jobs)
+
+from bayes_optuna import optuna_hpo
+
 
 autotune_object_ids = {}
 search_space_json = []
 
 api_endpoint = "/experiment_trials"
 server_port = 8085
-
-# Default values
-if os.getenv("N_TRIALS") == None :
-    os.environ['N_TRIALS'] = '10'
-
-if os.getenv("N_JOBS") == None :
-    os.environ['N_JOBS'] = '1'
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
