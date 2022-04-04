@@ -38,6 +38,9 @@ class HpoService:
     def doesNotContainExperiment(self, name):
         return not self.containsExperiment(name)
 
+    def getExperimentsList(self):
+        return self.experiments.keys()
+
     def getExperiment(self, name) -> optuna_hpo.HpoExperiment:
         if self.doesNotContainExperiment(name):
             print("Experiment does not exist")
@@ -65,10 +68,9 @@ class HpoService:
         if experiment.hpo_algo_impl in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
             try:
                 experiment.resultsAvailableCond.acquire()
-                trial_json_object = json.dumps(experiment.trialDetails.trial_json_object)
+                return json.loads(json.dumps(experiment.trialDetails.trial_json_object))
             finally:
                 experiment.resultsAvailableCond.release()
-        return trial_json_object
 
 
     def set_result(self, id_, trial_result, result_value_type, result_value):
