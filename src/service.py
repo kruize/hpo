@@ -28,14 +28,22 @@ from tunables import get_all_tunables
 
 from bayes_optuna import optuna_hpo
 
-# Importing socket library
+# Importing socket and os library
 import socket
+import os
 
 autotune_object_ids = {}
 search_space_json = []
 
 api_endpoint = "/experiment_trials"
 server_port = 8085
+
+# Default values
+if os.getenv("N_TRIALS") == None :
+    os.environ['N_TRIALS'] = '10'
+
+if os.getenv("N_JOBS") == None :
+    os.environ['N_JOBS'] = '1'
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):

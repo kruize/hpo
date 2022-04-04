@@ -21,6 +21,10 @@ HPO_REPO="kruize/hpo"
 HPO_VERSION="0.0.1"
 HPO_CONTAINER_IMAGE=${HPO_REPO}:${HPO_VERSION}
 
+#default values
+setup=1
+cluster_type="native"
+
 # source the helpers script
 . ${SCRIPTS_DIR}/cluster-helpers.sh
 
@@ -67,7 +71,7 @@ do
 done
 
 resolve_container_runtime
-
+echo
 echo "Deploying with runtime: ${CONTAINER_RUNTIME}"
 
 
