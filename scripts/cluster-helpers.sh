@@ -94,9 +94,12 @@ function native_terminate() {
 	echo
 	echo -n "###   Stopping HPO Service"
 	echo
-		
+
+	pkill -f service.py >/dev/null 2>&1
+	check_err "Failed to stop HPO Service!"
+
 	echo
-	echo "### Press Ctrl-C in the HPO terminal to stop the service"
+	echo "### Successfully Terminated"
 	echo
 
 }
