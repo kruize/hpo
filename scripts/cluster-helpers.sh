@@ -95,8 +95,7 @@ function native_terminate() {
 	echo -n "###   Stopping HPO Service"
 	echo
 
-	pkill -f service.py >/dev/null 2>&1
-	check_err "Failed to stop HPO Service!"
+	ps -ef | grep service.py | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1
 
 	echo
 	echo "### Successfully Terminated"
