@@ -34,9 +34,10 @@ def get_all_tunables(search_space_json):
     """
     id_ = search_space_json["experiment_id"]
     experiment_name = search_space_json["experiment_name"]
+    experiment_trials = search_space_json["experiment_trials"]
     objective_function = search_space_json["objective_function"]
     value_type = search_space_json["value_type"]
     direction = search_space_json["direction"]
     hpo_algo_impl = search_space_json["hpo_algo_impl"]
     tunables = search_space_json["tunables"]
-    return experiment_name, direction, hpo_algo_impl, id_, objective_function, tunables, value_type
+    return experiment_name, experiment_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type

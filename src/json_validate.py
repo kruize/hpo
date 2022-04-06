@@ -25,7 +25,8 @@ trial_generate_schema = {
         },
         "search_space":{
             "type":"object",
-            "experiment_name": {"type": "string"},        
+            "experiment_name": {"type": "string"},
+            "experiment_trials": {"type": "integer"}
             "experiment_id": {"type": "string"},        
             "value_type": {"type": "string"},        
             "hpo_algo_impl": {"type": "string"},        

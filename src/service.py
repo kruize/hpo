@@ -141,12 +141,12 @@ def get_search_create_study(search_space_json, operation):
     # TODO: validate structure of search_space_json
     
     if operation == "EXP_TRIAL_GENERATE_NEW":
-        experiment_name, direction, hpo_algo_impl, id_, objective_function, tunables, value_type = get_all_tunables(
+        experiment_name, experiment_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type = get_all_tunables(
             search_space_json)
         autotune_object_ids[id_] = hpo_algo_impl
         if hpo_algo_impl in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
             threading.Thread(
-                target=optuna_hpo.recommend, args=(experiment_name, direction, hpo_algo_impl, id_, objective_function,
+                target=optuna_hpo.recommend, args=(experiment_name, experiment_trials, direction, hpo_algo_impl, id_, objective_function,
                                                    tunables, value_type)).start()
         time.sleep(2)
 
