@@ -100,3 +100,45 @@ function native_terminate() {
 	echo
 
 }
+
+###############################  v MiniKube v #################################
+
+function minikube_first() {
+
+	kubectl_cmd="kubectl -n ${hpo_ns}"
+	echo "Info: One time setup - Create a service account to deploy hpo"
+	
+	${kubectl_cmd} apply -f ${HPO_SA_MANIFEST}
+	check_err "Error: Failed to create service account and RBAC"
+
+	${kubectl_cmd} apply -f ${HPO_ROLE_MANIFEST}
+	check_err "Error: Failed to create role"
+
+	sed -e "s|{{ HPO_NAMESPACE }}|${hpo_ns}|" ${HPO_RB_MANIFEST_TEMPLATE} > ${HPO_RB_MANIFEST}
+	${kubectl_cmd} apply -f ${HPO_RB_MANIFEST}
+	check_err "Error: Failed to create role binding"
+}
+
+# You can deploy using kubectl
+function minikube_deploy() {
+	echo
+	echo "Creating environment variable in minikube cluster using configMap"
+	${kubectl_cmd} apply -f ${HPO_CONFIGMAPS}/${cluster_type}-config.yaml
+    
+    # TODO: complete the script
+
+}
+
+function minikube_start() {
+	echo
+	echo "###   Installing hpo for minikube"
+	echo
+
+	# If hpo_ns was not set by the user
+	if [ -z "$hpo_ns" ]; then
+		hpo_ns="monitoring"
+	fi
+
+	minikube_first
+	minikube_deploy
+}
