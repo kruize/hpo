@@ -1,0 +1,78 @@
+name: HPO Test on Pull Request
+
+# Controls when the action will run. 
+on:
+  pull_request:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  # This workflow contains a single job called "build"
+  test_on_docker:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - name: Build hpo
+        run: |
+          echo Software versions
+          python --version
+          curl -V
+          echo Building hpo container image
+          ls
+          cd hpo
+          ./build_hpo.sh
+          docker images | grep hpo
+          
+      - name: Sanity test on docker
+        run: |
+          echo Running sanity test on native
+          ls
+          cd hpo/tests         
+          ./test_hpo.sh -c docker -o kruize/hpo:0.0.1 --resultsdir=${GITHUB_WORKSPACE} --testsuite=hpo_api_tests --testcase=hpo_sanity_test
+        
+      - name: Archive results
+        if: always()
+        run: |
+          cd ${GITHUB_WORKSPACE}
+          tar cvf hpo_docker_results.tar hpo_test_results
+          
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+           name: hpo-results
+           path: ./hpo_docker_results.tar
+           retention-days: 2
+
+  test_on_native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Sanity test on native
+        run: |
+          echo Software versions
+          python --version
+          curl -V
+          echo Running sanity test on native
+          cd tests
+          ./test_hpo.sh -c native --resultsdir=${GITHUB_WORKSPACE} --testsuite=hpo_api_tests --testcase=hpo_sanity_test
+        
+      - name: Archive results
+        if: always()
+        run: |
+          cd ${GITHUB_WORKSPACE}
+          tar cvf hpo_native_results.tar hpo_test_results
+          
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+           name: hpo-results
+           path: ./hpo_native_results.tar
+           retention-days: 2
+
