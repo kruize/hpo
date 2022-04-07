@@ -21,7 +21,7 @@ class HpoService:
 
     def startExperiment(self, id_):
         experiment: optuna_hpo.HpoExperiment = self.experiments.get(id_)
-        started: threading.Condition = experiment.start();
+        started: threading.Condition = experiment.start()
         try:
             started.acquire()
             value = started.wait(10) #wait with timeout of 10s

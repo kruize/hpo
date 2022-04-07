@@ -22,7 +22,6 @@ import requests
 import time
 from urllib.parse import urlparse, parse_qs
 
-import hpo_service
 from json_validate import validate_trial_generate_json
 from tunables import get_all_tunables
 
@@ -42,11 +41,7 @@ if n_jobs == None :
 print("No. of Trials = ",n_trials)
 print("No. of Jobs = ",n_jobs)
 
-from bayes_optuna import optuna_hpo
-
-
-autotune_object_ids = {}
-search_space_json = []
+import hpo_service
 
 api_endpoint = "/experiment_trials"
 server_port = 8085
@@ -107,8 +102,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         """Process EXP_TRIAL_GENERATE_NEW operation."""
         is_valid_json_object = validate_trial_generate_json(json_object)
 
-        search_space_json = json_object["search_space"]
-        if is_valid_json_object and json_object["search_space"]["experiment_id"] not in autotune_object_ids.keys():            
+        if is_valid_json_object and hpo_service.instance.doesNotContainExperiment(json_object["search_space"]["experiment_id"]):
+            search_space_json = json_object["search_space"]
             get_search_create_study(search_space_json, json_object["operation"])
             trial_number = hpo_service.instance.get_trial_number(json_object["search_space"]["experiment_id"])
             self._set_response(200, str(trial_number))
@@ -118,10 +113,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     def handle_generate_subsequent_operation(self, json_object):
         """Process EXP_TRIAL_GENERATE_SUBSEQUENT operation."""
         is_valid_json_object = validate_trial_generate_json(json_object)
-
-        if is_valid_json_object and json_object["experiment_id"] in autotune_object_ids.keys():
-            get_search_create_study(search_space_json, json_object["operation"])
-            trial_number = hpo_service.instance.get_trial_number(json_object["experiment_id"])
+        experiment_id = json_object["experiment_id"]
+        if is_valid_json_object and hpo_service.instance.containsExperiment(experiment_id):
+            trial_number = hpo_service.instance.get_trial_number(experiment_id)
             self._set_response(200, str(trial_number))
         else:
             self._set_response(400, "-1")
@@ -147,7 +141,7 @@ def get_search_create_study(search_space_json, operation):
             hpo_service.instance.newExperiment(id_, experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, objective_function,
                                                  tunables, value_type)
             print("Starting Experiment: " + experiment_name)
-            hpo_service.instance.startExperiment(experiment_name)
+            hpo_service.instance.startExperiment(id_)
 
 
 def get_search_space(id_, url):
