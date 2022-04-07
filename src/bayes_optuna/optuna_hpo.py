@@ -105,7 +105,7 @@ class Objective(TrialDetails):
         return actual_slo_value
 
 
-def recommend(experiment_name, experiment_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type):
+def recommend(experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type):
     """
     Perform Bayesian Optimization with Optuna using the appropriate sampler and recommend the best config.
 
@@ -137,7 +137,7 @@ def recommend(experiment_name, experiment_trials, direction, hpo_algo_impl, id_,
     study = optuna.create_study(direction=direction, sampler=sampler)
 
     # Execute an optimization by using an 'Objective' instance
-    study.optimize(Objective(tunables), n_trials=experiment_trials, n_jobs=n_jobs)
+    study.optimize(Objective(tunables), n_trials=total_trials, n_jobs=parallel_trials)
 
     TrialDetails.trial_number = -1
 
