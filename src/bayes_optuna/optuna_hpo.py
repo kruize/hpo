@@ -18,6 +18,7 @@ import optuna
 import threading
 
 import os
+import time
 
 from logger import get_logger
 
@@ -37,6 +38,7 @@ class TrialDetails:
 
     trial_number = -1
     trial_json_object = {}
+    trial_result_received = -1
     trial_result = ""
     result_value_type = ""
     result_value = 0

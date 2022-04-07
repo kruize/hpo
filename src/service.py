@@ -24,24 +24,19 @@ from urllib.parse import urlparse, parse_qs
 
 from json_validate import validate_trial_generate_json
 from tunables import get_all_tunables
+from logger import get_logger
 
 # Importing socket and os library
 import socket
 import os
-
-# Default values
-n_trials = os.getenv("N_TRIALS")
-n_jobs = os.getenv("N_JOBS")
-if n_trials == None :
-    os.environ['N_TRIALS'] = '10'
-
-if n_jobs == None :
-    os.environ['N_JOBS'] = '1'
-
-print("No. of Trials = ",n_trials)
-print("No. of Jobs = ",n_jobs)
-
 import hpo_service
+
+logger = get_logger(__name__)
+
+n_trials = 100
+n_jobs = 1
+autotune_object_ids = {}
+search_space_json = []
 
 api_endpoint = "/experiment_trials"
 server_port = 8085
@@ -137,6 +132,14 @@ def get_search_create_study(search_space_json, operation):
     if operation == "EXP_TRIAL_GENERATE_NEW":
         experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type = get_all_tunables(
             search_space_json)
+        if(not total_trials):
+            total_trials = n_trials
+        if(not parallel_trials):
+            parallel_trials = n_jobs
+
+        logger.info("Total Trials = "+str(total_trials))
+        logger.info("Parallel Trials = "+str(parallel_trials))
+        
         if hpo_algo_impl in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
             hpo_service.instance.newExperiment(id_, experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, objective_function,
                                                  tunables, value_type)
@@ -157,17 +160,15 @@ def get_search_space(id_, url):
 def main():
     host_name = get_Host_name_IP()
     server = HTTPServer((host_name, server_port), HTTPRequestHandler)
-    print("Access server at http://%s:%s" % (host_name, server_port))
+    logger.info("Access server at http://%s:%s" % (host_name, server_port))
     server.serve_forever()
 
 
 def get_Host_name_IP():
     try:
         host_ip = socket.gethostbyname(socket.gethostname())
-        print("IP : ",host_ip)
         return host_ip
     except:
-        print("Unable to get Hostname and IP")
-
+        logger.error("Unable to get Hostname and IP")
 if __name__ == '__main__':
     main()
