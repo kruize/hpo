@@ -813,7 +813,7 @@ function hpo_sanity_test() {
 
 	TESTS_=${TEST_DIR}
 	${SCRIPTS_DIR}/start_hpo_servers.sh -p ${TESTS_} | tee -a ${LOG}
-	sleep 2
+	sleep 10
 
 	check_server_status
 
