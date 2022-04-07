@@ -31,10 +31,11 @@ HPO_CONTAINER_IMAGE="kruize/hpo:test"
 # usage of the test script
 function usage() { 
 	echo ""
-	echo "Usage: $0 -c [native|docker] [-h hpo container image] [--tctype=functional|system] [--testsuite=Group of tests that you want to perform] [--testcase=Particular test case that you want to check] [--resultsdir=results directory]"
+	echo "Usage: $0 -c [native|docker] [-o hpo container image] [--tctype=functional] [--testsuite=Group of tests that you want to perform] [--testcase=Particular test case that you want to check] [--resultsdir=results directory]"
 	echo ""
 	echo "Example: $0 -c native --testsuite=hpo_api_tests --testcase=hpo_post_experiment --resultsdir=/home/results"
-	echo "Example: $0 -c docker -h kruize/hpo:0.0.1 --testsuite=hpo_api_tests --resultsdir=/home/results"
+	echo "Example: $0 -c docker -o kruize/hpo:0.0.1 --testsuite=hpo_api_tests --resultsdir=/home/results"
+
 	echo ""
 	test_suite_usage
 	echo ""
@@ -61,7 +62,7 @@ function check_cluster_type() {
 		usage
 	fi
 	case "${cluster_type}" in
-	native)
+	native|docker)
 		;;
 	*)
 		echo "Error: Cluster type **${cluster_type}** is not supported  "
@@ -95,7 +96,7 @@ function check_testsuite_type() {
 # output: If test type is not supported then stop the test
 function check_testcase_type() {
 	case "${tctype}" in
-	functional|system)
+	functional)
 		;;
 	*)
 		echo "Error: Test case type **${tctype}** is not supported"
@@ -104,7 +105,7 @@ function check_testcase_type() {
 }
 
 # Iterate through the commandline options
-while getopts c:ti:k:n:p:su:r:y:o:-: gopts
+while getopts c:t:s:o:-: gopts
 do
 	case ${gopts} in
 	-)
@@ -132,7 +133,7 @@ do
 	t)
 		setup=0
 		;;
-	h)
+	o)
 		HPO_CONTAINER_IMAGE="${OPTARG}"
 		;;
 	s)
@@ -160,7 +161,7 @@ fi
 if [ "${setup}" -ne "0" ]; then
 	# Call the proper setup function based on the cluster_type
 	echo -n "############# Performing ${tctype} test for autotune #############"
-	${SCRIPTS_DIR}/${tctype}_tests.sh --cluster_type=${cluster_type} -h ${HPO_CONTAINER_IMAGE} --tctype=${tctype} --testsuite=${testsuite} --testcase=${testcase} --resultsdir=${resultsdir}
+	${SCRIPTS_DIR}/${tctype}_tests.sh --cluster_type=${cluster_type} -o ${HPO_CONTAINER_IMAGE} --tctype=${tctype} --testsuite=${testsuite} --testcase=${testcase} --resultsdir=${resultsdir}
 	TEST_RESULT=$?
 	echo "########################################################################"
 	echo ""

@@ -99,8 +99,7 @@ function form_hpo_api_url {
 	API=$1
 	# Form the URL command based on the cluster type
 	case $cluster_type in
-		docker) ;;
-		native) 
+		native|docker) 
 			PORT="8085"
 			SERVER_IP="localhost"
 			URL="http://${SERVER_IP}"
@@ -109,7 +108,7 @@ function form_hpo_api_url {
         esac
 
 	# Add conditions later for other cluster types
-        if [ $cluster_type == "native" ]; then
+        if [[ ${cluster_type} == "native" || ${cluster_type} == "docker" ]]; then
                 hpo_url="${URL}:${PORT}/${API}"
         fi
 }
@@ -282,12 +281,12 @@ function post_duplicate_experiments() {
 		expected_result_="^4[0-9][0-9]"
 		expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
 	
-		compare_result "${hpo_test_name}" "${expected_result_}" "${expected_behaviour}"
+		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}"
 	else
 		failed=1
 		expected_behaviour="RESPONSE_CODE = 200 OK"
 		echo "Posting valid experiment failed"
-		display_result "${expected_behaviour}" "${hpo_test_name}" "${failed}"
+		display_result "${expected_behaviour}" "${FUNCNAME}" "${failed}"
 	fi
 }
 
@@ -318,7 +317,7 @@ function operation_generate_subsequent() {
 	expected_result_=$(($trial_num+1))
 	expected_behaviour="trial_number = '${expected_result_}'"
 
-	compare_result "${hpo_test_name}" "${expected_result_}" "${expected_behaviour}"
+	compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}"
 }
 
 # The test does the following: 
@@ -326,7 +325,6 @@ function operation_generate_subsequent() {
 # * Post the same experiment again with the operation set to "EXP_TRIAL_GENERATE_SUBSEQUENT" after we post the result for the previous trial, and check if subsequent trial number is generated
 # input: Test name
 function other_post_experiment_tests() {
-	hpo_test_name=$1
 	exp="valid-experiment"
 	
 	for operation in "${other_post_experiment_tests[@]}"
@@ -673,12 +671,12 @@ function post_duplicate_exp_result() {
 		expected_result_="^4[0-9][0-9]"
 		expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
 
-		compare_result "${hpo_test_name}" "${expected_result_}" "${expected_behaviour}"
+		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}"
 	else
 		failed=1
 		expected_behaviour="RESPONSE_CODE = 200 OK"
 		echo "Posting valid experiment failed"
-		display_result "${expected_behaviour}" "${hpo_test_name}" "${failed}"
+		display_result "${expected_behaviour}" "${FUNCNAME}" "${failed}"
 	fi
 }
 
@@ -711,12 +709,12 @@ function post_same_id_different_exp_result() {
 		expected_result_="^4[0-9][0-9]"
 		expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
 
-		compare_result "${hpo_test_name}" "${expected_result_}" "${expected_behaviour}"
+		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}"
 	else
 		failed=1
 		expected_behaviour="RESPONSE_CODE = 200 OK"
 		echo "Posting valid experiment failed"
-		display_result "${expected_behaviour}" "${hpo_test_name}" "${failed}"
+		display_result "${expected_behaviour}" "${FUNCNAME}" "${failed}"
 	fi
 }
 
@@ -725,7 +723,6 @@ function post_same_id_different_exp_result() {
 # * Post different experiment results to HPO /experiment_trials API for the same experiment id and validate the result
 # input: Test name
 function other_exp_result_post_tests() {
-	hpo_test_name=$1
 
 	for operation in "${other_exp_result_post_tests[@]}"
 	do
@@ -770,7 +767,7 @@ function other_exp_result_post_tests() {
 # Tests for HPO /experiment_trials API POST experiment
 function hpo_post_experiment() {
 	run_post_tests ${FUNCNAME}
-	other_post_experiment_tests ${FUNCNAME}
+	other_post_experiment_tests
 }
 
 # Tests for RM-HPO GET trial JSON API
@@ -784,7 +781,7 @@ function hpo_get_trial_json(){
 # Tests for HPO /experiment_trials API POST experiment results
 function hpo_post_exp_result() {
 	run_post_tests ${FUNCNAME}
-	other_exp_result_post_tests ${FUNCNAME}
+	other_exp_result_post_tests
 }
 
 # Sanity Test for HPO 
@@ -804,24 +801,31 @@ function hpo_sanity_test() {
 	exp_id=$(echo ${hpo_post_experiment_json["valid-experiment"]} | jq '.search_space.experiment_id')
 	echo "Experiment id = $exp_id"
 
-	# Deploy hpo
-	#if [ $cluster_type == "native" ]; then
-	#	deploy_hpo $cluster_type
-	#else
-	#	deploy_hpo $cluster_type $hpo_container_image
-	#fi
-
 	TESTS_=${TEST_DIR}
-	${SCRIPTS_DIR}/start_hpo_servers.sh -p ${TESTS_} | tee -a ${LOG}
+	echo "RESULTSDIR - ${TEST_DIR}" | tee -a ${LOG}
+	echo "" | tee -a ${LOG}
+
+	# Deploy hpo
+	if [ ${cluster_type} == "native" ]; then
+		deploy_hpo ${cluster_type} 
+	else
+		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE}
+	fi
+
 	sleep 10
 
-	check_server_status
-
 	expected_http_code="200"
+
+	hostname=$(hostname)
+	echo "hostname = $hostname "
+	cat /etc/hosts
+	echo ""
 
 	## Loop through the trials
 	for (( i=0 ; i<${N_TRIALS} ; i++ ))
 	do
+		echo ""
+		echo "*********************************** Trial ${i} *************************************"
 		LOG_="${TEST_DIR}/hpo-trial-${i}.log"
 		if [ ${i} == 0 ]; then
 			# Post the experiment
@@ -840,7 +844,6 @@ function hpo_sanity_test() {
 	        url="http://localhost:8085/experiment_trials"
 
 		get_trial_json=$(${curl} ''${hpo_url}'?experiment_id=a123&trial_number='${i}'' -w '\n%{http_code}' 2>&1)
-#		get_trial_json=$(${curl} ''${hpo_url}'?experiment_id='${exp_id}'&trial_number='${i}'' -w '\n%{http_code}' 2>&1)
 
 		get_trial_json_cmd="${curl} ${url}?experiment_id="a123"&trial_number=${i} -w '\n%{http_code}'"
 		echo "command used to query the experiment_trial API = ${get_trial_json_cmd}" | tee -a ${LOG}
@@ -868,21 +871,25 @@ function hpo_sanity_test() {
 		sleep 5
 
 		# Generate a subsequent trial
-		echo "" | tee -a ${LOG}
-	        echo "Generate subsequent config after trial ${i} ..." | tee -a ${LOG}
-		subsequent_trial='{"experiment_id":'${exp_id}',"operation":"EXP_TRIAL_GENERATE_SUBSEQUENT"}'
-		post_experiment_json ${subsequent_trial}
-		verify_result "Post subsequent experiment after trial ${i}" "${http_code}" "${expected_http_code}"
-
+		if [[ ${i} < $((N_TRIALS)) ]]; then
+			echo "" | tee -a ${LOG}
+		        echo "Generate subsequent config after trial ${i} ..." | tee -a ${LOG}
+			subsequent_trial='{"experiment_id":'${exp_id}',"operation":"EXP_TRIAL_GENERATE_SUBSEQUENT"}'
+			post_experiment_json ${subsequent_trial}
+			verify_result "Post subsequent experiment after trial ${i}" "${http_code}" "${expected_http_code}"
+		fi
 	done
+
+	# Store the docker logs 
+	if [ ${cluster_type} == "docker" ]; then
+		docker logs hpo_docker_container > ${TEST_DIR}/hpo_container.log 2>&1
+	fi
 
 	# Terminate any running HPO servers
 	echo "Terminating any running HPO servers..." | tee -a ${LOG}
-	${SCRIPTS_DIR}/start_hpo_servers.sh -t > /dev/null
+	terminate_hpo ${cluster_type}
 	echo "Terminating any running HPO servers...Done" | tee -a ${LOG}
 
-	# Terminate hpo
-	# terminate_hpo ${cluster_type}
 
 	# check for failed cases
 	echo "failed = $failed"

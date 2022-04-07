@@ -83,19 +83,21 @@ function time_diff() {
 function deploy_hpo() {
 	cluster_type=$1
 	HPO_CONTAINER_IMAGE=$2
-	
+	log="${RESULTS_DIR}/service.log"
+
 	pushd ${HPO_REPO} > /dev/null
 	
 	if [ ${cluster_type} == "native" ]; then
 		echo
 		echo
-		cmd="./deploy_hpo.sh -c ${cluster_type}"
+		cmd="./deploy_hpo.sh -c ${cluster_type} > ${log} &"
+		./deploy_hpo.sh -c ${cluster_type} > ${log} &
 	else 
-		cmd="./deploy.sh -c ${cluster_type} -h ${HPO_CONTAINER_IMAGE}"
+		cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE}"
+		./deploy_hpo.sh -c ${cluster_type} -h ${HPO_CONTAINER_IMAGE}
 	fi
-	
+
 	echo "Starting hpo with command - ${cmd}"
-	${cmd}
 	
 	status="$?"
 	# Check if hpo is deployed.
@@ -113,10 +115,10 @@ function terminate_hpo() {
 	cluster_type=$1
 
 	pushd ${HPO_REPO} > /dev/null
-	echo  "Terminating hpo..."
-	cmd="./deploy.sh -c ${cluster_type} -t"
-	echo "CMD= ${cmd}"
-	${cmd} >> ${HPO_SETUP_LOG} 2>&1
+		echo  "Terminating hpo..."
+		cmd="./deploy_hpo.sh -c ${cluster_type} -t"
+		./deploy_hpo.sh -c ${cluster_type} -t
+		echo "CMD= ${cmd}"
 
 	popd > /dev/null
 	echo "done"
@@ -292,6 +294,7 @@ function display_result() {
 	else
 		((TESTS_FAILED++))
 		((TOTAL_TESTS_FAILED++))
+		echo "&&&&&&& In display result = ${_id_test_name_}"
 		FAILED_CASES+=(${_id_test_name_})
 		echo "Expected behaviour not found" | tee -a ${LOG}
 		echo "Test failed" | tee -a ${LOG}
