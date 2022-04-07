@@ -25,7 +25,9 @@ trial_generate_schema = {
         },
         "search_space":{
             "type":"object",
-            "experiment_name": {"type": "string"},        
+            "experiment_name": {"type": "string"},
+            "total_trials": {"type": "integer"},
+            "parallel_trials": {"type": "integer"},
             "experiment_id": {"type": "string"},        
             "value_type": {"type": "string"},        
             "hpo_algo_impl": {"type": "string"},        
@@ -36,7 +38,7 @@ trial_generate_schema = {
                 "name": {"type": "string"},        
                 "lower_bound": {"type": "number"},        
                 "upper_bound": {"type": "number"},        
-                "step": {"type": "integer"},
+                "step": {"type": "number"},
                 "choices":{"type":"array"}
             },
             "slo_class": {"type": "string"},        
