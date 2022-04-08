@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-##### Script to test autotune #####
+##### Script to test hpo #####
 #
 
 CURRENT_DIR="$(dirname "$(realpath "$0")")"
@@ -160,7 +160,7 @@ fi
 
 if [ "${setup}" -ne "0" ]; then
 	# Call the proper setup function based on the cluster_type
-	echo -n "############# Performing ${tctype} test for autotune #############"
+	echo -n "############# Performing ${tctype} test for hpo #############"
 	${SCRIPTS_DIR}/${tctype}_tests.sh --cluster_type=${cluster_type} -o ${HPO_CONTAINER_IMAGE} --tctype=${tctype} --testsuite=${testsuite} --testcase=${testcase} --resultsdir=${resultsdir}
 	TEST_RESULT=$?
 	echo "########################################################################"

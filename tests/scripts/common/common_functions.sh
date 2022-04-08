@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2021 Red Hat, IBM Corporation and others.
+# Copyright (c) 2020, 2022 Red Hat, IBM Corporation and others.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,9 +30,6 @@ TOTAL_TESTS=0
 TESTS_FAILED=0
 TESTS_PASSED=0
 TESTS=0
-
-# By default do not start HPO service as it is started in the autotune docker image
-HPO_SERVICE=0
 
 TEST_MODULE_ARRAY=("hpo")
 

@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-##### Functional tests for autotune #####
+##### Functional tests for hpo #####
 #
 
 CURRENT_DIR="$(dirname "$(realpath "$0")")"
@@ -34,9 +34,6 @@ do
 		case "${OPTARG}" in
 			cluster_type=*)
 				cluster_type=${OPTARG#*=}
-				if [ ${cluster_type} == "native" ]; then
-					HPO_SERVICE=1
-				fi
 				;;
 			tctype=*)
 				tctype=${OPTARG#*=}

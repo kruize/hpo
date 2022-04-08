@@ -878,7 +878,7 @@ function hpo_sanity_test() {
 		sleep 5
 
 		# Generate a subsequent trial
-		if [[ ${i} < $((N_TRIALS)) ]]; then
+		if [[ ${i} < $((N_TRIALS-1)) ]]; then
 			echo "" | tee -a ${LOG}
 		        echo "Generate subsequent config after trial ${i} ..." | tee -a ${LOG}
 			subsequent_trial='{"experiment_id":'${exp_id}',"operation":"EXP_TRIAL_GENERATE_SUBSEQUENT"}'
