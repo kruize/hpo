@@ -19,26 +19,23 @@ import re
 import cgi
 import json
 import requests
-import time
 from urllib.parse import urlparse, parse_qs
 
 from json_validate import validate_trial_generate_json
 from tunables import get_all_tunables
 from logger import get_logger
 
-# Importing socket and os library
-import socket
-import os
 import hpo_service
 
 logger = get_logger(__name__)
 
-n_trials = 100
+n_trials = 10
 n_jobs = 1
 autotune_object_ids = {}
 search_space_json = []
 
 api_endpoint = "/experiment_trials"
+host_name="localhost"
 server_port = 8085
 
 
@@ -99,7 +96,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
         if is_valid_json_object and hpo_service.instance.doesNotContainExperiment(json_object["search_space"]["experiment_id"]):
             search_space_json = json_object["search_space"]
-            get_search_create_study(search_space_json, json_object["operation"])
+            if get_search_create_study(search_space_json, json_object["operation"]) == -1:
+                self._set_response(400, "-1")
             trial_number = hpo_service.instance.get_trial_number(json_object["search_space"]["experiment_id"])
             self._set_response(200, str(trial_number))
         else:
@@ -133,7 +131,7 @@ def get_search_create_study(search_space_json, operation):
         experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type = get_all_tunables(
             search_space_json)
         if(not total_trials):
-            total_trials = n_trials
+            return -1
         if(not parallel_trials):
             parallel_trials = n_jobs
 
@@ -157,18 +155,10 @@ def get_search_space(id_, url):
 
 
 
-def main():
-    host_name = get_Host_name_IP()
+def main():    
     server = HTTPServer((host_name, server_port), HTTPRequestHandler)
     logger.info("Access server at http://%s:%s" % (host_name, server_port))
     server.serve_forever()
 
-
-def get_Host_name_IP():
-    try:
-        host_ip = socket.gethostbyname(socket.gethostname())
-        return host_ip
-    except:
-        logger.error("Unable to get Hostname and IP")
 if __name__ == '__main__':
     main()

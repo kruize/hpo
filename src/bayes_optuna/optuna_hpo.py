@@ -22,9 +22,6 @@ import time
 
 from logger import get_logger
 
-n_trials = int(os.getenv("N_TRIALS"))
-n_jobs = int(os.getenv("N_JOBS"))
-
 logger = get_logger(__name__)
 
 trials = []
@@ -143,7 +140,7 @@ class HpoExperiment:
         study = optuna.create_study(direction=self.direction, sampler=sampler)
 
         # Execute an optimization by using an 'Objective' instance
-        study.optimize(Objective(self), n_trials=self.total_trials, n_jobs=self.parallel_trials)
+        study.optimize(Objective(self), n_trials=int(self.total_trials), n_jobs=int(self.parallel_trials))
 
         self.trialDetails.trial_number = -1
 

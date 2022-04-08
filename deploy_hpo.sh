@@ -17,14 +17,17 @@
 
 ROOT_DIR="${PWD}"
 SCRIPTS_DIR="${ROOT_DIR}/scripts"
-HPO_REPO="kruize/hpo"
+HPO_REPO="saakhan/hpo"
 HPO_VERSION=$(grep -a -m 1 "HPO_VERSION" ${ROOT_DIR}/version.py | cut -d= -f2)
+HPO_VERSION=$(sed -e 's/^"//' -e 's/"$//' <<<"$HPO_VERSION")
+echo
 echo "Using version: ${HPO_VERSION}"
 HPO_CONTAINER_IMAGE=${HPO_REPO}:${HPO_VERSION}
 
 #default values
 setup=1
 cluster_type="native"
+CONTAINER_RUNTIME="docker"
 
 # source the helpers script
 . ${SCRIPTS_DIR}/cluster-helpers.sh
@@ -72,9 +75,6 @@ do
 done
 
 resolve_container_runtime
-echo
-echo "Deploying with runtime: ${CONTAINER_RUNTIME}"
-
 
 # Call the proper setup function based on the cluster_type
 if [ ${setup} == 1 ]; then
