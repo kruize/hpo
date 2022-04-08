@@ -39,7 +39,12 @@ function check_err() {
 function docker_start() {
 	
 	echo
+	echo "Deploying with runtime: ${CONTAINER_RUNTIME}"
+	
+	echo
 	echo "###   Starting HPO on Docker"
+	echo
+	echo ${HPO_CONTAINER_IMAGE}
 	echo
 
 	${CONTAINER_RUNTIME} run -d --name hpo_docker_container -p 8085:8085 ${HPO_CONTAINER_IMAGE} >/dev/null 2>&1
@@ -49,7 +54,7 @@ function docker_start() {
 	echo "### HPO Docker Service started successfully"
 	echo
 
-	sleep 1
+	sleep 2
 	${CONTAINER_RUNTIME} logs hpo_docker_container
 	echo
 }
@@ -80,13 +85,13 @@ function native_start() {
 	echo
 	echo "### Installing dependencies.........."
 	echo
-	python3 -m pip install -r requirements.txt
+	python3 -m pip install --user -r requirements.txt
 
 	echo
 	echo "### Starting the service..."
 	echo
 
-	python3 src/service.py
+	python3 -u src/service.py
 }
 
 function native_terminate() {
