@@ -18,8 +18,13 @@ ROOT_DIR="${PWD}"
 SCRIPTS_DIR="${ROOT_DIR}/scripts"
 HPO_DOCKERFILE="Dockerfile.hpo"
 HPO_CONTAINER_REPO="kruize/hpo"
-HPO_VERSION="0.0.1"
+HPO_VERSION=$(grep -a -m 1 "HPO_VERSION" ${ROOT_DIR}/version.py | cut -d= -f2)
+HPO_VERSION=$(sed -e 's/^"//' -e 's/"$//' <<<"$HPO_VERSION")
+echo
+echo "Using version: ${HPO_VERSION}"
 HPO_CONTAINER_IMAGE=${HPO_CONTAINER_REPO}:${HPO_VERSION}
+
+#default values
 DEV_MODE=0
 BUILD_PARAMS="--pull --no-cache"
 CONTAINER_RUNTIME="docker"
@@ -28,9 +33,9 @@ CONTAINER_RUNTIME="docker"
 . ${SCRIPTS_DIR}/cluster-helpers.sh
 
 function usage() {
-	echo "Usage: $0 [-d] [-v version_string][-h HPO_CONTAINER_IMAGE]"
+	echo "Usage: $0 [-d] [-v version_string][-o HPO_CONTAINER_IMAGE]"
 	echo " -d: build in dev friendly mode"
-	echo " -h: build with specific hpo container image name"
+	echo " -o: build with specific hpo container image name"
 	echo " -v: build as specific hpo version"
 	exit -1
 }
@@ -72,7 +77,7 @@ do
 	p)
 		CONTAINER_COMMAND="podman-remote"
 		;;
-	h)
+	o)
 		HPO_CONTAINER_IMAGE="${OPTARG}"
 		;;
 	v)

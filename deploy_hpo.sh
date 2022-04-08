@@ -18,22 +18,26 @@
 ROOT_DIR="${PWD}"
 SCRIPTS_DIR="${ROOT_DIR}/scripts"
 HPO_REPO="kruize/hpo"
-HPO_VERSION="0.0.1"
+HPO_VERSION=$(grep -a -m 1 "HPO_VERSION" ${ROOT_DIR}/version.py | cut -d= -f2)
+HPO_VERSION=$(sed -e 's/^"//' -e 's/"$//' <<<"$HPO_VERSION")
+echo
+echo "Using version: ${HPO_VERSION}"
 HPO_CONTAINER_IMAGE=${HPO_REPO}:${HPO_VERSION}
 
 #default values
 setup=1
 cluster_type="native"
+CONTAINER_RUNTIME="docker"
 
 # source the helpers script
 . ${SCRIPTS_DIR}/cluster-helpers.sh
 
 function usage() {
 	echo
-	echo "Usage: $0 [-c [docker|minikube|native]] [-h hpo container image]"
+	echo "Usage: $0 [-c [docker|minikube|native]] [-o hpo container image]"
 	echo "       -s = start(default), -t = terminate"
 	echo " -c: cluster type."
-	echo " -h: build with specific hpo container image name [Default - kruize/hpo:<version>]"
+	echo " -o: build with specific hpo container image name [Default - kruize/hpo:<version>]"
 	exit -1
 }
 
@@ -49,14 +53,14 @@ function check_cluster_type() {
 }
 
 # Iterate through the commandline options
-while getopts c:h:st gopts
+while getopts c:o:st gopts
 do
 	case ${gopts} in
 	c)
 		cluster_type="${OPTARG}"
 		check_cluster_type
 		;;
-	h)
+	o)
 		HPO_CONTAINER_IMAGE="${OPTARG}"
 		;;
 	s)
@@ -71,9 +75,6 @@ do
 done
 
 resolve_container_runtime
-echo
-echo "Deploying with runtime: ${CONTAINER_RUNTIME}"
-
 
 # Call the proper setup function based on the cluster_type
 if [ ${setup} == 1 ]; then
