@@ -54,12 +54,13 @@ function hpo_api_tests() {
 		testtorun=${testcase}
 	fi
 
-	if [[ ${HPO_SERVICE} == 1 ]]; then
-		# Terminate any running HPO servers
-		echo "Terminating any running HPO servers..."
-		${SCRIPTS_DIR}/start_hpo_servers.sh -t > /dev/null
-		echo "Terminating any running HPO servers...Done"
-	fi
+	# Stop the HPO servers
+	echo "Terminating any running HPO servers..."
+	terminate_hpo ${cluster_type} > /dev/null
+	echo "Terminating any running HPO servers...Done"
+
+	# Sleep for few seconds to reduce the ambiguity
+	sleep 2
 
 	for test in "${testtorun[@]}"
 	do
@@ -178,23 +179,22 @@ function run_post_tests(){
 		TESTS_="${TEST_DIR}/${post_test}"
 		mkdir -p ${TESTS_}
 		LOG_="${TEST_DIR}/${post_test}.log"
+		SERV_LOG="${TESTS_}/service.log"
 
 		echo "************************************* ${post_test} Test ****************************************" | tee -a ${LOG_} ${LOG}
 		echo "" | tee -a ${LOG_} ${LOG}
 
 		exp="${post_test}"	
-		# Start the HPO servers
-		if [[ ${HPO_SERVICE} == 1 ]]; then
-			${SCRIPTS_DIR}/start_hpo_servers.sh -p ${TESTS_} | tee -a ${LOG_} ${LOG}
-		fi
 
+		# Deploy hpo
+		if [ ${cluster_type} == "native" ]; then
+			deploy_hpo ${cluster_type} ${SERV_LOG}
+		else
+			deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
+		fi
+	
 		# Sleep for few seconds to reduce the ambiguity
-		sleep 2
-
-		# Check if the servers have started
-		if [[ ${HPO_SERVICE} == 1 ]]; then
-			check_server_status
-		fi
+		sleep 5
 
 		# Get the experiment id from search space JSON
 
@@ -221,25 +221,25 @@ function run_post_tests(){
 		fi
 
 		actual_result="${http_code}"
-		echo "***************** service log ********************"
+		echo ""
+		echo "***************** service log ********************" 
 		cat "${TESTS_}/service.log"
 		echo "***************** service log ********************"
+		echo ""
 		if [[ "${http_code}" -eq "000" ]]; then
 			if [[ ! -z ${expected_log_msg} ]]; then
 				if grep -q "${expected_log_msg}" "${TESTS_}/service.log" ; then
 					failed=0 
 				else
 					failed=1
-					FAILED_CASES+=(${post_test})
 				fi
 			else
 				failed=1
-				FAILED_CASES+=(${post_test})
 			fi
 
 			((TOTAL_TESTS++))
 			((TESTS++))
-			error_message "${failed}"
+			error_message "${failed}" "${post_test}"
 		else
 			echo "actual_result = $actual_result expected_result = ${expected_result_}"
 			compare_result "${post_test}" "${expected_result_}" "${expected_behaviour}"
@@ -247,9 +247,9 @@ function run_post_tests(){
 		echo ""
 
 		# Stop the HPO servers
-		if [[ ${HPO_SERVICE} == 1 ]]; then
-			${SCRIPTS_DIR}/start_hpo_servers.sh -t ${hpo_option} | tee -a ${LOG_} ${LOG}
-		fi
+		echo "Terminating any running HPO servers..." | tee -a ${LOG}
+		terminate_hpo ${cluster_type}
+		echo "Terminating any running HPO servers...Done" | tee -a ${LOG}
 
 		# Sleep for few seconds to reduce the ambiguity
 		sleep 5
@@ -332,31 +332,32 @@ function other_post_experiment_tests() {
 		TESTS_="${TEST_DIR}/${operation}"
 		mkdir -p ${TESTS_}
 		LOG_="${TEST_DIR}/${operation}.log"
+		SERV_LOG="${TESTS_}/service.log"
+
 		echo ""
 		echo "************************************* ${operation} Test ****************************************" | tee -a ${LOG_} ${LOG}
 		
-		# Start the HPO servers
-		if [[ ${HPO_SERVICE} == 1 ]]; then
-			${SCRIPTS_DIR}/start_hpo_servers.sh -p ${TESTS_} | tee -a ${LOG_} ${LOG}
-
-			# Sleep for few seconds to reduce the ambiguity
-			sleep 2
-
-			# Check if the servers have started
-			check_server_status
+		# Deploy hpo
+		if [ ${cluster_type} == "native" ]; then
+			deploy_hpo ${cluster_type} ${SERV_LOG}
+		else
+			deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
 		fi
+	
+		# Sleep for few seconds to reduce the ambiguity
+		sleep 5
 		
 		operation=$(echo ${operation//-/_})
 		${operation}
 		echo ""
 		
 		# Stop the HPO servers
-		if [[ ${HPO_SERVICE} == 1 ]]; then
-			${SCRIPTS_DIR}/start_hpo_servers.sh -t | tee -a ${LOG_} ${LOG}
-		fi
-		
+		echo "Terminating any running HPO servers..." | tee -a ${LOG}
+		terminate_hpo ${cluster_type}
+		echo "Terminating any running HPO servers...Done" | tee -a ${LOG}
+
 		# Sleep for few seconds to reduce the ambiguity
-		sleep 2
+		sleep 5
 	done
 		
 	echo "*********************************************************************************************************" | tee -a ${LOG_} ${LOG}	
@@ -436,18 +437,19 @@ function get_trial_json_invalid_tests() {
 		mkdir -p ${TESTS_}
 		LOG_="${TEST_DIR}/${exp_trial}.log"
 		result="${TESTS_}/${exp_trial}_result.log"
+		SERV_LOG="${TESTS_}/service.log"
+
 		echo "************************************* ${exp_trial} Test ****************************************" | tee -a ${LOG_} ${LOG}
 		
-		# Start the HPO servers
-		if [[ ${HPO_SERVICE} == 1 ]]; then
-			${SCRIPTS_DIR}/start_hpo_servers.sh -p ${TESTS_} | tee -a ${LOG_} ${LOG}
-
-			# Sleep for few seconds to reduce the ambiguity
-			sleep 2
-		
-			# Check if the servers have started
-			check_server_status
+		# Deploy hpo
+		if [ ${cluster_type} == "native" ]; then
+			deploy_hpo ${cluster_type} ${SERV_LOG}
+		else
+			deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
 		fi
+	
+		# Sleep for few seconds to reduce the ambiguity
+		sleep 5
 		
 		# Get the experiment id from search space JSON
 		current_id="a123"
@@ -464,13 +466,16 @@ function get_trial_json_invalid_tests() {
 		expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
 
 		echo "actual_result = $actual_result"
-		compare_result ${__test_name__} ${expected_result_} "${expected_behaviour}"
+		compare_result ${exp_trial} ${expected_result_} "${expected_behaviour}"
 		echo ""
 		
 		# Stop the HPO servers
-		if [[ ${HPO_SERVICE} == 1 ]]; then
-			${SCRIPTS_DIR}/start_hpo_servers.sh -t | tee -a ${LOG_} ${LOG}
-		fi
+		echo "Terminating any running HPO servers..." | tee -a ${LOG_} ${LOG}
+		terminate_hpo ${cluster_type} | tee -a ${LOG_} ${LOG}
+		echo "Terminating any running HPO servers...Done" | tee -a ${LOG_} ${LOG}
+
+		# Sleep for few seconds to reduce the ambiguity
+		sleep 5
 	done
 	echo "*********************************************************************************************************" | tee -a ${LOG_} ${LOG}
 }
@@ -557,18 +562,19 @@ function get_trial_json_valid_tests() {
 		LOG_="${TEST_DIR}/${FUNCNAME}.log"
 		result="${TESTS_}/${exp_trial}_result.log"
 		parse_json="${TESTS_}/${exp_trial}_expected_json.json"
+		SERV_LOG="${TESTS_}/service.log"
+
 		echo "************************************* ${exp_trial} Test ****************************************" | tee -a ${LOG_} ${LOG}
 	
-		# Start the HPO servers
-		if [[ ${HPO_SERVICE} == 1 ]]; then
-			${SCRIPTS_DIR}/start_hpo_servers.sh -p ${TESTS_} | tee -a ${LOG_} ${LOG}
-
-			# Sleep for few seconds to reduce the ambiguity
-			sleep 2
-	
-			# Check if the servers have started
-			check_server_status
+		# Deploy hpo
+		if [ ${cluster_type} == "native" ]; then
+			deploy_hpo ${cluster_type} ${SERV_LOG}
+		else
+			deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
 		fi
+	
+		# Sleep for few seconds to reduce the ambiguity
+		sleep 5
 			
 		# Get the experiment id from search space JSON
 		current_id="a123"
@@ -592,7 +598,7 @@ function get_trial_json_valid_tests() {
 		expected_behaviour="RESPONSE_CODE = 200 OK"
 
 		echo "************ TESTS = $TESTS"
-		compare_result ${__test_name__} ${expected_result_} "${expected_behaviour}"
+		compare_result ${exp_trial} ${expected_result_} "${expected_behaviour}"
 		echo "************ TESTS = $TESTS"
 		
 		if [[ "${failed}" -eq 0 ]]; then
@@ -603,12 +609,15 @@ function get_trial_json_valid_tests() {
 		fi
 		
 		# Stop the HPO servers
-		if [[ ${HPO_SERVICE} == 1 ]]; then
-			${SCRIPTS_DIR}/start_hpo_servers.sh -t | tee -a ${LOG_} ${LOG}
-		fi
+		echo "Terminating any running HPO servers..." | tee -a ${LOG_} ${LOG}
+		terminate_hpo ${cluster_type}  | tee -a ${LOG_} ${LOG}
+		echo "Terminating any running HPO servers...Done" | tee -a ${LOG_} ${LOG}
+
+		# Sleep for few seconds to reduce the ambiguity
+		sleep 5
 		echo "*********************************************************************************************************" | tee -a ${LOG_} ${LOG}
 	done
-		echo "************ TESTS = $TESTS"
+	echo "************ TESTS = $TESTS"
 }
 
 # Post the experiment result to HPO /experiment_trials API
@@ -729,21 +738,19 @@ function other_exp_result_post_tests() {
 		TESTS_="${TEST_DIR}/${operation}"
 		mkdir -p ${TESTS_}
 		LOG_="${TEST_DIR}/${operation}.log"
+		SERV_LOG="${TESTS_}/service.log"
+
 		echo "************************************* ${operation} Test ****************************************" | tee -a ${LOG_} ${LOG}
 
-		# Start the HPO servers
-		if [[ ${HPO_SERVICE} == 1 ]]; then
-			${SCRIPTS_DIR}/start_hpo_servers.sh -p ${TESTS_} | tee -a ${LOG_} ${LOG}
-
-			# Sleep for few seconds to reduce the ambiguity
-			sleep 2
-
-			# Check if the servers have started
-			if [ ${HPO_SERVICE} == 1 ]; then
-				check_server_status
-			fi
+		# Deploy hpo
+		if [ ${cluster_type} == "native" ]; then
+			deploy_hpo ${cluster_type} ${SERV_LOG}
+		else
+			deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
 		fi
-
+	
+		# Sleep for few seconds to reduce the ambiguity
+		sleep 5
 
 		# Get the experiment_id from search space JSON
 		current_id="a123"
@@ -753,13 +760,12 @@ function other_exp_result_post_tests() {
 		echo ""
 
 		# Stop the HPO servers
-		if [[ ${HPO_SERVICE} == 1 ]]; then
-			${SCRIPTS_DIR}/start_hpo_servers.sh -t | tee -a ${LOG_} ${LOG}
-		fi
+		echo "Terminating any running HPO servers..." | tee -a ${LOG}
+		terminate_hpo ${cluster_type}
+		echo "Terminating any running HPO servers...Done" | tee -a ${LOG}
 
 		# Sleep for few seconds to reduce the ambiguity
-		sleep 2
-
+		sleep 5
 		echo "*********************************************************************************************************" | tee -a ${LOG_} ${LOG}
 	done	
 }
@@ -802,14 +808,15 @@ function hpo_sanity_test() {
 	echo "Experiment id = $exp_id"
 
 	TESTS_=${TEST_DIR}
+	SERV_LOG="${TESTS_}/service.log"
 	echo "RESULTSDIR - ${TEST_DIR}" | tee -a ${LOG}
 	echo "" | tee -a ${LOG}
 
 	# Deploy hpo
 	if [ ${cluster_type} == "native" ]; then
-		deploy_hpo ${cluster_type} 
+		deploy_hpo ${cluster_type} ${SERV_LOG}
 	else
-		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE}
+		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
 	fi
 
 	sleep 10
@@ -889,7 +896,7 @@ function hpo_sanity_test() {
 	echo "Terminating any running HPO servers..." | tee -a ${LOG}
 	terminate_hpo ${cluster_type}
 	echo "Terminating any running HPO servers...Done" | tee -a ${LOG}
-
+	sleep 2
 
 	# check for failed cases
 	echo "failed = $failed"

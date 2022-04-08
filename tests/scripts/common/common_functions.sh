@@ -83,27 +83,33 @@ function time_diff() {
 function deploy_hpo() {
 	cluster_type=$1
 	HPO_CONTAINER_IMAGE=$2
-	log="${RESULTS_DIR}/service.log"
 
 	pushd ${HPO_REPO} > /dev/null
 	
 	if [ ${cluster_type} == "native" ]; then
 		echo
 		echo
-		cmd="./deploy_hpo.sh -c ${cluster_type} > ${log} &"
-		./deploy_hpo.sh -c ${cluster_type} > ${log} &
+		log=$2
+		cmd="./deploy_hpo.sh -c ${cluster_type} > ${log} 2>&1 &"
+		echo "Command to deploy hpo - ${cmd}"
+		./deploy_hpo.sh -c ${cluster_type} > ${log} 2>&1 &
 	else 
 		cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE}"
+		echo "Command to deploy hpo - ${cmd}"
 		./deploy_hpo.sh -c ${cluster_type} -h ${HPO_CONTAINER_IMAGE}
 	fi
-
-	echo "Starting hpo with command - ${cmd}"
 	
 	status="$?"
 	# Check if hpo is deployed.
 	if [[ "${status}" -eq "1" ]]; then
 		echo "Error deploying hpo" >>/dev/stderr
 		exit -1
+	fi
+
+	sleep 2
+	if [ ${cluster_type} == "docker" ]; then
+		log=$3
+		docker logs hpo_docker_container > "${log}" 2>&1
 	fi
 
 	popd > /dev/null
@@ -117,9 +123,8 @@ function terminate_hpo() {
 	pushd ${HPO_REPO} > /dev/null
 		echo  "Terminating hpo..."
 		cmd="./deploy_hpo.sh -c ${cluster_type} -t"
+		echo "CMD = ${cmd}"
 		./deploy_hpo.sh -c ${cluster_type} -t
-		echo "CMD= ${cmd}"
-
 	popd > /dev/null
 	echo "done"
 }
@@ -221,6 +226,8 @@ function overallsummary(){
 # ouput: based on the status passed print the messages
 function error_message() {
 	failed=$1
+	test_name=$2
+
 	echo ""
 	# check for failed cases
 	if [ "${failed}" -eq "0" ]; then
@@ -232,7 +239,7 @@ function error_message() {
 	else
 		((TESTS_FAILED++))
 		((TOTAL_TESTS_FAILED++))
-		FAILED_CASES+=(${testcase})
+		FAILED_CASES+=(${test_name})
 		echo "Expected message is : ${expected_log_msg}"| tee -a ${LOG}
 		echo "Expected message not found"
 		echo "Test failed" | tee -a ${LOG}
@@ -294,7 +301,6 @@ function display_result() {
 	else
 		((TESTS_FAILED++))
 		((TOTAL_TESTS_FAILED++))
-		echo "&&&&&&& In display result = ${_id_test_name_}"
 		FAILED_CASES+=(${_id_test_name_})
 		echo "Expected behaviour not found" | tee -a ${LOG}
 		echo "Test failed" | tee -a ${LOG}
