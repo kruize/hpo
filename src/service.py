@@ -19,7 +19,6 @@ import re
 import cgi
 import json
 import requests
-import threading
 import time
 from urllib.parse import urlparse, parse_qs
 
@@ -42,11 +41,7 @@ if n_jobs == None :
 print("No. of Trials = ",n_trials)
 print("No. of Jobs = ",n_jobs)
 
-from bayes_optuna import optuna_hpo
-
-
-autotune_object_ids = {}
-search_space_json = []
+import hpo_service
 
 api_endpoint = "/experiment_trials"
 server_port = 8085
@@ -94,9 +89,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         if re.search(api_endpoint, self.path):
             query = parse_qs(urlparse(self.path).query)
 
-            if ("experiment_id" in query and "trial_number" in query and query["experiment_id"][0] in autotune_object_ids.keys() and
-                    query["trial_number"][0] == str(get_trial_number(query["experiment_id"][0]))):
-                data = get_trial_json_object(query["experiment_id"][0])
+            if ("experiment_id" in query and "trial_number" in query and hpo_service.instance.containsExperiment(query["experiment_id"][0]) and
+                    query["trial_number"][0] == str(hpo_service.instance.get_trial_number(query["experiment_id"][0]))):
+                data = hpo_service.instance.get_trial_json_object(query["experiment_id"][0])
                 self._set_response(200, data)
             else:
                 self._set_response(404, "-1")
@@ -107,10 +102,10 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         """Process EXP_TRIAL_GENERATE_NEW operation."""
         is_valid_json_object = validate_trial_generate_json(json_object)
 
-        search_space_json = json_object["search_space"]
-        if is_valid_json_object and json_object["search_space"]["experiment_id"] not in autotune_object_ids.keys():            
+        if is_valid_json_object and hpo_service.instance.doesNotContainExperiment(json_object["search_space"]["experiment_id"]):
+            search_space_json = json_object["search_space"]
             get_search_create_study(search_space_json, json_object["operation"])
-            trial_number = get_trial_number(json_object["search_space"]["experiment_id"])
+            trial_number = hpo_service.instance.get_trial_number(json_object["search_space"]["experiment_id"])
             self._set_response(200, str(trial_number))
         else:
             self._set_response(400, "-1")
@@ -118,19 +113,18 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     def handle_generate_subsequent_operation(self, json_object):
         """Process EXP_TRIAL_GENERATE_SUBSEQUENT operation."""
         is_valid_json_object = validate_trial_generate_json(json_object)
-
-        if is_valid_json_object and json_object["experiment_id"] in autotune_object_ids.keys():
-            get_search_create_study(search_space_json, json_object["operation"])
-            trial_number = get_trial_number(json_object["experiment_id"])
+        experiment_id = json_object["experiment_id"]
+        if is_valid_json_object and hpo_service.instance.containsExperiment(experiment_id):
+            trial_number = hpo_service.instance.get_trial_number(experiment_id)
             self._set_response(200, str(trial_number))
         else:
             self._set_response(400, "-1")
 
     def handle_result_operation(self, json_object):
         """Process EXP_TRIAL_RESULT operation."""
-        if (json_object["experiment_id"] in autotune_object_ids.keys() and
-                json_object["trial_number"] == get_trial_number(json_object["experiment_id"])):
-            set_result(json_object["experiment_id"], json_object["trial_result"], json_object["result_value_type"],
+        if (hpo_service.instance.containsExperiment(json_object["experiment_id"]) and
+                json_object["trial_number"] == hpo_service.instance.get_trial_number(json_object["experiment_id"])):
+            hpo_service.instance.set_result(json_object["experiment_id"], json_object["trial_result"], json_object["result_value_type"],
                        json_object["result_value"])
             self._set_response(200, "0")
         else:
@@ -141,14 +135,13 @@ def get_search_create_study(search_space_json, operation):
     # TODO: validate structure of search_space_json
     
     if operation == "EXP_TRIAL_GENERATE_NEW":
-        experiment_name, direction, hpo_algo_impl, id_, objective_function, tunables, value_type = get_all_tunables(
+        experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type = get_all_tunables(
             search_space_json)
-        autotune_object_ids[id_] = hpo_algo_impl
         if hpo_algo_impl in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
-            threading.Thread(
-                target=optuna_hpo.recommend, args=(experiment_name, direction, hpo_algo_impl, id_, objective_function,
-                                                   tunables, value_type)).start()
-        time.sleep(2)
+            hpo_service.instance.newExperiment(id_, experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, objective_function,
+                                                 tunables, value_type)
+            print("Starting Experiment: " + experiment_name)
+            hpo_service.instance.startExperiment(id_)
 
 
 def get_search_space(id_, url):
@@ -159,28 +152,6 @@ def get_search_space(id_, url):
     search_space_json = r.json()
     return search_space_json
 
-
-def get_trial_number(id_):
-    """Return the trial number."""
-    if autotune_object_ids[id_] in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
-        trial_number = optuna_hpo.TrialDetails.trial_number
-    return trial_number
-
-
-def get_trial_json_object(id_):
-    """Return the trial json object."""
-    if autotune_object_ids[id_] in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
-        trial_json_object = json.dumps(optuna_hpo.TrialDetails.trial_json_object)
-    return trial_json_object
-
-
-def set_result(id_, trial_result, result_value_type, result_value):
-    """Set the details of a trial."""
-    if autotune_object_ids[id_] in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
-        optuna_hpo.TrialDetails.trial_result = trial_result
-        optuna_hpo.TrialDetails.result_value_type = result_value_type
-        optuna_hpo.TrialDetails.result_value = result_value
-        optuna_hpo.TrialDetails.trial_result_received = 1
 
 
 def main():
