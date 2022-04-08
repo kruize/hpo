@@ -64,12 +64,12 @@ Options:
   --help  Show this message and exit.
 
 Commands:
-  config  Obtain a configuration set for a particular experiment trail
+  config  Obtain a configuration set for a particular experiment trial
   count   Return a count of experiments currently running
   list    List names of all experiments currently running
   new     Create a new experiment
   next    Generate next configuration set for running experiment
-  result  Update results for a particular experiment trail
+  result  Update results for a particular experiment trial
   show    Show details of running experiment
 
 ```
