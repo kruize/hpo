@@ -18,11 +18,13 @@ ROOT_DIR="${PWD}"
 SCRIPTS_DIR="${ROOT_DIR}/scripts"
 HPO_DOCKERFILE="Dockerfile.hpo"
 HPO_CONTAINER_REPO="kruize/hpo"
-
 HPO_VERSION=$(grep -a -m 1 "HPO_VERSION" ${ROOT_DIR}/version.py | cut -d= -f2)
+HPO_VERSION=$(sed -e 's/^"//' -e 's/"$//' <<<"$HPO_VERSION")
+echo
 echo "Using version: ${HPO_VERSION}"
-
 HPO_CONTAINER_IMAGE=${HPO_CONTAINER_REPO}:${HPO_VERSION}
+
+#default values
 DEV_MODE=0
 BUILD_PARAMS="--pull --no-cache"
 CONTAINER_RUNTIME="docker"
