@@ -19,8 +19,8 @@ HPO functional tests to validate the functionality of Hyper parameter optimizati
   
   The test does the following:
 
-  - Start HPO service using the [script](/tests/scripts/start_hpo_servers.sh)
-  - Validate HPO result for following scenarios:
+  - Starts the HPO service using the deploy_hpo.sh script
+  - Validates HPO result for following scenarios:
   	1. Post invalid and valid experiments to HPO /experiment_trials API and validate the results
   	2. Post the same experiment again to HPO /experiment_trials API with operation set to "EXP_TRIAL_GENERATE_NEW" and validate the result
   	3. Post the same experiment again to HPO /experiment_trials API with the operation set to "EXP_TRIAL_GENERATE_SUBSEQUENT" after we post the result for the previous trial, and check if subsequent trial number is generated

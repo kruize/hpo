@@ -96,7 +96,7 @@ function deploy_hpo() {
 	else 
 		cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE}"
 		echo "Command to deploy hpo - ${cmd}"
-		./deploy_hpo.sh -c ${cluster_type} -h ${HPO_CONTAINER_IMAGE}
+		./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE}
 	fi
 	
 	status="$?"
