@@ -140,7 +140,7 @@ class HpoExperiment:
         study = optuna.create_study(direction=self.direction, sampler=sampler)
 
         # Execute an optimization by using an 'Objective' instance
-        study.optimize(Objective(self), n_trials=int(self.total_trials), n_jobs=int(self.parallel_trials))
+        study.optimize(Objective(self), n_trials=self.total_trials, n_jobs=self.parallel_trials)
 
         self.trialDetails.trial_number = -1
 

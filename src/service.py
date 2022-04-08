@@ -96,8 +96,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
         if is_valid_json_object and hpo_service.instance.doesNotContainExperiment(json_object["search_space"]["experiment_id"]):
             search_space_json = json_object["search_space"]
-            if get_search_create_study(search_space_json, json_object["operation"]) == -1:
-                self._set_response(400, "-1")
+            get_search_create_study(search_space_json, json_object["operation"])
             trial_number = hpo_service.instance.get_trial_number(json_object["search_space"]["experiment_id"])
             self._set_response(200, str(trial_number))
         else:
@@ -128,12 +127,14 @@ def get_search_create_study(search_space_json, operation):
     # TODO: validate structure of search_space_json
     
     if operation == "EXP_TRIAL_GENERATE_NEW":
+        if "parallel_trials" not in search_space_json:
+            search_space_json["parallel_trials"] = n_jobs
         experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type = get_all_tunables(
             search_space_json)
-        if(not total_trials):
-            return -1
-        if(not parallel_trials):
+        if (not parallel_trials):
             parallel_trials = n_jobs
+        elif parallel_trials != 1:
+            raise Exception("Parallel Trials value should be '1' only!")
 
         logger.info("Total Trials = "+str(total_trials))
         logger.info("Parallel Trials = "+str(parallel_trials))
