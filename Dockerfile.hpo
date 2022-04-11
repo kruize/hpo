@@ -50,6 +50,8 @@ LABEL name="Kruize HPO" \
 
 # Copy ML hyperparameter tuning code
 COPY --chown=1001:0 src /opt/app/src/
+COPY --chown=1001:0 index.html /opt/app/
+
 
 EXPOSE 8085
 
