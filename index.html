@@ -1,26 +1,19 @@
 <html>
-<head>
-    <title>HPO</title>
-</head>
-<body>
-    <h1 style="text-align: center;font-family: Arial, Helvetica, sans-serif;"><u>HPO as a Service</u> (HPOaaS)</h1>
-    
-    <p style="font-size:18px; font-family: Arial, Helvetica, sans-serif;"> HPO as a service helps the user find the optimal configuration values for any model. </p>
-    <h2 style="font-family: Arial, Helvetica, sans-serif;">Goal:</h2>
-    <p style="font-size:18px; font-family: Arial, Helvetica, sans-serif;">
-        Provide Hyperparameter Optimization(HPO) as a service to choose the optimal hyperparameters provided by the user for any model. 
-        Primary use case is to optimize the performance of an environment by tuning below layers independently or together.
-            * Container : resource usage like cpu and memory requests /limits.
-            * Runtime: Ex : hotspot, openj9, nodeJS , etc.
-            * Application stack:  Ex: Quarkus , Liberty, postgres etc.
-            * OS layer.
-    </p>
- 
-    <h2 style="font-family: Arial, Helvetica, sans-serif;"> Intended Users: </h2>
-    <p style="font-size:18px; font-family: Arial, Helvetica, sans-serif;">
-        To improve the performance of the runtime / application server we would have lots of tunables to tune and those will vary with the application and hardware we are running on. Manual tuning the multiple parameters with a large range is so cumbersome, and is hard to come up with an optimal configuration.
-    </p>
-
-    <h2 style="font-family: Arial, Helvetica, sans-serif;">Here's a link which contains <a href="https://github.com/kruize/hpo/blob/main/README.md">API details</a></h2>
-</body>
+    <head>
+        <title>Hyper Parameter Optimization as a Service</title>
+    </head>
+    <body>
+        <h1 style="text-align: center;font-family: Arial, Helvetica, sans-serif;"><u>HPO as a Service</u> (HPOaaS)</h1>        
+        <p style="font-size:18px; font-family: Arial, Helvetica, sans-serif;"> HPO as a service helps the user find the optimal configuration values for any model. </p>
+        <h2 style="font-family: Arial, Helvetica, sans-serif;">Goal:</h2>
+        <p style="font-size:18px; font-family: Arial, Helvetica, sans-serif;">
+            Provide Hyperparameter Optimization(HPO) as a service to choose the optimal hyperparameters provided by the user for any model.         
+        </p>    
+        <h2 style="font-family: Arial, Helvetica, sans-serif;"> Intended Users: </h2>
+        <p style="font-size:18px; font-family: Arial, Helvetica, sans-serif;">
+            Any model that has tens of parameters that need to be tuned, or the parameters operate on a wide range, or it is not clear which parameters have an impact on the performance objective are ideal candidates to use the HPOaaS.
+        </p>
+        <h2 style="font-family: Arial, Helvetica, sans-serif;">Here's a link which contains <a href="https://github.com/kruize/hpo/blob/main/README.md">API details</a></h2>
+    </body>
 </html>
+

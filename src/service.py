@@ -19,6 +19,7 @@ import re
 import cgi
 import json
 import requests
+import os
 from urllib.parse import urlparse, parse_qs
 
 from json_validate import validate_trial_generate_json
@@ -37,6 +38,10 @@ search_space_json = []
 api_endpoint = "/experiment_trials"
 host_name="localhost"
 server_port = 8085
+
+fileDir = os.path.dirname(os.path.realpath('index.html'))
+filename = os.path.join(fileDir, 'index.html')
+welcome_page=filename
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
@@ -84,19 +89,18 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             if ("experiment_id" in query and "trial_number" in query and hpo_service.instance.containsExperiment(query["experiment_id"][0]) and
                     query["trial_number"][0] == str(hpo_service.instance.get_trial_number(query["experiment_id"][0]))):
                 data = hpo_service.instance.get_trial_json_object(query["experiment_id"][0])
-                self._set_response(200, data)
-            elif (not query):
-                data = self.getHomeScreen()
-                self._set_response(200, data)
+                self._set_response(200, data)            
             else:
                 self._set_response(404, "-1")
+        elif (self.path == "/"):
+                data = self.getHomeScreen()
+                self._set_response(200, data)
         else:
             self._set_response(403, "-1")
 
     def getHomeScreen(self):
-        fin = open('index.html')
+        fin = open(welcome_page)
         content = fin.read()
-        print(content)
         fin.close()
         return content
 

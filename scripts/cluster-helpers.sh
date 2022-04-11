@@ -36,16 +36,15 @@ function check_err() {
 
 # Check if service is already running
 function check_prereq() {
-
-	SERVICE_STATUS=$(ps -u | grep service.py | grep -v grep)
+	
 	if [ "$1" = "running" ]; then
-		if [ -n "${SERVICE_STATUS}" ]; then
+		if [ -n "$2" ]; then
 			echo "Error: Service is already Running."
 			echo
 			exit -1
 		fi
 	else 
-		if [ -z "${SERVICE_STATUS}" ]; then
+		if [ -z "$2" ]; then
 			echo "Error: Service is already Stopped."
 			echo
 			exit -1
@@ -66,6 +65,10 @@ function docker_start() {
 	echo ${HPO_CONTAINER_IMAGE}
 	echo
 
+	# Check if the container with name 'hpo_docker_container' is already running
+	
+	check_prereq running ${SERVICE_STATUS_DOCKER}
+
 	${CONTAINER_RUNTIME} run -d --name hpo_docker_container -p 8085:8085 ${HPO_CONTAINER_IMAGE} >/dev/null 2>&1
 	check_err "Unexpected error occured. Service Stopped!"
 
@@ -83,6 +86,9 @@ function docker_terminate() {
 	echo
 	echo "###   Removing HPO Docker Container"
 	echo
+
+	# Check if the container with name 'hpo_docker_container' is already stopped
+	check_prereq stopped ${SERVICE_STATUS_DOCKER}
 
 	${CONTAINER_RUNTIME} rm -f  hpo_docker_container >/dev/null 2>&1
 	check_err "Failed to stop hpo_docker_container!"
@@ -111,7 +117,7 @@ function native_start() {
 	echo
 
 	# check if service is already running
-	check_prereq running
+	check_prereq running ${SERVICE_STATUS_NATIVE}
 
 	python3 -u src/service.py
 }
@@ -123,7 +129,7 @@ function native_terminate() {
 	echo
 
 	# check if service is already stopped
-	check_prereq stopped
+	check_prereq stopped ${SERVICE_STATUS_NATIVE}
 
 	ps -u | grep service.py | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1
 	check_err "Failed to stop HPO Service!"
