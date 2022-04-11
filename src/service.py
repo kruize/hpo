@@ -85,10 +85,20 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                     query["trial_number"][0] == str(hpo_service.instance.get_trial_number(query["experiment_id"][0]))):
                 data = hpo_service.instance.get_trial_json_object(query["experiment_id"][0])
                 self._set_response(200, data)
+            elif (not query):
+                data = self.getHomeScreen()
+                self._set_response(200, data)
             else:
                 self._set_response(404, "-1")
         else:
             self._set_response(403, "-1")
+
+    def getHomeScreen(self):
+        fin = open('index.html')
+        content = fin.read()
+        print(content)
+        fin.close()
+        return content
 
     def handle_generate_new_operation(self, json_object):
         """Process EXP_TRIAL_GENERATE_NEW operation."""

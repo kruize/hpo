@@ -34,6 +34,25 @@ function check_err() {
 	fi
 }
 
+# Check if service is already running
+function check_prereq() {
+
+	SERVICE_STATUS=$(ps -u | grep service.py | grep -v grep)
+	if [ "$1" = "running" ]; then
+		if [ -n "${SERVICE_STATUS}" ]; then
+			echo "Error: Service is already Running."
+			echo
+			exit -1
+		fi
+	else 
+		if [ -z "${SERVICE_STATUS}" ]; then
+			echo "Error: Service is already Stopped."
+			echo
+			exit -1
+		fi
+	fi
+}
+
 ###############################  v Docker v #################################
 
 function docker_start() {
@@ -85,11 +104,14 @@ function native_start() {
 	echo
 	echo "### Installing dependencies.........."
 	echo
-	python3 -m pip install --user -r requirements.txt
+	python3 -m pip install --user -r requirements.txt >/dev/null 2>&1
 
 	echo
 	echo "### Starting the service..."
 	echo
+
+	# check if service is already running
+	check_prereq running
 
 	python3 -u src/service.py
 }
@@ -97,8 +119,11 @@ function native_start() {
 function native_terminate() {
 
 	echo
-	echo -n "###   Stopping HPO Service"
+	echo "### Stopping HPO Service..."
 	echo
+
+	# check if service is already stopped
+	check_prereq stopped
 
 	ps -u | grep service.py | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1
 	check_err "Failed to stop HPO Service!"
