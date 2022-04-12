@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-##### Functional tests for autotune #####
+##### Functional tests for hpo #####
 #
 
 CURRENT_DIR="$(dirname "$(realpath "$0")")"
@@ -24,17 +24,10 @@ SCRIPTS_DIR="${CURRENT_DIR}"
 . ${SCRIPTS_DIR}/common/common_functions.sh
 
 # Source the test suite scripts
-. ${SCRIPTS_DIR}/da/da_app_autotune_yaml_tests.sh
-. ${SCRIPTS_DIR}/da/da_autotune_config_yaml_tests.sh
-. ${SCRIPTS_DIR}/da/da_basic_api_tests.sh
-. ${SCRIPTS_DIR}/da/modify_autotune_config_tests.sh
-. ${SCRIPTS_DIR}/da/configmap_yaml_tests.sh
-. ${SCRIPTS_DIR}/da/autotune_id_tests.sh
-. ${SCRIPTS_DIR}/da/autotune_layer_config_id_tests.sh
 . ${SCRIPTS_DIR}/hpo/hpo_api_tests.sh
 
 # Iterate through the commandline options
-while getopts i:o:r:-: gopts
+while getopts o:-: gopts
 do
 	case ${gopts} in
 	-)
@@ -57,112 +50,45 @@ do
 			resultsdir=*)
 				resultsdir=${OPTARG#*=}
 				;;
-			hpo)
-				HPO_SERVICE=1
-				;;
-
 		esac
 		;;
-	i)
-		AUTOTUNE_DOCKER_IMAGE="${OPTARG}"		
-		;;
 	o)
-		OPTUNA_DOCKER_IMAGE="${OPTARG}"
-		;;
-	r)
-		APP_REPO="${OPTARG}"		
+		HPO_CONTAINER_IMAGE="${OPTARG}"		
 		;;
 	esac
 done
 
 # Set the root for result directory 
 if [ -z "${resultsdir}" ]; then
-	RESULTS_ROOT_DIR="${PWD}/autotune_test_results"
+	RESULTS_ROOT_DIR="${PWD}/hpo_test_results"
 else
-	RESULTS_ROOT_DIR="${resultsdir}/autotune_test_results"
+	RESULTS_ROOT_DIR="${resultsdir}/hpo_test_results"
 fi
 mkdir -p ${RESULTS_ROOT_DIR}
 
 # create the result directory with a time stamp
-RESULTS_DIR="${RESULTS_ROOT_DIR}/autotune_$(date +%Y%m%d:%T)"
+RESULTS_DIR="${RESULTS_ROOT_DIR}/hpo_$(date +%Y%m%d:%T)"
 mkdir -p "${RESULTS_DIR}"
 
-# create the result directory for functional tests
-RESULTS="${RESULTS_DIR}/${tctype}"
-mkdir ${RESULTS}
-
-SETUP_LOG="${TEST_DIR}/setup.log"
-
-CONFIGMAP="${RESULTS}/test_configmap"
-mkdir ${CONFIGMAP}
-
-# Replace configmap logging level to debug for testing purpose
-find="info"
-replace="debug"
-config_yaml="${CONFIGMAP}/${cluster_type}-config.yaml"
-cp "${configmap}/${cluster_type}-config.yaml" "${config_yaml}"
-
-# Update the config map yaml with specified field
-update_yaml ${find} ${replace} ${config_yaml}
+SETUP_LOG="${RESULTS_DIR}/setup.log"
 
 # Set of functional tests to be performed 
 # input: Result directory to store the functional test results
 # output: Perform the set of functional tests
 function functional_test() {
-	if [ "${sanity}" -eq "1" ]; then
-		testcase=""
-		# perform the basic api tests
-		basic_api_tests > >(tee "${RESULTS}/basic_api_tests.log") 2>&1
-	else
-		execute_da_testsuites
-		execute_hpo_testsuites
-	fi
-}
-
-# Execute all tests for DA (Dependency Analyzer) module
-function execute_da_testsuites() {
-	# perform the application autotune yaml tests 
-	app_autotune_yaml_tests > >(tee "${RESULTS}/app_autotune_yaml_tests.log") 2>&1
-
-	testcase=""
-	# perform the autotune config yaml tests
-	autotune_config_yaml_tests > >(tee "${RESULTS}/autotune_config_yaml_tests.log") 2>&1
-
-	testcase=""
-	# perform the basic api tests
-	basic_api_tests > >(tee "${RESULTS}/basic_api_tests.log") 2>&1
-		
-	testcase=""
-	# Modify existing autotuneconfig yamls and check for API results
-	modify_autotune_config_tests > >(tee "${RESULTS}/modify_autotune_config_tests.log") 2>&1
-	
-	testcase=""
-	# perform the configmap yaml tests
-	configmap_yaml_tests > >(tee "${RESULTS}/configmap_yaml_tests.log") 2>&1
-		
-	testcase=""
-	# validate the autotune object id
-	autotune_id_tests > >(tee "${RESULTS}/autotune_id_tests.log") 2>&1
-
-	testcase=""	
-	# validate the autotune config object id
-	autotune_layer_config_id_tests > >(tee "${RESULTS}/autotune_layer_config_id_tests.log") 2>&1
+	execute_hpo_testsuites
 }
 
 # Execute all tests for HPO (Hyperparameter Optimization) module
 function execute_hpo_testsuites() {
 	testcase=""
 	# perform the HPO API tests
-	hpo_api_tests > >(tee "${RESULTS}/hpo_api_tests.log") 2>&1
+	hpo_api_tests > >(tee "${RESULTS_DIR}/hpo_api_tests.log") 2>&1
 }
 
 # Perform the specific testsuite if specified 
 if [ ! -z "${testmodule}" ]; then
 	case "${testmodule}" in
-	   da)
-                # Execute tests for Dependency Analyzer Module 
-                execute_da_testsuites
-                ;;
            hpo)
 		# Execute tests for Hyperparameter Optimization (HPO) Module 
                 execute_hpo_testsuites
@@ -173,7 +99,7 @@ elif [ ! -z "${testsuite}" ]; then
 		sanity=1
 		functional_test 
 	else
-		${testsuite} > >(tee "${RESULTS}/${testsuite}.log") 2>&1
+		${testsuite} > >(tee "${RESULTS_DIR}/${testsuite}.log") 2>&1
 	fi
 elif [[ -z "${testcase}" && -z "${testsuite}" && -z "${testmodule}" ]]; then
 	functional_test

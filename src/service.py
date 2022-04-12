@@ -19,32 +19,29 @@ import re
 import cgi
 import json
 import requests
-import time
+import os
 from urllib.parse import urlparse, parse_qs
 
 from json_validate import validate_trial_generate_json
 from tunables import get_all_tunables
-
-# Importing socket and os library
-import socket
-import os
-
-# Default values
-n_trials = os.getenv("N_TRIALS")
-n_jobs = os.getenv("N_JOBS")
-if n_trials == None :
-    os.environ['N_TRIALS'] = '10'
-
-if n_jobs == None :
-    os.environ['N_JOBS'] = '1'
-
-print("No. of Trials = ",n_trials)
-print("No. of Jobs = ",n_jobs)
+from logger import get_logger
 
 import hpo_service
 
+logger = get_logger(__name__)
+
+n_trials = 10
+n_jobs = 1
+autotune_object_ids = {}
+search_space_json = []
+
 api_endpoint = "/experiment_trials"
+host_name="0.0.0.0"
 server_port = 8085
+
+fileDir = os.path.dirname(os.path.realpath('index.html'))
+filename = os.path.join(fileDir, 'index.html')
+welcome_page=filename
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
@@ -92,11 +89,20 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             if ("experiment_id" in query and "trial_number" in query and hpo_service.instance.containsExperiment(query["experiment_id"][0]) and
                     query["trial_number"][0] == str(hpo_service.instance.get_trial_number(query["experiment_id"][0]))):
                 data = hpo_service.instance.get_trial_json_object(query["experiment_id"][0])
-                self._set_response(200, data)
+                self._set_response(200, data)            
             else:
                 self._set_response(404, "-1")
+        elif (self.path == "/"):
+                data = self.getHomeScreen()
+                self._set_response(200, data)
         else:
             self._set_response(403, "-1")
+
+    def getHomeScreen(self):
+        fin = open(welcome_page)
+        content = fin.read()
+        fin.close()
+        return content
 
     def handle_generate_new_operation(self, json_object):
         """Process EXP_TRIAL_GENERATE_NEW operation."""
@@ -135,8 +141,18 @@ def get_search_create_study(search_space_json, operation):
     # TODO: validate structure of search_space_json
     
     if operation == "EXP_TRIAL_GENERATE_NEW":
+        if "parallel_trials" not in search_space_json:
+            search_space_json["parallel_trials"] = n_jobs
         experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type = get_all_tunables(
             search_space_json)
+        if (not parallel_trials):
+            parallel_trials = n_jobs
+        elif parallel_trials != 1:
+            raise Exception("Parallel Trials value should be '1' only!")
+
+        logger.info("Total Trials = "+str(total_trials))
+        logger.info("Parallel Trials = "+str(parallel_trials))
+        
         if hpo_algo_impl in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
             hpo_service.instance.newExperiment(id_, experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, objective_function,
                                                  tunables, value_type)
@@ -154,20 +170,10 @@ def get_search_space(id_, url):
 
 
 
-def main():
-    host_name = get_Host_name_IP()
+def main():    
     server = HTTPServer((host_name, server_port), HTTPRequestHandler)
-    print("Access server at http://%s:%s" % (host_name, server_port))
+    logger.info("Access server at http://%s:%s" % ("localhost", server_port))
     server.serve_forever()
-
-
-def get_Host_name_IP():
-    try:
-        host_ip = socket.gethostbyname(socket.gethostname())
-        print("IP : ",host_ip)
-        return host_ip
-    except:
-        print("Unable to get Hostname and IP")
 
 if __name__ == '__main__':
     main()
