@@ -36,7 +36,7 @@ autotune_object_ids = {}
 search_space_json = []
 
 api_endpoint = "/experiment_trials"
-host_name="localhost"
+host_name="0.0.0.0"
 server_port = 8085
 
 fileDir = os.path.dirname(os.path.realpath('index.html'))
