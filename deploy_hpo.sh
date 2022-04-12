@@ -18,7 +18,10 @@
 ROOT_DIR="${PWD}"
 SCRIPTS_DIR="${ROOT_DIR}/scripts"
 HPO_REPO="kruize/hpo"
-HPO_VERSION="0.0.1"
+HPO_VERSION=$(grep -a -m 1 "HPO_VERSION" ${ROOT_DIR}/version.py | cut -d= -f2)
+HPO_VERSION=$(sed -e 's/^"//' -e 's/"$//' <<<"$HPO_VERSION")
+echo
+echo "Using version: ${HPO_VERSION}"
 HPO_CONTAINER_IMAGE=${HPO_REPO}:${HPO_VERSION}
 
 HPO_SA_MANIFEST="manifests/hpo-operator-sa.yaml"
@@ -32,8 +35,7 @@ HPO_CONFIGS="manifests/hpo-configs"
 #default values
 setup=1
 cluster_type="native"
-
-# Default mode is interactive
+CONTAINER_RUNTIME="docker"
 non_interactive=0
 hpo_ns=""
 # docker: loop timeout is turned off by default
@@ -42,15 +44,14 @@ timeout=-1
 # source the helpers script
 . ${SCRIPTS_DIR}/cluster-helpers.sh
 
-
 function usage() {
 	echo
-	echo "Usage: $0 [-a] [-c [docker|minikube|native]] [-h hpo container image] [-n namespace] [-d configmaps-dir ]"
+	echo "Usage: $0 [-a] [-c [docker|minikube|native]] [-o hpo container image] [-n namespace] [-d configmaps-dir ]"
 	echo "       -s = start(default), -t = terminate"
 	echo " -c: cluster type."
-	echo " -h: build with specific hpo container image name [Default - kruize/hpo:<version>]"
+	echo " -o: build with specific hpo container image name [Default - kruize/hpo:<version>]"
 	echo " -n: Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
-  	echo " -d: Config maps directory [Default - manifests/configmaps]"
+  echo " -d: Config maps directory [Default - manifests/configmaps]"
 	exit -1
 }
 
@@ -66,7 +67,7 @@ function check_cluster_type() {
 }
 
 # Iterate through the commandline options
-while getopts ac:h:n:st gopts
+while getopts ac:o:n:st gopts
 do
 	case ${gopts} in
 	a)
@@ -76,10 +77,10 @@ do
 		cluster_type="${OPTARG}"
 		check_cluster_type
 		;;
-  	n)
+  n)
 		hpo_ns="${OPTARG}"
 		;;
-	h)
+	o)
 		HPO_CONTAINER_IMAGE="${OPTARG}"
 		;;
 	s)
@@ -94,9 +95,10 @@ do
 done
 
 resolve_container_runtime
-echo
-echo "Deploying with runtime: ${CONTAINER_RUNTIME}"
 
+# Get Service Status
+SERVICE_STATUS_NATIVE=$(ps -u | grep service.py | grep -v grep)
+SERVICE_STATUS_DOCKER=$(${CONTAINER_RUNTIME} ps | grep hpo_docker_container)
 
 # Call the proper setup function based on the cluster_type
 if [ ${setup} == 1 ]; then

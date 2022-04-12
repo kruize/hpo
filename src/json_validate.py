@@ -25,23 +25,28 @@ trial_generate_schema = {
         },
         "search_space":{
             "type":"object",
-            "experiment_name": {"type": "string"},        
-            "experiment_id": {"type": "string"},        
-            "value_type": {"type": "string"},        
-            "hpo_algo_impl": {"type": "string"},        
-            "objective_function": {"type": "string"},        
-            "tunables":{
-                "type":"array",
+            "properties": {
+                "experiment_name": {"type": "string"},
+                "total_trials": {"type": "integer"},
+                "parallel_trials": {"type": "integer"},
+                "experiment_id": {"type": "string"},        
                 "value_type": {"type": "string"},        
-                "name": {"type": "string"},        
-                "lower_bound": {"type": "number"},        
-                "upper_bound": {"type": "number"},        
-                "step": {"type": "integer"},
-                "choices":{"type":"array"}
+                "hpo_algo_impl": {"type": "string"},        
+                "objective_function": {"type": "string"},        
+                "tunables":{
+                    "type":"array",
+                    "value_type": {"type": "string"},        
+                    "name": {"type": "string"},        
+                    "lower_bound": {"type": "number"},        
+                    "upper_bound": {"type": "number"},        
+                    "step": {"type": "number"},
+                    "choices":{"type":"array"}
+                },
+                "slo_class": {"type": "string"},        
+                "direction": {"type": "string"},                 
             },
-            "slo_class": {"type": "string"},        
-            "direction": {"type": "string"}        
-        },
+            "required": ["experiment_name", "experiment_id", "total_trials", "objective_function", "tunables", "direction"]        
+        }
     },
     "required": ["search_space", "operation"],
     "additionalProperties": False
