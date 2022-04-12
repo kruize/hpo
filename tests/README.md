@@ -50,7 +50,7 @@ git clone https://github.com/kruize/hpo.git
 Use the below command to test:
 
 ```
-<AUTOTUNE_REPO>/tests/test_hpo.sh -c native [--tctype=functional] [--testsuite=Group of tests that you want to perform] [--testcase=Particular test case that you want to test] [--resultsdir=results directory]
+<HPO_REPO>/tests/test_hpo.sh -c native [--tctype=functional] [--testsuite=Group of tests that you want to perform] [--testcase=Particular test case that you want to test] [--resultsdir=results directory]
 ```
 
 Where values for test_hpo.sh are:
@@ -71,17 +71,17 @@ For example,
 
 ```
 To run all tests for Hyperparameter Optimization (hpo) module execute the below command:
-<AUTOTUNE_REPO>/tests/test_hpo.sh -c native --testsuite=hpo_api_tests --resultsdir=/home/results
+<HPO_REPO>/tests/test_hpo.sh -c native --testsuite=hpo_api_tests --resultsdir=/home/results
 ```
 
 ## How to test a specific testcase?
 
 To run a specific testcase execute the below command:
 ```
-<AUTOTUNE_REPO>/tests/test_hpo.sh -c native --testsuite=hpo_api_tests --testcase=hpo_post_experiment --resultsdir=/home/results
+<HPO_REPO>/tests/test_hpo.sh -c native --testsuite=hpo_api_tests --testcase=hpo_post_experiment --resultsdir=/home/results
 ```
 
 To run only the basic sanity test execute the below command:
 ```
-<AUTOTUNE_REPO>/tests/test_hpo.sh -c native --testsuite=hpo_api_tests --testcase=hpo_sanity_test --resultsdir=/home/results
+<HPO_REPO>/tests/test_hpo.sh -c native --testsuite=hpo_api_tests --testcase=hpo_sanity_test --resultsdir=/home/results
 ```
