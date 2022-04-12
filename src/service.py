@@ -172,7 +172,7 @@ def get_search_space(id_, url):
 
 def main():    
     server = HTTPServer((host_name, server_port), HTTPRequestHandler)
-    logger.info("Access server at http://%s:%s" % (host_name, server_port))
+    logger.info("Access server at http://%s:%s" % ("localhost", server_port))
     server.serve_forever()
 
 if __name__ == '__main__':
