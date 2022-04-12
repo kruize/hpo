@@ -36,7 +36,7 @@ autotune_object_ids = {}
 search_space_json = []
 
 api_endpoint = "/experiment_trials"
-host_name="localhost"
+host_name="0.0.0.0"
 server_port = 8085
 
 fileDir = os.path.dirname(os.path.realpath('index.html'))
@@ -172,7 +172,7 @@ def get_search_space(id_, url):
 
 def main():    
     server = HTTPServer((host_name, server_port), HTTPRequestHandler)
-    logger.info("Access server at http://%s:%s" % (host_name, server_port))
+    logger.info("Access server at http://%s:%s" % ("localhost", server_port))
     server.serve_forever()
 
 if __name__ == '__main__':
