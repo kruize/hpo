@@ -25,6 +25,8 @@ echo "Using version: ${HPO_VERSION}"
 HPO_CONTAINER_IMAGE=${HPO_REPO}:${HPO_VERSION}
 
 HPO_SA_MANIFEST="manifests/hpo-operator-sa.yaml"
+HPO_DEPLOY_MANIFEST_TEMPLATE="manifests/hpo-operator-deployment.yaml_template"
+HPO_DEPLOY_MANIFEST="manifests/hpo-operator-deployment.yaml"
 HPO_ROLE_MANIFEST="manifests/hpo-operator-role.yaml"
 HPO_RB_MANIFEST_TEMPLATE="manifests/hpo-operator-rolebinding.yaml_template"
 HPO_RB_MANIFEST="manifests/hpo-operator-rolebinding.yaml"

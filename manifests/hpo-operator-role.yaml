@@ -6,9 +6,7 @@ rules:
 - apiGroups:
   - recommender.com
   resources:
-#  - autotunes
-#  - autotuneconfigs
-#  - autotunequeryvariables
+  - hpo
   verbs:
   - '*'
 - apiGroups:
