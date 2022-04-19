@@ -141,7 +141,7 @@ function minikube_deploy() {
 	echo "Info: Deploying hpo yaml to minikube cluster"
 
 	# Replace hpo docker image in deployment yaml
-	sed -i "s|{{ HPO_IMAGE }}|${HPO_CONTAINER_IMAGE}|" ${HPO_DEPLOY_MANIFEST}
+	sed -e "s|{{ HPO_IMAGE }}|${HPO_CONTAINER_IMAGE}|" ${HPO_DEPLOY_MANIFEST_TEMPLATE} > ${HPO_DEPLOY_MANIFEST}
 
 	${kubectl_cmd} apply -f ${HPO_DEPLOY_MANIFEST}
 	sleep 2
@@ -164,7 +164,9 @@ function minikube_terminate() {
 		hpo_ns="monitoring"
 	fi
 
+	echo
 	echo -n "###   Removing hpo for minikube"
+	echo
 
 	kubectl_cmd="kubectl -n ${hpo_ns}"
 
@@ -183,6 +185,10 @@ function minikube_terminate() {
 	echo
 	echo "Removing hpo rolebinding"
 	${kubectl_cmd} delete -f ${HPO_RB_MANIFEST} 2>/dev/null
+
+	rm ${HPO_DEPLOY_MANIFEST}
+	rm ${HPO_RB_MANIFEST}
+	echo
 	 
 }
 

@@ -20,9 +20,6 @@ SCRIPTS_DIR="${ROOT_DIR}/scripts"
 HPO_REPO="kruize/hpo"
 HPO_VERSION=$(grep -a -m 1 "HPO_VERSION" ${ROOT_DIR}/version.py | cut -d= -f2)
 HPO_VERSION=$(sed -e 's/^"//' -e 's/"$//' <<<"$HPO_VERSION")
-echo
-echo "Using version: ${HPO_VERSION}"
-HPO_CONTAINER_IMAGE=${HPO_REPO}:${HPO_VERSION}
 
 HPO_SA_MANIFEST="manifests/hpo-operator-sa.yaml"
 HPO_DEPLOY_MANIFEST_TEMPLATE="manifests/hpo-operator-deployment.yaml_template"
@@ -31,8 +28,6 @@ HPO_ROLE_MANIFEST="manifests/hpo-operator-role.yaml"
 HPO_RB_MANIFEST_TEMPLATE="manifests/hpo-operator-rolebinding.yaml_template"
 HPO_RB_MANIFEST="manifests/hpo-operator-rolebinding.yaml"
 HPO_SA_NAME="hpo-sa"
-HPO_CONFIGMAPS="manifests/configmaps"
-HPO_CONFIGS="manifests/hpo-configs"
 
 #default values
 setup=1
@@ -47,14 +42,14 @@ timeout=-1
 . ${SCRIPTS_DIR}/cluster-helpers.sh
 
 function usage() {
-	echo
-	echo "Usage: $0 [-a] [-c [docker|minikube|native]] [-o hpo container image] [-n namespace] [-d configmaps-dir ]"
-	echo "       -s = start(default), -t = terminate"
-	echo " -c: cluster type."
-	echo " -o: build with specific hpo container image name [Default - kruize/hpo:<version>]"
-	echo " -n: Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
+  echo
+  echo "Usage: $0 [-a] [-c [docker|minikube|native]] [-o hpo container image] [-n namespace] [-d configmaps-dir ]"
+  echo "       -s = start(default), -t = terminate"
+  echo " -c: cluster type."
+  echo " -o: build with specific hpo container image name [Default - kruize/hpo:<version>]"
+  echo " -n: Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
   echo " -d: Config maps directory [Default - manifests/configmaps]"
-	exit -1
+  exit -1
 }
 
 # Check the cluster_type
@@ -79,7 +74,7 @@ do
 		cluster_type="${OPTARG}"
 		check_cluster_type
 		;;
-  n)
+ 	n)
 		hpo_ns="${OPTARG}"
 		;;
 	o)
@@ -96,7 +91,15 @@ do
 	esac
 done
 
+# check container runtime
 resolve_container_runtime
+
+# check if user has specified any custom image else use default
+if [ -n "${HPO_CONTAINER_IMAGE}" ]; then
+  echo "Using version: ${HPO_VERSION}"
+else
+	HPO_CONTAINER_IMAGE=${HPO_REPO}:${HPO_VERSION}
+fi
 
 # Get Service Status
 SERVICE_STATUS_NATIVE=$(ps -u | grep service.py | grep -v grep)
