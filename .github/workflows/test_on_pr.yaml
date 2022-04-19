@@ -9,7 +9,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  # This workflow contains a single job called "build"
   test_on_docker:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
@@ -25,15 +24,15 @@ jobs:
           echo Building hpo container image
           ls
           cd hpo
-          ./build_hpo.sh
+         ./build_hpo.sh -o hpo:test
           docker images | grep hpo
           
       - name: Sanity test on docker
         run: |
-          echo Running sanity test on native
+          echo Running sanity test on docker
           ls
           cd hpo/tests         
-          ./test_hpo.sh -c docker -o kruize/hpo:0.0.1 --resultsdir=${GITHUB_WORKSPACE} --testsuite=hpo_api_tests --testcase=hpo_sanity_test
+          ./test_hpo.sh -c docker -o hpo:test --resultsdir=${GITHUB_WORKSPACE} --testsuite=hpo_api_tests --testcase=hpo_sanity_test
         
       - name: Archive results
         if: always()
@@ -47,6 +46,54 @@ jobs:
         with:
            name: hpo-results
            path: ./hpo_docker_results.tar
+           retention-days: 2
+
+  test_on_minikube:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - name: Setup Minikube
+        uses: manusa/actions-setup-minikube@v2.3.0
+        with:
+          minikube version: 'v1.16.0'
+          kubernetes version: 'v1.19.2'
+      - name: Display minikube cluster info and pods
+        run: |
+          kubectl cluster-info
+          kubectl get pods -n kube-system
+      - name: Build hpo
+        run: |
+          echo Build hpo container image
+          ls
+          cd hpo
+          ./build_hpo.sh -o hpo:test
+          docker images | grep hpo             
+          
+      - name: Sanity test on minikube
+        run: |
+          ps -ef | grep python
+          echo Running sanity test on minikube
+          ls
+          cd hpo/tests 
+          kubectl create namespace monitoring
+          ./test_hpo.sh -c minikube -o hpo:test --resultsdir=${GITHUB_WORKSPACE} --testsuite=hpo_api_tests --testcase=hpo_sanity_test
+        
+      - name: Archive results
+        if: always()
+        run: |
+          cd ${GITHUB_WORKSPACE}
+          ls
+          tar cvf hpo_minikube_results.tar hpo_test_results
+          ls
+          
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+           name: hpo-results
+           path: ./hpo_minikube_results.tar
            retention-days: 2
 
   test_on_native:

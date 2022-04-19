@@ -32,12 +32,10 @@ jobs:
       - name: Docker Push
         run: |
           docker tag hpo:test kruize/hpo:test
-          docker tag hpo:test kruize/hpo:test
-          docker push kruize/hpo:test
           docker push kruize/hpo:test
       - name: Sanity test on docker
         run: |
-          echo Running sanity test on native
+          echo Running sanity test on docker
           ls
           cd hpo/tests         
           ./test_hpo.sh -c docker -o kruize/hpo:test --resultsdir=${GITHUB_WORKSPACE} --testsuite=hpo_api_tests --testcase=hpo_sanity_test
@@ -53,30 +51,6 @@ jobs:
         with:
            name: hpo-results
            path: ./hpo_docker_results.tar
-           retention-days: 2
-
-
-  test_on_native:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Sanity test on native
-        run: |
-          echo Running sanity test on native 
-          cd hpo/tests
-          ./test_hpo.sh -c native --resultsdir=${GITHUB_WORKSPACE} --testsuite=hpo_api_tests --testcase=hpo_sanity_test
-      - name: Archive results
-        if: always()
-        run: |
-          cd ${GITHUB_WORKSPACE}
-          tar cvf hpo_native_results.tar hpo_test_results
-          
-      - name: Upload results
-        if: always()
-        uses: actions/upload-artifact@v2
-        with:
-           name: hpo-results
-           path: ./hpo_native_results.tar
            retention-days: 2
 
 
