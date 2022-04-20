@@ -17,14 +17,13 @@ limitations under the License.
 import optuna
 import threading
 
-import os
-import time
-
 from logger import get_logger
 
 logger = get_logger(__name__)
 
 trials = []
+
+study = optuna.study
 
 
 class TrialDetails:
@@ -39,6 +38,18 @@ class TrialDetails:
     trial_result = ""
     result_value_type = ""
     result_value = 0
+
+    def getCurrentBest():
+        try:
+            study = optuna.load_study(study_name="hpo", storage="sqlite:///hpo.db")
+            logger.info("Best parameter: " + str(study.best_params))
+            # Get the best value
+            logger.info("Best value: " + str(study.best_value))
+            # Get the best trial
+            logger.info("Best trial: " + str(study.best_trial))
+        except (ValueError, AttributeError, KeyError) as error:
+            logger.error(error)
+            raise
 
 class HpoExperiment:
     """
@@ -136,8 +147,9 @@ class HpoExperiment:
         elif self.hpo_algo_impl == "optuna_skopt":
             sampler = optuna.integration.SkoptSampler()
 
+        global study
         # Create a study object
-        study = optuna.create_study(direction=self.direction, sampler=sampler)
+        study = optuna.create_study(direction=self.direction, sampler=sampler, study_name="hpo", storage="sqlite:///hpo.db")
 
         # Execute an optimization by using an 'Objective' instance
         study.optimize(Objective(self), n_trials=self.total_trials, n_jobs=self.parallel_trials)

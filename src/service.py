@@ -18,6 +18,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import re
 import cgi
 import json
+import optuna
 import requests
 import os
 from urllib.parse import urlparse, parse_qs
@@ -25,6 +26,7 @@ from urllib.parse import urlparse, parse_qs
 from json_validate import validate_trial_generate_json
 from tunables import get_all_tunables
 from logger import get_logger
+from bayes_optuna import optuna_hpo
 
 import hpo_service
 
@@ -36,6 +38,7 @@ autotune_object_ids = {}
 search_space_json = []
 
 api_endpoint = "/experiment_trials"
+api_endpoint_recommendation="/recommendations"
 host_name="0.0.0.0"
 server_port = 8085
 
@@ -92,12 +95,23 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 self._set_response(200, data)            
             else:
                 self._set_response(404, "-1")
+        elif re.search(api_endpoint_recommendation, self.path):
+            try:
+                self.getRecommendations()
+                self._set_response(200, "0")
+            except (ValueError, AttributeError, KeyError):
+                self._set_response(403, "-1")
         elif (self.path == "/"):
                 data = self.getHomeScreen()
                 self._set_response(200, data)
         else:
             self._set_response(403, "-1")
 
+    # TODO: Complete the getCurrentBest() method
+    def getRecommendations(self):
+        optuna_hpo.TrialDetails.getCurrentBest()
+        
+    
     def getHomeScreen(self):
         fin = open(welcome_page)
         content = fin.read()
