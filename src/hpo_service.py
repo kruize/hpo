@@ -68,7 +68,7 @@ class HpoService:
         if experiment.hpo_algo_impl in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
             try:
                 experiment.resultsAvailableCond.acquire()
-                return json.loads(json.dumps(experiment.trialDetails.trial_json_object))
+                return json.dumps(experiment.trialDetails.trial_json_object)
             finally:
                 experiment.resultsAvailableCond.release()
 

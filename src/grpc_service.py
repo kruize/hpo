@@ -77,7 +77,7 @@ class HpoService(hpo_pb2_grpc.HpoServiceServicer):
     def GetTrialConfig(self, request, context):
         # if ("experiment_id" in query and "trial_number" in query and hpo_service.instance.containsExperiment(query["experiment_id"][0]) and
         #         query["trial_number"][0] == str(hpo_service.instance.get_trial_number(query["experiment_id"][0]))):
-        data = hpo_service.instance.get_trial_json_object(request.experiment_name)
+        data = json.loads(hpo_service.instance.get_trial_json_object(request.experiment_name))
         trialConfig : hpo_pb2.TrialConfig = hpo_pb2.TrialConfig()
         for config in data:
             tunable: hpo_pb2.TunableConfig = hpo_pb2.TunableConfig()
