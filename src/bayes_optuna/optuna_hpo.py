@@ -39,17 +39,20 @@ class TrialDetails:
     result_value_type = ""
     result_value = 0
 
-    def getCurrentBest():
-        try:
-            study = optuna.load_study(study_name="hpo", storage="sqlite:///hpo.db")
-            logger.info("Best parameter: " + str(study.best_params))
-            # Get the best value
-            logger.info("Best value: " + str(study.best_value))
-            # Get the best trial
-            logger.info("Best trial: " + str(study.best_trial))
-        except (ValueError, AttributeError, KeyError) as error:
-            logger.error(error)
-            raise
+    def getBestConfig(total_trials):
+        if TrialDetails.trial_number == total_trials:
+            try:
+                # study = optuna.load_study(study_name="hpo")
+                logger.info("Best parameter: " + str(study.best_params))
+                # Get the best value
+                logger.info("Best value: " + str(study.best_value))
+                # Get the best trial
+                logger.info("Best trial: " + str(study.best_trial))
+            except (ValueError, AttributeError, KeyError) as error:
+                logger.error(error)
+                raise
+        else: 
+            logger.error("Error! Cannot fetch results, Experiment is still running or hasn't started yet.")
 
 class HpoExperiment:
     """
@@ -149,7 +152,7 @@ class HpoExperiment:
 
         global study
         # Create a study object
-        study = optuna.create_study(direction=self.direction, sampler=sampler, study_name="hpo", storage="sqlite:///hpo.db")
+        study = optuna.create_study(direction=self.direction, sampler=sampler, study_name="hpo")
 
         # Execute an optimization by using an 'Objective' instance
         study.optimize(Objective(self), n_trials=self.total_trials, n_jobs=self.parallel_trials)

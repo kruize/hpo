@@ -32,7 +32,7 @@ import hpo_service
 
 logger = get_logger(__name__)
 
-n_trials = 10
+total_trials = 10
 n_jobs = 1
 autotune_object_ids = {}
 search_space_json = []
@@ -108,8 +108,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self._set_response(403, "-1")
 
     # TODO: Complete the getCurrentBest() method
-    def getRecommendations(self):
-        optuna_hpo.TrialDetails.getCurrentBest()
+    def getRecommendations(self):        
+        optuna_hpo.TrialDetails.getBestConfig(total_trials)
         
     
     def getHomeScreen(self):
@@ -157,6 +157,7 @@ def get_search_create_study(search_space_json, operation):
     if operation == "EXP_TRIAL_GENERATE_NEW":
         if "parallel_trials" not in search_space_json:
             search_space_json["parallel_trials"] = n_jobs
+        global total_trials
         experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type = get_all_tunables(
             search_space_json)
         if (not parallel_trials):
