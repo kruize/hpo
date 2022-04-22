@@ -41,11 +41,10 @@ trial_generate_schema = {
                     "upper_bound": {"type": "number"},        
                     "step": {"type": "number"},
                     "choices":{"type":"array"}
-                },
-                "slo_class": {"type": "string"},        
+                },        
                 "direction": {"type": "string"},                 
             },
-            "required": ["experiment_name", "experiment_id", "total_trials", "objective_function", "tunables", "direction"]        
+            "required": ["experiment_name", "total_trials", "objective_function", "tunables", "direction"]        
         }
     },
     "required": ["search_space", "operation"],
