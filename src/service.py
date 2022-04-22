@@ -160,14 +160,13 @@ def get_search_create_study(search_space_json, operation):
             hpo_service.instance.startExperiment(id_)
 
 
-def get_search_space(id_, url):
-    """Perform a GET request and return the search space json."""
-    params = {"id": id_}
-    r = requests.get(url, params)
+# TODO: Update below API
+def get_function_variables(url):
+    """Perform a GET request and get the function variables"""
+    r = requests.get(url)
     r.raise_for_status()
-    search_space_json = r.json()
-    return search_space_json
-
+    function_variable_json = r.json()
+    return function_variable_json
 
 
 def main():    
