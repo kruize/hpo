@@ -38,7 +38,7 @@ RUN microdnf install -y python3 \
 USER 1001
 
 # Install optuna to the default user
-RUN python3 -m pip install --user optuna requests scikit-optimize jsonschema grpcio google google-api-core
+RUN python3 -m pip install --user optuna requests scikit-optimize jsonschema
 
 LABEL name="Kruize HPO" \
       vendor="Red Hat" \
