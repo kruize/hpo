@@ -86,9 +86,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         if re.search(api_endpoint, self.path):
             query = parse_qs(urlparse(self.path).query)
 
-            if ("experiment_id" in query and "trial_number" in query and hpo_service.instance.containsExperiment(query["experiment_id"][0]) and
-                    query["trial_number"][0] == str(hpo_service.instance.get_trial_number(query["experiment_id"][0]))):
-                data = hpo_service.instance.get_trial_json_object(query["experiment_id"][0])
+            if ("experiment_name" in query and "trial_number" in query and hpo_service.instance.containsExperiment(query["experiment_name"][0]) and
+                    query["trial_number"][0] == str(hpo_service.instance.get_trial_number(query["experiment_name"][0]))):
+                data = hpo_service.instance.get_trial_json_object(query["experiment_name"][0])
                 self._set_response(200, data)            
             else:
                 self._set_response(404, "-1")
@@ -108,10 +108,10 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         """Process EXP_TRIAL_GENERATE_NEW operation."""
         is_valid_json_object = validate_trial_generate_json(json_object)
 
-        if is_valid_json_object and hpo_service.instance.doesNotContainExperiment(json_object["search_space"]["experiment_id"]):
+        if is_valid_json_object and hpo_service.instance.doesNotContainExperiment(json_object["search_space"]["experiment_name"]):
             search_space_json = json_object["search_space"]
             get_search_create_study(search_space_json, json_object["operation"])
-            trial_number = hpo_service.instance.get_trial_number(json_object["search_space"]["experiment_id"])
+            trial_number = hpo_service.instance.get_trial_number(json_object["search_space"]["experiment_name"])
             self._set_response(200, str(trial_number))
         else:
             self._set_response(400, "-1")
@@ -119,18 +119,18 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     def handle_generate_subsequent_operation(self, json_object):
         """Process EXP_TRIAL_GENERATE_SUBSEQUENT operation."""
         is_valid_json_object = validate_trial_generate_json(json_object)
-        experiment_id = json_object["experiment_id"]
-        if is_valid_json_object and hpo_service.instance.containsExperiment(experiment_id):
-            trial_number = hpo_service.instance.get_trial_number(experiment_id)
+        experiment_name = json_object["experiment_name"]
+        if is_valid_json_object and hpo_service.instance.containsExperiment(experiment_name):
+            trial_number = hpo_service.instance.get_trial_number(experiment_name)
             self._set_response(200, str(trial_number))
         else:
             self._set_response(400, "-1")
 
     def handle_result_operation(self, json_object):
         """Process EXP_TRIAL_RESULT operation."""
-        if (hpo_service.instance.containsExperiment(json_object["experiment_id"]) and
-                json_object["trial_number"] == hpo_service.instance.get_trial_number(json_object["experiment_id"])):
-            hpo_service.instance.set_result(json_object["experiment_id"], json_object["trial_result"], json_object["result_value_type"],
+        if (hpo_service.instance.containsExperiment(json_object["experiment_name"]) and
+                json_object["trial_number"] == hpo_service.instance.get_trial_number(json_object["experiment_name"])):
+            hpo_service.instance.set_result(json_object["experiment_name"], json_object["trial_result"], json_object["result_value_type"],
                        json_object["result_value"])
             self._set_response(200, "0")
         else:
@@ -157,7 +157,7 @@ def get_search_create_study(search_space_json, operation):
             hpo_service.instance.newExperiment(id_, experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, objective_function,
                                                  tunables, value_type)
             print("Starting Experiment: " + experiment_name)
-            hpo_service.instance.startExperiment(id_)
+            hpo_service.instance.startExperiment(experiment_name)
 
 
 def get_search_space(id_, url):

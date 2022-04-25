@@ -4,14 +4,14 @@ from jsonschema import validate, draft7_format_checker
 subs_trial_generate_schema = {
     "type": "object",
     "properties": {
-        "experiment_id": {"type": "string"},        
+        "experiment_name": {"type": "string"},        
         "operation": {
             "enum": [
                 "EXP_TRIAL_GENERATE_SUBSEQUENT"
             ]
         }
     },
-    "required": ["experiment_id", "operation"],
+    "required": ["experiment_name", "operation"],
     "additionalProperties": False
 }
 
