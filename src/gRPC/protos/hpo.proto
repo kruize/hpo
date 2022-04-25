@@ -103,7 +103,7 @@ message ExperimentDetails {
   int32 parallel_trials = 3;
   string direction = 4;
   string hpo_algo_impl = 5;
-  string id_ = 6;
+  string experiment_id = 6;
   string objective_function= 7;
   repeated Tunable tuneables = 8;
   string value_type= 9;

@@ -64,13 +64,13 @@ class HpoService(hpo_pb2_grpc.HpoServiceServicer):
             tuneables = []
             for tuneable in request.tuneables:
                 tuneables.append(json.loads(MessageToJson(tuneable, preserving_proto_field_name=True)))
-            hpo_service.instance.newExperiment(request.id_, request.experiment_name,
+            hpo_service.instance.newExperiment(request.experiment_id, request.experiment_name,
                                                                            request.total_trials, request.parallel_trials,
                                                                            request.direction, request.hpo_algo_impl,
                                                                            request.objective_function,
                                                                            tuneables, request.value_type)
-            hpo_service.instance.startExperiment(request.id_)
-            experiment: HpoExperiment = hpo_service.instance.getExperiment(request.id_)
+            hpo_service.instance.startExperiment(request.experiment_id)
+            experiment: HpoExperiment = hpo_service.instance.getExperiment(request.experiment_id)
             reply: NewExperimentsReply = NewExperimentsReply()
             reply.trial_number = experiment.trialDetails.trial_number
             context.set_code(grpc.StatusCode.OK)
