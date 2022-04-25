@@ -35,7 +35,7 @@ def main():
 def count():
     """Return a count of experiments currently running"""
     empty = hpo_pb2.NumberExperimentsReply()
-    fun = lambda stub : stub.NumberExperiments(empty)
+    fun = lambda stub: stub.NumberExperiments(empty)
     response = run(fun)
     click.echo(" Number of running experiments: {}".format(response.count))
 
@@ -43,11 +43,12 @@ def count():
 def list():
     """List names of all experiments currently running"""
     empty = hpo_pb2.NumberExperimentsReply()
-    fun = lambda stub : stub.ExperimentsList(empty)
+    fun = lambda stub: stub.ExperimentsList(empty)
     experiments: hpo_pb2.ExperimentsListReply = run(fun)
     print("Running Experiments:")
     for experiment in experiments.experiment:
         click.echo(" %s" % experiment)
+
 
 @main.command()
 @click.option("--name", prompt=" Experiment name", type=str)
@@ -55,10 +56,9 @@ def show(name):
     """Show details of running experiment"""
     expr: hpo_pb2.ExperimentNameParams = hpo_pb2.ExperimentNameParams()
     expr.experiment_name = name
-    fun = lambda stub : stub.GetExperimentDetails(expr)
+    fun = lambda stub: stub.GetExperimentDetails(expr)
     experiment: hpo_pb2.ExperimentDetails = run(fun)
     json_obj = MessageToJson(experiment)
-    click.echo("Experiment Details:")
     click.echo(json_obj)
 
 @main.command()
@@ -71,7 +71,7 @@ def new(file):
         # data = file.read().replace('\n', '')
         message: hpo_pb2.ExperimentDetails = ParseDict(data, hpo_pb2.ExperimentDetails())
     click.echo(" Adding new experiment: {}".format(message.experiment_name))
-    fun = lambda stub : stub.NewExperiment(message)
+    fun = lambda stub: stub.NewExperiment(message)
     response: hpo_pb2.NewExperimentsReply = run(fun)
     click.echo("Trial Number: {}".format(response.trial_number))
 
@@ -83,10 +83,9 @@ def config(name, trial):
     expr: hpo_pb2.ExperimentTrial = hpo_pb2.ExperimentTrial()
     expr.experiment_name = name
     expr.trial = trial
-    fun = lambda stub : stub.GetTrialConfig(expr)
+    fun = lambda stub: stub.GetTrialConfig(expr)
     trial_config: hpo_pb2.TrialConfig = run(fun)
     json_obj = MessageToJson(trial_config)
-    click.echo("Trial Config:")
     click.echo(json_obj)
 
 @main.command()
@@ -103,9 +102,9 @@ def result(name, trial, result, value_type, value):
     trialResult.result = hpo_pb2._EXPERIMENTTRIALRESULT_RESULT.values_by_name[result].number
     trialResult.value_type = value_type
     trialResult.value = value
-    fun = lambda stub : stub.UpdateTrialResult(trialResult)
+    fun = lambda stub: stub.UpdateTrialResult(trialResult)
     hpo_pb2.TrialConfig = run(fun)
-    click.echo("Updated Trial Result")
+    click.echo("Success: Updated Trial Result")
 
 @main.command()
 @click.option("--name", prompt=" Enter name", type=str)
@@ -123,12 +122,26 @@ def run(func):
     # of the code.
     with grpc.insecure_channel('localhost:50051') as channel:
         stub = hpo_pb2_grpc.HpoServiceStub(channel)
-        return func(stub)
+        try:
+            response = func(stub)
+        except grpc.RpcError as rpc_error:
+            if rpc_error.code() == grpc.StatusCode.CANCELLED:
+                pass
+            elif rpc_error.code() == grpc.StatusCode.UNAVAILABLE:
+                pass
+            elif rpc_error.code() == grpc.StatusCode.NOT_FOUND:
+                raise click.ClickException(rpc_error.details())
+            elif rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
+                raise click.ClickException(rpc_error.details())
+            else:
+                raise click.ClickException("Received unknown RPC error: code={rpc_error.code()} message={rpc_error.details()}")
+        return response
+
 
 def NewExperiment(stub, **args):
     empty = hpo_pb2.NumberExperimentsReply()
     response = stub.NumberExperiments(empty)
-    print("HpoService client received: %s" % response.count)
+    click.echo("HpoService client received: %s" % response.count)
 
 
 if __name__ == "__main__":

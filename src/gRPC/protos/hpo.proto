@@ -42,10 +42,10 @@ service HpoService {
   rpc NumberExperiments(NumberExperimentsParams) returns (NumberExperimentsReply) {}
   rpc ExperimentsList(ExperimentsListParams) returns (ExperimentsListReply) {}
   rpc NewExperiment(ExperimentDetails) returns (NewExperimentsReply) {}
-  rpc GetExperimentDetails(ExperimentNameParams) returns (ExperimentDetails) {}
+  rpc GetExperimentDetails(ExperimentIdParams) returns (ExperimentDetails) {}
   rpc GetTrialConfig(ExperimentTrial) returns (TrialConfig) {}
   rpc UpdateTrialResult(ExperimentTrialResult) returns (ExperimentTrialReply) {}
-  rpc GenerateNextConfig(ExperimentNameParams) returns (NewExperimentsReply) {}
+  rpc GenerateNextConfig(ExperimentIdParams) returns (NewExperimentsReply) {}
 }
 
 message NumberExperimentsReply {
@@ -66,12 +66,12 @@ message ExperimentsListParams {}
 
 message ExperimentTrialReply{}
 
-message ExperimentNameParams {
-  string experiment_name = 1;
+message ExperimentIdParams {
+  string experiment_id = 1;
 }
 
 message ExperimentTrial {
-  string experiment_name = 1;
+  string experiment_id = 1;
   int32 trial = 2;
 }
 

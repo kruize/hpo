@@ -1,6 +1,7 @@
 import threading
 import json
 from bayes_optuna import optuna_hpo
+from exceptions import ExperimentNotFoundError
 
 class HpoService:
     """
@@ -43,8 +44,8 @@ class HpoService:
 
     def getExperiment(self, name) -> optuna_hpo.HpoExperiment:
         if self.doesNotContainExperiment(name):
-            print("Experiment does not exist")
-            return
+            print("Experiment " + name + " does not exist")
+            raise ExperimentNotFoundError
 
         return self.experiments.get(name)
 
