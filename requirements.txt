@@ -2,3 +2,6 @@ optuna
 requests
 scikit-optimize
 jsonschema
+grpcio
+google
+google-api-core
