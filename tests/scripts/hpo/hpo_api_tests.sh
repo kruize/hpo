@@ -302,6 +302,7 @@ function operation_generate_subsequent() {
 	echo -n "Post a valid experiment result to HPO..." | tee -a ${LOG_} ${LOG}
 	experiment_result="valid-experiment-result"
 	current_id="a123"
+	current_name="petclinic-sample-2-75884c5549-npvgd"
 	create_post_exp_result_json_array "${current_id}" "${trial_num}"
 	post_experiment_result_json "${hpo_post_exp_result_json[$experiment_result]}"
 
@@ -371,49 +372,45 @@ function run_get_trial_json_test() {
 	curl="curl -H 'Accept: application/json'"
 	url="http://localhost:8085/experiment_trials"
 	case "${exp_trial}" in
-		invalid-id)
-			get_trial_json=$(${curl} ''${url}'?experiment_id=124365213472&trial_number=0'  -w '\n%{http_code}' 2>&1)
-			get_trial_json_cmd="${curl} '${url}?experiment_id=124365213472&trial_number=0' -w '\n%{http_code}'"
+		empty-name)
+			get_trial_json=$(${curl} ''${url}'?experiment_name= &trial_number=0' -w '\n%{http_code}' 2>&1)
+			get_trial_json_cmd="${curl} '${url}?experiment_name= &trial_number=0' -w '\n%{http_code}'"
 			;;
-		empty-id)
-			get_trial_json=$(${curl} ''${url}'?experiment_id= &trial_number=0' -w '\n%{http_code}' 2>&1)
-			get_trial_json_cmd="${curl} '${url}?experiment_id= &trial_number=0' -w '\n%{http_code}'"
-			;;
-		no-id)
+		no-name)
 			get_trial_json=$(${curl} ''${url}'?trial_number=0' -w '\n%{http_code}' 2>&1)
 			get_trial_json_cmd="${curl} '${url}?trial_number=0' -w '\n%{http_code}'"
 			;;
-		null-id)
-			get_trial_json=$(${curl} ''${url}'?experiment_id=null &trial_number=0' -w '\n%{http_code}' 2>&1)
-			get_trial_json_cmd="${curl} '${url}?experiment_id=null &trial_number=0' -w '\n%{http_code}'"
+		null-name)
+			get_trial_json=$(${curl} ''${url}'?experiment_name=null &trial_number=0' -w '\n%{http_code}' 2>&1)
+			get_trial_json_cmd="${curl} '${url}?experiment_name=null &trial_number=0' -w '\n%{http_code}'"
 			;;
-		only-valid-id)
-			get_trial_json=$(${curl} ''${url}'?experiment_id='${current_id}'' -w '\n%{http_code}' 2>&1)
-			get_trial_json_cmd="${curl} '${url}?experiment_id='${current_id}'' -w '\n%{http_code}'"
+		only-valid-name)
+			get_trial_json=$(${curl} ''${url}'?experiment_name='${current_name}'' -w '\n%{http_code}' 2>&1)
+			get_trial_json_cmd="${curl} '${url}?experiment_name='${current_name}'' -w '\n%{http_code}'"
 			;;
 		invalid-trial-number)
-			get_trial_json=$(${curl} ''${url}'?experiment_id='${current_id}'&trial_number=102yrt' -w '\n%{http_code}' 2>&1)
-			get_trial_json_cmd="${curl} '${url}?experiment_id='${current_id}'&trial_number=102yrt' -w '\n%{http_code}'"
+			get_trial_json=$(${curl} ''${url}'?experiment_id='${current_name}'&trial_number=102yrt' -w '\n%{http_code}' 2>&1)
+			get_trial_json_cmd="${curl} '${url}?experiment_id='${current_name}'&trial_number=102yrt' -w '\n%{http_code}'"
 			;;
 		empty-trial-number)
-			get_trial_json=$(${curl} ''${url}'?experiment_id='${current_id}'&trial_number=' -w '\n%{http_code}' 2>&1)
-			get_trial_json_cmd="${curl} '${url}?experiment_id='${current_id}'&trial_number=' -w '\n%{http_code}'"
+			get_trial_json=$(${curl} ''${url}'?experiment_id='${current_name}'&trial_number=' -w '\n%{http_code}' 2>&1)
+			get_trial_json_cmd="${curl} '${url}?experiment_id='${current_name}'&trial_number=' -w '\n%{http_code}'"
 			;;
 		no-trial-number)
-			get_trial_json=$(${curl} ''${url}'?experiment_id='${current_id}'' -w '\n%{http_code}' 2>&1)
-			get_trial_json_cmd="${curl} '${url}?experiment_id='${current_id}'' -w '\n%{http_code}'"
+			get_trial_json=$(${curl} ''${url}'?experiment_id='${current_name}'' -w '\n%{http_code}' 2>&1)
+			get_trial_json_cmd="${curl} '${url}?experiment_id='${current_name}'' -w '\n%{http_code}'"
 			;;
 		null-trial-number)
-			get_trial_json=$(${curl} ''${url}'?experiment_id='${current_id}'&trial_number=null' -w '\n%{http_code}' 2>&1)
-			get_trial_json_cmd="${curl} '${url}?experiment_id='${current_id}'&trial_number=null' -w '\n%{http_code}'"
+			get_trial_json=$(${curl} ''${url}'?experiment_id='${current_name}'&trial_number=null' -w '\n%{http_code}' 2>&1)
+			get_trial_json_cmd="${curl} '${url}?experiment_id='${current_name}'&trial_number=null' -w '\n%{http_code}'"
 			;;
 		only-valid-trial-number)
 			get_trial_json=$(${curl} ''${url}'?trial_number=0' -w '\n%{http_code}' 2>&1)
 			get_trial_json_cmd="${curl} '${url}?trial_number=0' -w '\n%{http_code}'"
 			;;
 		valid-exp-trial)
-			get_trial_json=$(${curl} ''${url}'?experiment_id=a123&trial_number='${trial_num}'' -w '\n%{http_code}' 2>&1)
-			get_trial_json_cmd="${curl} '${url}?experiment_id=a123&trial_number=${trial_num}' -w '\n%{http_code}'"
+			get_trial_json=$(${curl} ''${url}'?experiment_name=petclinic-sample-2-75884c5549-npvgd&trial_number='${trial_num}'' -w '\n%{http_code}' 2>&1)
+			get_trial_json_cmd="${curl} '${url}?experiment_name=petclinic-sample-2-75884c5549-npvgd&trial_number=${trial_num}' -w '\n%{http_code}'"
 			;;
 	esac
 	
@@ -453,6 +450,7 @@ function get_trial_json_invalid_tests() {
 		
 		# Get the experiment id from search space JSON
 		current_id="a123"
+		current_name="petclinic-sample-2-75884c5549-npvgd"
 
 		# Post a valid experiment to RM-HPO /experiment_trials API.
 		exp="valid-experiment"
@@ -578,6 +576,8 @@ function get_trial_json_valid_tests() {
 			
 		# Get the experiment id from search space JSON
 		current_id="a123"
+    current_name="petclinic-sample-2-75884c5549-npvgd"
+
 
 		# Post a valid experiment to RM-HPO /experiment_trials API.
 		exp="valid-experiment"
@@ -754,6 +754,7 @@ function other_exp_result_post_tests() {
 
 		# Get the experiment_id from search space JSON
 		current_id="a123"
+		current_name="petclinic-sample-2-75884c5549-npvgd"
 
 		operation=$(echo ${operation//-/_})
 		${operation}
