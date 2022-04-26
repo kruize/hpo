@@ -303,7 +303,7 @@ function operation_generate_subsequent() {
 	experiment_result="valid-experiment-result"
 	current_id="a123"
 	current_name="petclinic-sample-2-75884c5549-npvgd"
-	create_post_exp_result_json_array "${current_id}" "${trial_num}"
+	create_post_exp_result_json_array "${current_name}" "${trial_num}"
 	post_experiment_result_json "${hpo_post_exp_result_json[$experiment_result]}"
 
 	# Sleep for few seconds to reduce the ambiguity
@@ -693,7 +693,7 @@ function post_duplicate_exp_result() {
 		sleep 5
 
 		# Post the duplicate experiment result to HPO /experiment_trials API.
-		echo -n "Post the same experiment result to HPO again for the same experiment_id and trial number..."
+		echo -n "Post the same experiment result to HPO again for the same experiment_name and trial number..."
 		post_experiment_result_json "${hpo_post_exp_result_json[$experiment_result]}"
 
 		actual_result="${http_code}"
@@ -729,9 +729,9 @@ function post_same_id_different_exp_result() {
 		# Sleep for few seconds to reduce the ambiguity
 		sleep 5
 
-		# Post a different valid experiment result for the same experiment_id and trial number to HPO /experiment_trials API.
+		# Post a different valid experiment result for the same experiment_name and trial number to HPO /experiment_trials API.
 		experiment_result="valid-different-result"
-		echo -n "Post the differnt experiment result to HPO again for the same experiment_id and trial number..."
+		echo -n "Post the differnt experiment result to HPO again for the same experiment_name and trial number..."
 		post_experiment_result_json "${hpo_post_exp_result_json[$experiment_result]}"
 
 		actual_result="${http_code}"
@@ -772,7 +772,7 @@ function other_exp_result_post_tests() {
 		# Sleep for few seconds to reduce the ambiguity
 		sleep 5
 
-		# Get the experiment_id from search space JSON
+		# Get the experiment_id and experiment_name from search space JSON
 		current_id="a123"
 		current_name="petclinic-sample-2-75884c5549-npvgd"
 
@@ -824,7 +824,7 @@ function hpo_sanity_test() {
 	form_hpo_api_url "experiment_trials"
 	echo "HPO URL = $hpo_url"  | tee -a ${LOG}
 
-	# Get the experiment id from the search space
+	# Get the experiment id and name from the search space
 	exp_id=$(echo ${hpo_post_experiment_json["valid-experiment"]} | jq '.search_space.experiment_id')
 	exp_name=$(echo ${hpo_post_experiment_json["valid-experiment"]} | jq '.search_space.experiment_name')
 	echo "Experiment id = $exp_id"
@@ -875,7 +875,7 @@ function hpo_sanity_test() {
 
 		get_trial_json=$(${curl} ''${hpo_url}'?experiment_name=petclinic-sample-2-75884c5549-npvgd&trial_number='${i}'' -w '\n%{http_code}' 2>&1)
 
-		get_trial_json_cmd="${curl} ${url}?experiment_id="petclinic-sample-2-75884c5549-npvgd"&trial_number=${i} -w '\n%{http_code}'"
+		get_trial_json_cmd="${curl} ${url}?experiment_name="petclinic-sample-2-75884c5549-npvgd"&trial_number=${i} -w '\n%{http_code}'"
 		echo "command used to query the experiment_trial API = ${get_trial_json_cmd}" | tee -a ${LOG}
 
 	        http_code=$(tail -n1 <<< "${get_trial_json}")

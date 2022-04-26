@@ -168,8 +168,8 @@ declare -A hpo_post_exp_result_json=([invalid-id]='{"experiment_id" : "xyz", "tr
 	[null-operation]='{"experiment_id" : "a123", "trial_number": 0, "trial_result": "success", "result_value_type": "double", "result_value": 98.78, "operation" : null}'
 	[multiple-operation]='{"experiment_id" : "a123", "trial_number": 0, "trial_result": "success", "result_value_type": "double", "result_value": 98.78, "operation" : "EXP_TRIAL_RESULT", "operation" : "EXP_TRIAL_RESULT"}'
 	[additional-field]='{"experiment_id" : "a123", "trial_number": 0, "trial_result": "success", "result_value_type": "double", "result_value": 98.78, "operation" : "EXP_TRIAL_RESULT", "tunable_name" : "cpuRequest"}'
-	[valid-experiment-result]='{"experiment_id" : "a123", "trial_number": 0, "trial_result": "success", "result_value_type": "double", "result_value": 98.78, "operation" : "EXP_TRIAL_RESULT"}'
-	[valid-different-result]='{"experiment_id" : "a123", "trial_number": 0, "trial_result": "success", "result_value_type": "double", "result_value": 89.78, "operation" : "EXP_TRIAL_RESULT"}')
+	[valid-experiment-result]='{"experiment_name" : "petclinic-sample-2-75884c5549-npvgd", "trial_number": 0, "trial_result": "success", "result_value_type": "double", "result_value": 98.78, "operation" : "EXP_TRIAL_RESULT"}'
+	[valid-different-result]='{"experiment_name" : "petclinic-sample-2-75884c5549-npvgd", "trial_number": 0, "trial_result": "success", "result_value_type": "double", "result_value": 89.78, "operation" : "EXP_TRIAL_RESULT"}')
 
 
 declare -A hpo_exp_result_error_messages
