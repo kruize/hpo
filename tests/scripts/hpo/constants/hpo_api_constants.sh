@@ -46,7 +46,7 @@ other_post_experiment_tests=("post-duplicate-experiments" "operation-generate-su
 
 # Tests to be carried out for HPO module API to get trial json  
 declare -A hpo_get_trial_json_tests
-hpo_get_trial_json_tests=([get_trial_json_invalid_tests]='empty-name no-name null-name only-valid-name invalid-trial-number empty-trial-number no-trial-number null-trial-number only-valid-trial-number'
+hpo_get_trial_json_tests=([get_trial_json_invalid_tests]='invalid-id empty-id no-id null-id only-valid-id empty-name no-name null-name only-valid-name invalid-trial-number empty-trial-number no-trial-number null-trial-number only-valid-trial-number'
                              [get_trial_json_valid_tests]='valid-exp-trial valid-exp-trial-generate-subsequent')
 
 # Tests to be carried out for HPO module API to post experiment results 
@@ -116,7 +116,7 @@ declare -A hpo_post_experiment_json=([invalid-id]='{"operation":"EXP_TRIAL_GENER
 
 	[valid-experiment]='{"operation":"EXP_TRIAL_GENERATE_NEW","search_space":{"experiment_name":"petclinic-sample-2-75884c5549-npvgd","total_trials":5,"parallel_trials":1,"experiment_id":"a123","value_type":"double","hpo_algo_impl":"optuna_tpe","objective_function":"transaction_response_time","tunables":[{"value_type":"double","lower_bound":150,"name":"memoryRequest","upper_bound":300,"step":1},{"value_type":"double","lower_bound":1,"name":"cpuRequest","upper_bound":3,"step":0.01}],"slo_class":"response_time","direction":"minimize"}}'
 
-	[generate-subsequent]='{"experiment_id":"a123","operation":"EXP_TRIAL_GENERATE_SUBSEQUENT"}'
+	[generate-subsequent]='{"experiment_name":"petclinic-sample-2-75884c5549-npvgd","operation":"EXP_TRIAL_GENERATE_SUBSEQUENT"}'
 
 	[invalid-searchspace]='{"operation":"EXP_TRIAL_GENERATE_NEW","search_space":{"experiment_name":"petclinic-sample-2-75884c5549-npvgd","total_trials":5,"parallel_trials":1,"experiment_id":"a123","value_type":"double","hpo_algo_impl":"optuna_tpe","objective_function":"transaction_response_time","tunables":[{"value_type":"double","lower_bound":150,"name":"memoryRequest","upper_bound":300,"step":1},{"value_type":"double","lower_bound":1,"name":"cpuRequest","upper_bound":3,"step":0.01}],"slo_class":"xyz","direction":"minimize"}}'
 )

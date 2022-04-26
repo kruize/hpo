@@ -372,6 +372,26 @@ function run_get_trial_json_test() {
 	curl="curl -H 'Accept: application/json'"
 	url="http://localhost:8085/experiment_trials"
 	case "${exp_trial}" in
+	  invalid-id)
+      get_trial_json=$(${curl} ''${url}'?experiment_id=124365213472&trial_number=0'  -w '\n%{http_code}' 2>&1)
+      get_trial_json_cmd="${curl} '${url}?experiment_id=124365213472&trial_number=0' -w '\n%{http_code}'"
+      ;;
+    empty-id)
+      get_trial_json=$(${curl} ''${url}'?experiment_id= &trial_number=0' -w '\n%{http_code}' 2>&1)
+      get_trial_json_cmd="${curl} '${url}?experiment_id= &trial_number=0' -w '\n%{http_code}'"
+      ;;
+    no-id)
+      get_trial_json=$(${curl} ''${url}'?trial_number=0' -w '\n%{http_code}' 2>&1)
+      get_trial_json_cmd="${curl} '${url}?trial_number=0' -w '\n%{http_code}'"
+      ;;
+    null-id)
+      get_trial_json=$(${curl} ''${url}'?experiment_id=null &trial_number=0' -w '\n%{http_code}' 2>&1)
+      get_trial_json_cmd="${curl} '${url}?experiment_id=null &trial_number=0' -w '\n%{http_code}'"
+      ;;
+    only-valid-id)
+      get_trial_json=$(${curl} ''${url}'?experiment_id='${current_id}'' -w '\n%{http_code}' 2>&1)
+      get_trial_json_cmd="${curl} '${url}?experiment_id='${current_id}'' -w '\n%{http_code}'"
+      ;;
 		empty-name)
 			get_trial_json=$(${curl} ''${url}'?experiment_name= &trial_number=0' -w '\n%{http_code}' 2>&1)
 			get_trial_json_cmd="${curl} '${url}?experiment_name= &trial_number=0' -w '\n%{http_code}'"
@@ -806,7 +826,9 @@ function hpo_sanity_test() {
 
 	# Get the experiment id from the search space
 	exp_id=$(echo ${hpo_post_experiment_json["valid-experiment"]} | jq '.search_space.experiment_id')
+	exp_name=$(echo ${hpo_post_experiment_json["valid-experiment"]} | jq '.search_space.experiment_name')
 	echo "Experiment id = $exp_id"
+	echo "Experiment name = $exp_name"
 
 	TESTS_=${TEST_DIR}
 	SERV_LOG="${TESTS_}/service.log"
@@ -851,9 +873,9 @@ function hpo_sanity_test() {
 		curl="curl -H 'Accept: application/json'"
 	        url="http://localhost:8085/experiment_trials"
 
-		get_trial_json=$(${curl} ''${hpo_url}'?experiment_id=a123&trial_number='${i}'' -w '\n%{http_code}' 2>&1)
+		get_trial_json=$(${curl} ''${hpo_url}'?experiment_name=petclinic-sample-2-75884c5549-npvgd&trial_number='${i}'' -w '\n%{http_code}' 2>&1)
 
-		get_trial_json_cmd="${curl} ${url}?experiment_id="a123"&trial_number=${i} -w '\n%{http_code}'"
+		get_trial_json_cmd="${curl} ${url}?experiment_id="petclinic-sample-2-75884c5549-npvgd"&trial_number=${i} -w '\n%{http_code}'"
 		echo "command used to query the experiment_trial API = ${get_trial_json_cmd}" | tee -a ${LOG}
 
 	        http_code=$(tail -n1 <<< "${get_trial_json}")
@@ -872,7 +894,7 @@ function hpo_sanity_test() {
 		echo "Post the experiment result for trial ${i}..." | tee -a ${LOG}
 		trial_result="success"
 		result_value="98.7"
-		exp_result_json='{"experiment_id":'${exp_id}',"trial_number":'${i}',"trial_result":"'${trial_result}'","result_value_type":"double","result_value":'${result_value}',"operation":"EXP_TRIAL_RESULT"}'
+		exp_result_json='{"experiment_name":'${exp_name}',"trial_number":'${i}',"trial_result":"'${trial_result}'","result_value_type":"double","result_value":'${result_value}',"operation":"EXP_TRIAL_RESULT"}'
 		post_experiment_result_json ${exp_result_json}
 		verify_result "Post experiment result for trial ${i}" "${http_code}" "${expected_http_code}"
 
@@ -882,7 +904,7 @@ function hpo_sanity_test() {
 		if [[ ${i} < $((N_TRIALS-1)) ]]; then
 			echo "" | tee -a ${LOG}
 		        echo "Generate subsequent config after trial ${i} ..." | tee -a ${LOG}
-			subsequent_trial='{"experiment_id":'${exp_id}',"operation":"EXP_TRIAL_GENERATE_SUBSEQUENT"}'
+			subsequent_trial='{"experiment_name":'${exp_name}',"operation":"EXP_TRIAL_GENERATE_SUBSEQUENT"}'
 			post_experiment_json ${subsequent_trial}
 			verify_result "Post subsequent experiment after trial ${i}" "${http_code}" "${expected_http_code}"
 		fi

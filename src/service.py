@@ -18,7 +18,6 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import re
 import cgi
 import json
-from numpy import empty
 import requests
 import os
 from urllib.parse import urlparse, parse_qs
@@ -111,7 +110,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
         if is_valid_json_object and hpo_service.instance.doesNotContainExperiment(json_object["search_space"]["experiment_name"]):
             search_space_json = json_object["search_space"]
-            if str(search_space_json["experiment_name"]).isspace or not str(search_space_json["experiment_name"]):
+            if str(search_space_json["experiment_name"]).isspace() or not str(search_space_json["experiment_name"]):
                 self._set_response(400, "-1")
                 return
             get_search_create_study(search_space_json, json_object["operation"])
