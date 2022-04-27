@@ -136,7 +136,7 @@ def run(func):
 
 
 
-    with grpc.insecure_channel(host_name + ':' + server_port) as channel:
+    with grpc.insecure_channel(host_name + ':' + str(server_port)) as channel:
         stub = hpo_pb2_grpc.HpoServiceStub(channel)
         try:
             response = func(stub)
