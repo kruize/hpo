@@ -25,6 +25,8 @@ from bayes_optuna.optuna_hpo import HpoExperiment
 from gRPC.hpo_pb2 import NewExperimentsReply
 from exceptions import ExperimentNotFoundError
 
+host_name="0.0.0.0"
+server_port = 50051
 
 class HpoService(hpo_pb2_grpc.HpoServiceServicer):
 
@@ -123,8 +125,8 @@ class HpoService(hpo_pb2_grpc.HpoServiceServicer):
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     hpo_pb2_grpc.add_HpoServiceServicer_to_server(HpoService(), server)
-    server.add_insecure_port('[::]:50051')
-    print("Starting gRPC server at http://%s:%s" % ("::", "50051"))
+    server.add_insecure_port(host_name + ':' + server_port)
+    print("Starting gRPC server at http://%s:%s" % (host_name, server_port))
 
     server.start()
     server.wait_for_termination()
