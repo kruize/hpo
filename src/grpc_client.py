@@ -23,7 +23,7 @@ import json
 
 import grpc
 from gRPC import hpo_pb2_grpc, hpo_pb2
-from google.protobuf.json_format import MessageToJson
+from google.protobuf.json_format import MessageToJson, ParseError
 from google.protobuf.json_format import Parse, ParseDict
 
 default_host_name="localhost"
@@ -71,8 +71,10 @@ def new(file):
     # TODO: validate file path
     with open(file, 'r') as json_file:
         data = json.load(json_file)
-        # data = file.read().replace('\n', '')
-        message: hpo_pb2.ExperimentDetails = ParseDict(data, hpo_pb2.ExperimentDetails())
+        try:
+            message: hpo_pb2.ExperimentDetails = ParseDict(data, hpo_pb2.ExperimentDetails())
+        except ParseError as pErr :
+            raise click.ClickException("Unable to parse: " + file)
     click.echo(" Adding new experiment: {}".format(message.experiment_name))
     fun = lambda stub: stub.NewExperiment(message)
     response: hpo_pb2.NewExperimentsReply = run(fun)
@@ -100,7 +102,7 @@ def config(name, trial):
 def result(name, trial, result, value_type, value):
     """Update results for a particular experiment trail"""
     trialResult: hpo_pb2.ExperimentTrialResult = hpo_pb2.ExperimentTrialResult()
-    trialResult.experiment_id = name
+    trialResult.experiment_name = name
     trialResult.trial = trial
     trialResult.result = hpo_pb2._EXPERIMENTTRIALRESULT_RESULT.values_by_name[result].number
     trialResult.value_type = value_type
@@ -150,7 +152,7 @@ def run(func):
             elif rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
                 raise click.ClickException(rpc_error.details())
             else:
-                raise click.ClickException("Received unknown RPC error: code={rpc_error.code()} message={rpc_error.details()}")
+                raise click.ClickException("Received unknown RPC error: code={" + str(rpc_error.code()) + "} message={" + rpc_error.details() + "}")
         return response
 
 

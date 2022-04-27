@@ -32,7 +32,7 @@ class HpoServiceStub(object):
                 )
         self.GetExperimentDetails = channel.unary_unary(
                 '/helloworld.HpoService/GetExperimentDetails',
-                request_serializer=hpo__pb2.ExperimentIdParams.SerializeToString,
+                request_serializer=hpo__pb2.ExperimentNameParams.SerializeToString,
                 response_deserializer=hpo__pb2.ExperimentDetails.FromString,
                 )
         self.GetTrialConfig = channel.unary_unary(
@@ -47,7 +47,7 @@ class HpoServiceStub(object):
                 )
         self.GenerateNextConfig = channel.unary_unary(
                 '/helloworld.HpoService/GenerateNextConfig',
-                request_serializer=hpo__pb2.ExperimentIdParams.SerializeToString,
+                request_serializer=hpo__pb2.ExperimentNameParams.SerializeToString,
                 response_deserializer=hpo__pb2.NewExperimentsReply.FromString,
                 )
 
@@ -118,7 +118,7 @@ def add_HpoServiceServicer_to_server(servicer, server):
             ),
             'GetExperimentDetails': grpc.unary_unary_rpc_method_handler(
                     servicer.GetExperimentDetails,
-                    request_deserializer=hpo__pb2.ExperimentIdParams.FromString,
+                    request_deserializer=hpo__pb2.ExperimentNameParams.FromString,
                     response_serializer=hpo__pb2.ExperimentDetails.SerializeToString,
             ),
             'GetTrialConfig': grpc.unary_unary_rpc_method_handler(
@@ -133,7 +133,7 @@ def add_HpoServiceServicer_to_server(servicer, server):
             ),
             'GenerateNextConfig': grpc.unary_unary_rpc_method_handler(
                     servicer.GenerateNextConfig,
-                    request_deserializer=hpo__pb2.ExperimentIdParams.FromString,
+                    request_deserializer=hpo__pb2.ExperimentNameParams.FromString,
                     response_serializer=hpo__pb2.NewExperimentsReply.SerializeToString,
             ),
     }
@@ -210,7 +210,7 @@ class HpoService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/helloworld.HpoService/GetExperimentDetails',
-            hpo__pb2.ExperimentIdParams.SerializeToString,
+            hpo__pb2.ExperimentNameParams.SerializeToString,
             hpo__pb2.ExperimentDetails.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
@@ -261,7 +261,7 @@ class HpoService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/helloworld.HpoService/GenerateNextConfig',
-            hpo__pb2.ExperimentIdParams.SerializeToString,
+            hpo__pb2.ExperimentNameParams.SerializeToString,
             hpo__pb2.NewExperimentsReply.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

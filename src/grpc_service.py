@@ -43,12 +43,12 @@ class HpoService(hpo_pb2_grpc.HpoServiceServicer):
 
     def GetExperimentDetails(self, request, context):
         try:
-            experiment: HpoExperiment = hpo_service.instance.getExperiment(request.experiment_id)
+            experiment: HpoExperiment = hpo_service.instance.getExperiment(request.experiment_name)
             reply = hpo_pb2.ExperimentDetails()
             reply.experiment_name = experiment.experiment_name
             reply.direction = experiment.direction
             reply.hpo_algo_impl = experiment.hpo_algo_impl
-            reply.id_ = experiment.id_
+            # reply.id_ = experiment.id_
             reply.objective_function = experiment.objective_function
             # TODO:: expand tunables message
             # reply.tunables = experiment.tunables
@@ -57,7 +57,7 @@ class HpoService(hpo_pb2_grpc.HpoServiceServicer):
             return reply
         except ExperimentNotFoundError:
             context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details('Could not find experiment: %s' % request.experiment_id)
+            context.set_details('Could not find experiment: %s' % request.experiment_name)
             return
 
 
@@ -66,13 +66,13 @@ class HpoService(hpo_pb2_grpc.HpoServiceServicer):
             tuneables = []
             for tuneable in request.tuneables:
                 tuneables.append(json.loads(MessageToJson(tuneable, preserving_proto_field_name=True)))
-            hpo_service.instance.newExperiment(request.experiment_id, request.experiment_name,
+            hpo_service.instance.newExperiment(None, request.experiment_name,
                                                                            request.total_trials, request.parallel_trials,
                                                                            request.direction, request.hpo_algo_impl,
                                                                            request.objective_function,
                                                                            tuneables, request.value_type)
-            hpo_service.instance.startExperiment(request.experiment_id)
-            experiment: HpoExperiment = hpo_service.instance.getExperiment(request.experiment_id)
+            hpo_service.instance.startExperiment(request.experiment_name)
+            experiment: HpoExperiment = hpo_service.instance.getExperiment(request.experiment_name)
             reply: NewExperimentsReply = NewExperimentsReply()
             reply.trial_number = experiment.trialDetails.trial_number
             context.set_code(grpc.StatusCode.OK)
@@ -83,10 +83,8 @@ class HpoService(hpo_pb2_grpc.HpoServiceServicer):
             return
 
     def GetTrialConfig(self, request, context):
-        # if ("experiment_id" in query and "trial_number" in query and hpo_service.instance.containsExperiment(query["experiment_id"][0]) and
-        #         query["trial_number"][0] == str(hpo_service.instance.get_trial_number(query["experiment_id"][0]))):
-        if hpo_service.instance.containsExperiment(request.experiment_id):
-            data = json.loads(hpo_service.instance.get_trial_json_object(request.experiment_id))
+        if hpo_service.instance.containsExperiment(request.experiment_name):
+            data = json.loads(hpo_service.instance.get_trial_json_object(request.experiment_name))
             trialConfig : hpo_pb2.TrialConfig = hpo_pb2.TrialConfig()
             for config in data:
                 tunable: hpo_pb2.TunableConfig = hpo_pb2.TunableConfig()
@@ -98,13 +96,13 @@ class HpoService(hpo_pb2_grpc.HpoServiceServicer):
             return trialConfig
         else:
             context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details('Could not find experiment: %s' % request.experiment_id)
+            context.set_details('Could not find experiment: %s' % request.experiment_name)
             return hpo_pb2.TunableConfig()
 
     def UpdateTrialResult(self, request, context):
-        if (hpo_service.instance.containsExperiment(request.experiment_id) and
-                request.trial == hpo_service.instance.get_trial_number(request.experiment_id)):
-            hpo_service.instance.set_result(request.experiment_id,
+        if (hpo_service.instance.containsExperiment(request.experiment_name) and
+                request.trial == hpo_service.instance.get_trial_number(request.experiment_name)):
+            hpo_service.instance.set_result(request.experiment_name,
                                             request.result,
                                             request.value_type,
                                             request.value)
