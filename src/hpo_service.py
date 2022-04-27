@@ -11,15 +11,15 @@ class HpoService:
         self.experiments = {}
 
     def newExperiment(self, id_, experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, objective_function, tunables, value_type):
-        if self.containsExperiment(id_):
+        if self.containsExperiment(experiment_name):
             print("Experiment already exists")
             return
 
-        self.experiments[id_] = optuna_hpo.HpoExperiment(experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type)
+        self.experiments[experiment_name] = optuna_hpo.HpoExperiment(experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type)
 
 
-    def startExperiment(self, id_):
-        experiment: optuna_hpo.HpoExperiment = self.experiments.get(id_)
+    def startExperiment(self, name):
+        experiment: optuna_hpo.HpoExperiment = self.experiments.get(name)
         started: threading.Condition = experiment.start()
         try:
             started.acquire()
@@ -30,25 +30,25 @@ class HpoService:
         if not value:
             print("Starting experiment timed  out!")
 
-    def containsExperiment(self, id_):
+    def containsExperiment(self, name):
         if self.experiments is None or not self.experiments :
             return False
-        return id_ in self.experiments.keys()
+        return name in self.experiments.keys()
 
-    def doesNotContainExperiment(self, id_):
-        return not self.containsExperiment(id_)
+    def doesNotContainExperiment(self, name):
+        return not self.containsExperiment(name)
 
-    def getExperiment(self, id_) -> optuna_hpo.HpoExperiment:
-        if self.doesNotContainExperiment(id_):
+    def getExperiment(self, name) -> optuna_hpo.HpoExperiment:
+        if self.doesNotContainExperiment(name):
             print("Experiment does not exist")
             return
 
-        return self.experiments.get(id_)
+        return self.experiments.get(name)
 
 
-    def get_trial_number(self, id_):
+    def get_trial_number(self, name):
 
-        experiment: optuna_hpo.HpoExperiment = self.getExperiment(id_)
+        experiment: optuna_hpo.HpoExperiment = self.getExperiment(name)
         """Return the trial number."""
         if experiment.hpo_algo_impl in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
             try:
