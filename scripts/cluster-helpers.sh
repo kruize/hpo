@@ -69,7 +69,7 @@ function docker_start() {
 	
 	check_prereq running ${SERVICE_STATUS_DOCKER}
 
-	${CONTAINER_RUNTIME} run -d --name hpo_docker_container -p 8085:8085 ${HPO_CONTAINER_IMAGE} >/dev/null 2>&1
+	${CONTAINER_RUNTIME} run -d --name hpo_docker_container -p 8085:8085 -p 50051:50051 ${HPO_CONTAINER_IMAGE} >/dev/null 2>&1
 	check_err "Unexpected error occured. Service Stopped!"
 
 	echo
