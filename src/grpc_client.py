@@ -16,6 +16,8 @@
 from __future__ import print_function
 
 import logging
+import os
+
 import click
 import json
 
@@ -24,7 +26,8 @@ from gRPC import hpo_pb2_grpc, hpo_pb2
 from google.protobuf.json_format import MessageToJson
 from google.protobuf.json_format import Parse, ParseDict
 
-
+default_host_name="localhost"
+default_server_port = 50051
 @click.group()
 def main():
     """A HPO command line tool to allow interaction with HPO service"""
@@ -120,7 +123,20 @@ def run(func):
     # NOTE(gRPC Python Team): .close() is possible on a channel and should be
     # used in circumstances in which the with statement does not fit the needs
     # of the code.
-    with grpc.insecure_channel('localhost:50051') as channel:
+
+    if "HPO_HOST" in os.environ:
+        host_name = os.environ.get('HPO_HOST')
+    else :
+        host_name = default_host_name
+
+    if "HPO_PORT" in os.environ:
+        server_port = os.environ.get('HPO_PORT')
+    else :
+        server_port = default_server_port
+
+
+
+    with grpc.insecure_channel(host_name + ':' + server_port) as channel:
         stub = hpo_pb2_grpc.HpoServiceStub(channel)
         try:
             response = func(stub)

@@ -88,3 +88,10 @@ or
 ```shell
 $ python3 ./grpc_client.py new --file=/tmp/hpo/newExperiment.json
 ```
+
+> **_NOTE:_**  The default host and port for the client is `localhost` and `50051`.  If you wish to connect to a remote machine, or via a diferent port, please set the following environment variables, `HPO_HOST` and `HPO_PORT`. 
+> e.g.
+> ```shell
+> $ export HPO_HOST=remoteMachine.com
+> $ export HPO_PORT=9191
+> ```
