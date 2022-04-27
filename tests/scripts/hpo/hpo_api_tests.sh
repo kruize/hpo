@@ -35,7 +35,7 @@ function hpo_api_tests() {
 	TESTS=0
 	((TOTAL_TEST_SUITES++))
 
-	hpo_api_tests=("hpo_post_experiment"  "hpo_get_trial_json" "hpo_post_exp_result" "hpo_sanity_test")
+	hpo_api_tests=("hpo_post_experiment"  "hpo_get_trial_json" "hpo_post_exp_result" "hpo_sanity_test" "hpo_grpc_sanity_test")
 
 	# check if the test case is supported
 	if [ ! -z "${testcase}" ]; then
@@ -790,7 +790,107 @@ function hpo_post_exp_result() {
 	other_exp_result_post_tests
 }
 
-# Sanity Test for HPO 
+# Sanity Test for HPO gRPC service
+function hpo_grpc_sanity_test() {
+	((TOTAL_TESTS++))
+	((TESTS++))
+
+	# Set the no. of trials
+	N_TRIALS=2
+	failed=0
+	EXP_JSON="./resources/searchspace_jsons/newExperiment.json"
+
+	exp_id=$(cat ${EXP_JSON}  | jq '.experiment_id')
+	echo "Experiment id = $exp_id"
+
+	# Get the experiment name from the search space
+	exp_name=$(cat ${EXP_JSON}  | jq '.experiment_name')
+	echo "Experiment name = $exp_name"
+
+	TESTS_=${TEST_DIR}
+	SERV_LOG="${TESTS_}/service.log"
+	echo "RESULTSDIR - ${TEST_DIR}" | tee -a ${LOG}
+	echo "" | tee -a ${LOG}
+
+	# Deploy hpo
+	if [ ${cluster_type} == "native" ]; then
+		deploy_hpo ${cluster_type} ${SERV_LOG}
+	else
+		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
+	fi
+
+	echo "Wait for HPO service to come up"
+	sleep 10
+
+	pwd
+
+	## Loop through the trials
+	for (( i=0 ; i<${N_TRIALS} ; i++ ))
+	do
+		echo ""
+		echo "*********************************** Trial ${i} *************************************"
+		LOG_="${TEST_DIR}/hpo-trial-${i}.log"
+		if [ ${i} == 0 ]; then
+			echo "Posting a new experiment..."
+			python ../src/grpc_client.py new --file="${EXP_JSON}"
+			verify_result "Post new experiment"
+		fi
+
+		# Get the config from HPO
+		sleep 2
+		echo ""
+		echo "Generate the config for trial ${i}..." | tee -a ${LOG}
+		echo ""
+		result="${TEST_DIR}/hpo_config_${i}.json"
+		parse_json="${TEST_DIR}/expected_hpo_config_${i}.json"
+
+		python ../src/grpc_client.py config --name ${exp_name} --trial 0 > ${result}
+		verify_grpc_result "Get config from hpo for trial ${i}"
+
+		# Post the experiment result to hpo
+		echo "" | tee -a ${LOG}
+		echo "Post the experiment result for trial ${i}..." | tee -a ${LOG}
+		trial_result="success"
+		result_value="98.7"
+
+		python ../src/grpc_client.py result --name "${exp_name}" --trial "${i}" --result "${trial_result}" --value_type "double" --value "${result_value}"
+		verify_grpc_result "Post new experiment result for trial ${i}"
+
+		sleep 5
+
+		# Generate a subsequent trial
+		if [[ ${i} < $((N_TRIALS-1)) ]]; then
+			echo "" | tee -a ${LOG}
+		        echo "Generate subsequent config after trial ${i} ..." | tee -a ${LOG}
+			python ../src/grpc_client.py next --name ${exp_name} --trial ${i} > ${result}
+			verify_grpc_result "Post subsequent experiment after trial ${i}"
+		fi
+	done
+
+	# Terminate any running HPO servers
+	echo "Terminating any running HPO servers..." | tee -a ${LOG}
+	terminate_hpo ${cluster_type}
+	echo "Terminating any running HPO servers...Done" | tee -a ${LOG}
+	sleep 2
+}
+
+function verify_grpc_result() {
+	test_info=$1
+	exit_code=$?
+
+	if [ ${exit_code} -ne 0 ]; then
+		echo "$test_info failed!"
+	else
+		if [[ "${test_info}" =~ "Get config" ]]; then
+			validate_exp_trial
+			if [[ ${failed} == 1 ]]; then
+				echo "Validating hpo config failed" | tee -a ${LOG}
+			fi
+		fi
+	fi
+}
+
+# Sanity Test for HPO REST service
 function hpo_sanity_test() {
 	((TOTAL_TESTS++))
 	((TESTS++))

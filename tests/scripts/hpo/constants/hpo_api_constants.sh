@@ -22,7 +22,8 @@ declare -A hpo_api_test_description
 hpo_api_test_description=([hpo_post_experiment]="Start the required HPO services, post an experiment json to HPO /experiment_trials API with various combinations and validate the result"
                           [hpo_get_trial_json]="Start the required HPO services post a valid experiment json to HPO /experiment_trials API, query the API using different combinations of experiment id and trial_number and validate the result" 
                           [hpo_post_exp_result]="Start the required HPO services, post a valid experiment json to HPO /experiment_trials API and then post valid and invalid combinations of experiment result to the API and validate the result"
-			  [hpo_sanity_test]="Start the required HPO services, post a valid experiment json to HPO /experiment_trials API, get the config, post the experiment result and subsequent experiment")
+			  [hpo_sanity_test]="Start the required HPO services, post a valid experiment json to HPO /experiment_trials API, get the config, post the experiment result and subsequent experiment repeatedly for the specified number of trials"
+			  [hpo_grpc_sanity_test]="Start the required HPO services, post a valid experiment json to HPO /experiment_trials API, get the config, post the experiment result and subsequent experimentrepeatedly for the specified number of trials")
 
 # Tests to be carried out for HPO (Hyper Parameter Optimization) module API to post an experiment
 run_post_experiment_tests=("invalid-id"
