@@ -372,26 +372,6 @@ function run_get_trial_json_test() {
 	curl="curl -H 'Accept: application/json'"
 	url="http://localhost:8085/experiment_trials"
 	case "${exp_trial}" in
-	  invalid-id)
-      get_trial_json=$(${curl} ''${url}'?experiment_id=124365213472&trial_number=0'  -w '\n%{http_code}' 2>&1)
-      get_trial_json_cmd="${curl} '${url}?experiment_id=124365213472&trial_number=0' -w '\n%{http_code}'"
-      ;;
-    empty-id)
-      get_trial_json=$(${curl} ''${url}'?experiment_id= &trial_number=0' -w '\n%{http_code}' 2>&1)
-      get_trial_json_cmd="${curl} '${url}?experiment_id= &trial_number=0' -w '\n%{http_code}'"
-      ;;
-    no-id)
-      get_trial_json=$(${curl} ''${url}'?trial_number=0' -w '\n%{http_code}' 2>&1)
-      get_trial_json_cmd="${curl} '${url}?trial_number=0' -w '\n%{http_code}'"
-      ;;
-    null-id)
-      get_trial_json=$(${curl} ''${url}'?experiment_id=null &trial_number=0' -w '\n%{http_code}' 2>&1)
-      get_trial_json_cmd="${curl} '${url}?experiment_id=null &trial_number=0' -w '\n%{http_code}'"
-      ;;
-    only-valid-id)
-      get_trial_json=$(${curl} ''${url}'?experiment_id='${current_id}'' -w '\n%{http_code}' 2>&1)
-      get_trial_json_cmd="${curl} '${url}?experiment_id='${current_id}'' -w '\n%{http_code}'"
-      ;;
 		empty-name)
 			get_trial_json=$(${curl} ''${url}'?experiment_name= &trial_number=0' -w '\n%{http_code}' 2>&1)
 			get_trial_json_cmd="${curl} '${url}?experiment_name= &trial_number=0' -w '\n%{http_code}'"
