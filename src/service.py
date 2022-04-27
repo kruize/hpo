@@ -18,7 +18,6 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import re
 import cgi
 import json
-import optuna
 import requests
 import os
 from urllib.parse import urlparse, parse_qs
@@ -96,10 +95,14 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             else:
                 self._set_response(404, "-1")
         elif re.search(api_endpoint_recommendation, self.path):
-            try:
-                self.getRecommendations()
-                self._set_response(200, "0")
-            except (ValueError, AttributeError, KeyError):
+            query = parse_qs(urlparse(self.path).query)
+            if ("experiment_id" in query and "trials" in query):
+                data = self.getRecommendations(query)
+                if data == -1:
+                    self._set_response(403, "-1")
+                else:
+                    self._set_response(200, data)
+            else:
                 self._set_response(403, "-1")
         elif (self.path == "/"):
                 data = self.getHomeScreen()
@@ -107,11 +110,19 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         else:
             self._set_response(403, "-1")
 
-    # TODO: Complete the getCurrentBest() method
-    def getRecommendations(self):        
-        optuna_hpo.TrialDetails.getBestConfig(total_trials)
-        
-    
+    # TODO: Complete the getConfigs() method
+    def getRecommendations(self, query):
+        exp_obj = hpo_service.instance.getExperiment(query["experiment_id"][0])
+        trial_number = hpo_service.instance.get_trial_number(query["experiment_id"][0])
+        if not exp_obj or not exp_obj.hasStarted():
+            logger.error("Experiment ID {0} not found. It may not have started yet!" .format(query["experiment_id"][0]))
+            return -1
+        elif int(query["trials"][0]) > trial_number:
+            logger.error("Cannot fetch {0} trials. Only {1} trials has been completed till now!" .format(int(query["trials"][0]), (int(trial_number))))
+            return -1
+        else:
+            return optuna_hpo.TrialDetails.getConfigs(trial_number, exp_obj)
+
     def getHomeScreen(self):
         fin = open(welcome_page)
         content = fin.read()

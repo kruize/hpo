@@ -1,5 +1,6 @@
 import threading
 import json
+import csv
 from bayes_optuna import optuna_hpo
 
 class HpoService:
@@ -84,5 +85,22 @@ class HpoService:
             finally:
                 experiment.resultsAvailableCond.release()
 
+    ## TODO: Need to update this
+    #  add trial results in a CSV file
+    def writeToCSV(self, trial_json_object, trial_number):
+
+        # open a file for writing
+        config_file = open('src/trial_data/trial_configs.csv', 'w', newline='')
+        csv_writer = csv.writer(config_file)
+        trial_json_object = json.loads(trial_json_object)
+        for trial in trial_json_object:
+            if trial_number == 0:
+                header = trial.keys()
+                csv_writer.writerow(header)
+                trial_number += 1
+            # Writing data of CSV file
+            csv_writer.writerow(trial.values())
+
+        config_file.close()
 
 instance: HpoService = HpoService();

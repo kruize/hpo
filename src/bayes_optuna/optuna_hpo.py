@@ -39,10 +39,9 @@ class TrialDetails:
     result_value_type = ""
     result_value = 0
 
-    def getBestConfig(total_trials):
+    def getBestConfig(self, total_trials):
         if TrialDetails.trial_number == total_trials:
             try:
-                # study = optuna.load_study(study_name="hpo")
                 logger.info("Best parameter: " + str(study.best_params))
                 # Get the best value
                 logger.info("Best value: " + str(study.best_value))
@@ -53,6 +52,12 @@ class TrialDetails:
                 raise
         else: 
             logger.error("Error! Cannot fetch results, Experiment is still running or hasn't started yet.")
+
+    #TODO : Need to get the study object here to fetch configs based on current experiment
+    def getConfigs(self,trial_number, exp_obj):
+        print(trial_number)
+        print(exp_obj)
+
 
 class HpoExperiment:
     """
@@ -84,7 +89,7 @@ class HpoExperiment:
         self.tunables = tunables
         self.value_type = value_type
 
-        self.thread = threading.Thread(target=self.recommend)
+        self.thread = threading.Thread(target=self.recommend, name=experiment_name)
 
     def start(self) -> threading.Condition:
         try:
@@ -152,7 +157,7 @@ class HpoExperiment:
 
         global study
         # Create a study object
-        study = optuna.create_study(direction=self.direction, sampler=sampler, study_name="hpo")
+        study = optuna.create_study(direction=self.direction, sampler=sampler)
 
         # Execute an optimization by using an 'Objective' instance
         study.optimize(Objective(self), n_trials=self.total_trials, n_jobs=self.parallel_trials)
