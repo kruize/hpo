@@ -4,3 +4,4 @@ scikit-optimize
 jsonschema
 grpcio
 click
+protobuf
