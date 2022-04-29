@@ -46,3 +46,52 @@ The criteria for setting the experiment status is:
 | `success`         | The experiment runs successfully without any error.                           |
 | `failure`         | The experiment fails due to reason such as OOMKilled.                         |
 | `prune`           | The experiment terminates due to reasons such as insufficient cpu and memory. |
+
+
+## gRPC Client
+
+[`grpc_client.py`](./grpc_client.py) is a command line client that allows users to interact with the gRPC service.
+
+### Usage
+
+```shell
+$ python3 ./grpc_client.py 
+Usage: grpc_client.py [OPTIONS] COMMAND [ARGS]...
+
+  A HPO command line tool to allow interaction with HPO service
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  config  Obtain a configuration set for a particular experiment trial
+  count   Return a count of experiments currently running
+  list    List names of all experiments currently running
+  new     Create a new experiment
+  next    Generate next configuration set for running experiment
+  result  Update results for a particular experiment trial
+  show    Show details of running experiment
+
+```
+
+Commands provide interactive input for params or allow users to set params on the command line for scripted use;
+
+e.g.
+
+```shell
+$ python3 ./grpc_client.py new
+ Experiment configuration file path: 
+```
+
+or
+
+```shell
+$ python3 ./grpc_client.py new --file=/tmp/hpo/newExperiment.json
+```
+
+> **_NOTE:_**  The default host and port for the client is `localhost` and `50051`.  If you wish to connect to a remote machine, or via a diferent port, please set the following environment variables, `HPO_HOST` and `HPO_PORT`. 
+> e.g.
+> ```shell
+> $ export HPO_HOST=remoteMachine.com
+> $ export HPO_PORT=9191
+> ```

@@ -1,6 +1,23 @@
+"""
+Copyright (c) 2020, 2022 Red Hat, IBM Corporation and others.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
 import threading
 import json
 from bayes_optuna import optuna_hpo
+from exceptions import ExperimentNotFoundError
 
 class HpoService:
     """
@@ -38,10 +55,13 @@ class HpoService:
     def doesNotContainExperiment(self, name):
         return not self.containsExperiment(name)
 
+    def getExperimentsList(self):
+        return self.experiments.keys()
+
     def getExperiment(self, name) -> optuna_hpo.HpoExperiment:
         if self.doesNotContainExperiment(name):
-            print("Experiment does not exist")
-            return
+            print("Experiment " + name + " does not exist")
+            raise ExperimentNotFoundError
 
         return self.experiments.get(name)
 
@@ -65,10 +85,9 @@ class HpoService:
         if experiment.hpo_algo_impl in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
             try:
                 experiment.resultsAvailableCond.acquire()
-                trial_json_object = json.dumps(experiment.trialDetails.trial_json_object)
+                return json.dumps(experiment.trialDetails.trial_json_object)
             finally:
                 experiment.resultsAvailableCond.release()
-        return trial_json_object
 
 
     def set_result(self, id_, trial_result, result_value_type, result_value):
