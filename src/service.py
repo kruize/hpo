@@ -88,6 +88,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
             if ("experiment_name" in query and "trial_number" in query and hpo_service.instance.containsExperiment(query["experiment_name"][0]) and
                     query["trial_number"][0] == str(hpo_service.instance.get_trial_number(query["experiment_name"][0]))):
+                logger.info("Experiment_Name = " + str(hpo_service.instance.getExperiment(query["experiment_name"][0]).experiment_name))
+                logger.info("Trial_Number = " + str(hpo_service.instance.getExperiment(query["experiment_name"][0]).trialDetails.trial_number))
                 data = hpo_service.instance.get_trial_json_object(query["experiment_name"][0])
                 self._set_response(200, data)            
             else:

@@ -17,9 +17,6 @@ limitations under the License.
 import optuna
 import threading
 
-import os
-import time
-
 from logger import get_logger
 
 logger = get_logger(__name__)
@@ -69,7 +66,7 @@ class HpoExperiment:
         self.objective_function = objective_function
         self.tunables = tunables
         self.value_type = value_type
-
+        self.trialDetails = TrialDetails()
         self.thread = threading.Thread(target=self.recommend)
 
     def start(self) -> threading.Condition:
@@ -137,7 +134,7 @@ class HpoExperiment:
             sampler = optuna.integration.SkoptSampler()
 
         # Create a study object
-        study = optuna.create_study(direction=self.direction, sampler=sampler)
+        study = optuna.create_study(direction=self.direction, sampler=sampler, study_name=self.experiment_name)
 
         # Execute an optimization by using an 'Objective' instance
         study.optimize(Objective(self), n_trials=self.total_trials, n_jobs=self.parallel_trials)
