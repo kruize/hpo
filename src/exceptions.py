@@ -14,18 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import rest_service, grpc_service
-import threading
+class Error(Exception):
+    """Base class for other exceptions"""
+    pass
 
-def main():
-    restService = threading.Thread(target=rest_service.main)
-    gRPCservice = threading.Thread(target=grpc_service.serve)
-
-    restService.start()
-    gRPCservice.start()
-
-    restService.join()
-    gRPCservice.join()
-
-if __name__ == '__main__':
-    main()
+class ExperimentNotFoundError(Error):
+    """Raised when the input value is too small"""
+    pass
