@@ -25,7 +25,7 @@ Hyperparameter optimization(HPO) is choosing a set of optimal hyperparameters th
 - **_Objective function:_** Typically an algebraic expression that either needs to be maximized or minimized. Eg, maximize throughput, minimize cost etc
 
 ## HPOaaS Architecture
-![HPOaaS Architecture](/docs/hpoaas.png)
+![HPOaaS Architecture](/design/hpoaas.png)
 The current architecture of HPOaaS consists of a thin abstraction layer that provides a common REST API and gRPC interface. It provides an interface for integrating with Open Source projects / modules that provide HPO functionality. Currently it only supports the Optuna OSS Project. It provides a simple HTTP server through which the REST APIs can be accessed.
 
 HPOaaS supports the following ways of deployment
