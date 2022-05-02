@@ -1,5 +1,5 @@
 # HPOaaS REST API
-The HPOaaS REST API design is as follows:
+The HPOaaS REST API design is as follows
 
 ##  Start an Experiment
 Start a new Experiment with HPOaaS. This requires a valid Search Space JSON to be passed in.
@@ -22,7 +22,7 @@ Status code   Response body
 ```
 
 ## Get a Trial JSON object
-Get a Trial Configuration JSON filled with values for each tunable that was passed in for a given trial number.
+Get a Trial Configuration JSON filled with values for each tunable that is part of the Search Space for a given trial number.
 ```
 'GET /experiment_trials?experiment_name={name}&trial_number={trial-number}'
 
@@ -65,7 +65,7 @@ Status code   Response body
 ```
 
 ## Continue the Experiment
-Continue a previously started experiment and the Next Trial Number
+Continue a previously started experiment and get the Next Trial Number.
 
 ```
 'POST /experiment_trials'
