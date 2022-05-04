@@ -105,13 +105,13 @@ function form_hpo_api_url {
 			SERVER_IP="localhost"
 			URL="http://${SERVER_IP}"
 			;;
-	        *);;
-        esac
+		*);;
+	esac
 
 	# Add conditions later for other cluster types
-        if [[ ${cluster_type} == "native" || ${cluster_type} == "docker" ]]; then
-                hpo_url="${URL}:${PORT}/${API}"
-        fi
+	if [[ ${cluster_type} == "native" || ${cluster_type} == "docker" ]]; then
+		hpo_url="${URL}:${PORT}/${API}"
+	fi
 }
 
 # Post a JSON object to HPO(Hyper Parameter Optimization) module
@@ -173,7 +173,7 @@ function run_post_tests(){
 	else
 		exp_tests=("${run_post_exp_result_tests[@]}")
 	fi
-	
+
 	for post_test in "${exp_tests[@]}"
 	do
 		TESTS_="${TEST_DIR}/${post_test}"
@@ -192,7 +192,7 @@ function run_post_tests(){
 		else
 			deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
 		fi
-	
+
 		# Sleep for few seconds to reduce the ambiguity
 		sleep 5
 
@@ -202,7 +202,7 @@ function run_post_tests(){
 			exp="valid-experiment"
 			# Post the experiment JSON to HPO /experiment_trials API
 			post_experiment_json "${hpo_post_experiment_json[${exp}]}"
-			
+
 			# Post the experiment result to HPO /experiment_trials API
 			post_experiment_result_json "${hpo_post_exp_result_json[$post_test]}"
 			expected_log_msg="${hpo_exp_result_error_messages[$post_test]}"
@@ -257,30 +257,30 @@ function run_post_tests(){
 		echo "" | tee -a ${LOG_} ${LOG}
 
 	done
-	
+
 	echo "*********************************************************************************************************" | tee -a ${LOG_} ${LOG}
 }
 
 # Do a post on experiment_trials for the same experiment id again with "operation: EXP_TRIAL_GENERATE_NEW" and check if experiments have started from the beginning
 function post_duplicate_experiments() {
 	post_experiment_json "${hpo_post_experiment_json[$exp]}"
-	
+
 	if [ "${http_code}" == "200" ]; then
 		failed=0
-	
+
 		# Post the json with same Id having "operation: EXP_TRIAL_GENERATE_NEW"
 		echo "Post the json with same Id having operation: EXP_TRIAL_GENERATE_NEW" | tee -a ${LOG_} ${LOG}
-		
+
 		# Sleep for few seconds to reduce the ambiguity
 		sleep 2
-		
+
 		echo ""
 		post_experiment_json "${hpo_post_experiment_json[$exp]}"
-		
+
 		actual_result="${http_code}"
 		expected_result_="^4[0-9][0-9]"
 		expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
-	
+
 		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}"
 	else
 		failed=1
@@ -302,7 +302,8 @@ function operation_generate_subsequent() {
 	echo -n "Post a valid experiment result to HPO..." | tee -a ${LOG_} ${LOG}
 	experiment_result="valid-experiment-result"
 	current_id="a123"
-	create_post_exp_result_json_array "${current_id}" "${trial_num}"
+	current_name="petclinic-sample-2-75884c5549-npvgd"
+	create_post_exp_result_json_array "${current_name}" "${trial_num}"
 	post_experiment_result_json "${hpo_post_exp_result_json[$experiment_result]}"
 
 	# Sleep for few seconds to reduce the ambiguity
@@ -326,7 +327,7 @@ function operation_generate_subsequent() {
 # input: Test name
 function other_post_experiment_tests() {
 	exp="valid-experiment"
-	
+
 	for operation in "${other_post_experiment_tests[@]}"
 	do
 		TESTS_="${TEST_DIR}/${operation}"
@@ -336,21 +337,21 @@ function other_post_experiment_tests() {
 
 		echo ""
 		echo "************************************* ${operation} Test ****************************************" | tee -a ${LOG_} ${LOG}
-		
+
 		# Deploy hpo
 		if [ ${cluster_type} == "native" ]; then
 			deploy_hpo ${cluster_type} ${SERV_LOG}
 		else
 			deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
 		fi
-	
+
 		# Sleep for few seconds to reduce the ambiguity
 		sleep 5
-		
+
 		operation=$(echo ${operation//-/_})
 		${operation}
 		echo ""
-		
+
 		# Stop the HPO servers
 		echo "Terminating any running HPO servers..." | tee -a ${LOG}
 		terminate_hpo ${cluster_type}
@@ -359,7 +360,7 @@ function other_post_experiment_tests() {
 		# Sleep for few seconds to reduce the ambiguity
 		sleep 5
 	done
-		
+
 	echo "*********************************************************************************************************" | tee -a ${LOG_} ${LOG}	
 }
 
@@ -371,52 +372,48 @@ function run_get_trial_json_test() {
 	curl="curl -H 'Accept: application/json'"
 	url="http://localhost:8085/experiment_trials"
 	case "${exp_trial}" in
-		invalid-id)
-			get_trial_json=$(${curl} ''${url}'?experiment_id=124365213472&trial_number=0'  -w '\n%{http_code}' 2>&1)
-			get_trial_json_cmd="${curl} '${url}?experiment_id=124365213472&trial_number=0' -w '\n%{http_code}'"
+		empty-name)
+			get_trial_json=$(${curl} ''${url}'?experiment_name= &trial_number=0' -w '\n%{http_code}' 2>&1)
+			get_trial_json_cmd="${curl} '${url}?experiment_name= &trial_number=0' -w '\n%{http_code}'"
 			;;
-		empty-id)
-			get_trial_json=$(${curl} ''${url}'?experiment_id= &trial_number=0' -w '\n%{http_code}' 2>&1)
-			get_trial_json_cmd="${curl} '${url}?experiment_id= &trial_number=0' -w '\n%{http_code}'"
-			;;
-		no-id)
+		no-name)
 			get_trial_json=$(${curl} ''${url}'?trial_number=0' -w '\n%{http_code}' 2>&1)
 			get_trial_json_cmd="${curl} '${url}?trial_number=0' -w '\n%{http_code}'"
 			;;
-		null-id)
-			get_trial_json=$(${curl} ''${url}'?experiment_id=null &trial_number=0' -w '\n%{http_code}' 2>&1)
-			get_trial_json_cmd="${curl} '${url}?experiment_id=null &trial_number=0' -w '\n%{http_code}'"
+		null-name)
+			get_trial_json=$(${curl} ''${url}'?experiment_name=null &trial_number=0' -w '\n%{http_code}' 2>&1)
+			get_trial_json_cmd="${curl} '${url}?experiment_name=null &trial_number=0' -w '\n%{http_code}'"
 			;;
-		only-valid-id)
-			get_trial_json=$(${curl} ''${url}'?experiment_id='${current_id}'' -w '\n%{http_code}' 2>&1)
-			get_trial_json_cmd="${curl} '${url}?experiment_id='${current_id}'' -w '\n%{http_code}'"
+		only-valid-name)
+			get_trial_json=$(${curl} ''${url}'?experiment_name='${current_name}'' -w '\n%{http_code}' 2>&1)
+			get_trial_json_cmd="${curl} '${url}?experiment_name='${current_name}'' -w '\n%{http_code}'"
 			;;
 		invalid-trial-number)
-			get_trial_json=$(${curl} ''${url}'?experiment_id='${current_id}'&trial_number=102yrt' -w '\n%{http_code}' 2>&1)
-			get_trial_json_cmd="${curl} '${url}?experiment_id='${current_id}'&trial_number=102yrt' -w '\n%{http_code}'"
+			get_trial_json=$(${curl} ''${url}'?experiment_id='${current_name}'&trial_number=102yrt' -w '\n%{http_code}' 2>&1)
+			get_trial_json_cmd="${curl} '${url}?experiment_id='${current_name}'&trial_number=102yrt' -w '\n%{http_code}'"
 			;;
 		empty-trial-number)
-			get_trial_json=$(${curl} ''${url}'?experiment_id='${current_id}'&trial_number=' -w '\n%{http_code}' 2>&1)
-			get_trial_json_cmd="${curl} '${url}?experiment_id='${current_id}'&trial_number=' -w '\n%{http_code}'"
+			get_trial_json=$(${curl} ''${url}'?experiment_id='${current_name}'&trial_number=' -w '\n%{http_code}' 2>&1)
+			get_trial_json_cmd="${curl} '${url}?experiment_id='${current_name}'&trial_number=' -w '\n%{http_code}'"
 			;;
 		no-trial-number)
-			get_trial_json=$(${curl} ''${url}'?experiment_id='${current_id}'' -w '\n%{http_code}' 2>&1)
-			get_trial_json_cmd="${curl} '${url}?experiment_id='${current_id}'' -w '\n%{http_code}'"
+			get_trial_json=$(${curl} ''${url}'?experiment_id='${current_name}'' -w '\n%{http_code}' 2>&1)
+			get_trial_json_cmd="${curl} '${url}?experiment_id='${current_name}'' -w '\n%{http_code}'"
 			;;
 		null-trial-number)
-			get_trial_json=$(${curl} ''${url}'?experiment_id='${current_id}'&trial_number=null' -w '\n%{http_code}' 2>&1)
-			get_trial_json_cmd="${curl} '${url}?experiment_id='${current_id}'&trial_number=null' -w '\n%{http_code}'"
+			get_trial_json=$(${curl} ''${url}'?experiment_id='${current_name}'&trial_number=null' -w '\n%{http_code}' 2>&1)
+			get_trial_json_cmd="${curl} '${url}?experiment_id='${current_name}'&trial_number=null' -w '\n%{http_code}'"
 			;;
 		only-valid-trial-number)
 			get_trial_json=$(${curl} ''${url}'?trial_number=0' -w '\n%{http_code}' 2>&1)
 			get_trial_json_cmd="${curl} '${url}?trial_number=0' -w '\n%{http_code}'"
 			;;
 		valid-exp-trial)
-			get_trial_json=$(${curl} ''${url}'?experiment_id=a123&trial_number='${trial_num}'' -w '\n%{http_code}' 2>&1)
-			get_trial_json_cmd="${curl} '${url}?experiment_id=a123&trial_number=${trial_num}' -w '\n%{http_code}'"
+			get_trial_json=$(${curl} ''${url}'?experiment_name=petclinic-sample-2-75884c5549-npvgd&trial_number='${trial_num}'' -w '\n%{http_code}' 2>&1)
+			get_trial_json_cmd="${curl} '${url}?experiment_name=petclinic-sample-2-75884c5549-npvgd&trial_number=${trial_num}' -w '\n%{http_code}'"
 			;;
 	esac
-	
+
 	echo "command used to query the experiment_trial API = ${get_trial_json_cmd}" | tee -a ${LOG_} ${LOG}
 	echo "" | tee -a ${LOG_} ${LOG}
 	echo "${get_trial_json}" >> ${LOG_} ${LOG}
@@ -440,19 +437,20 @@ function get_trial_json_invalid_tests() {
 		SERV_LOG="${TESTS_}/service.log"
 
 		echo "************************************* ${exp_trial} Test ****************************************" | tee -a ${LOG_} ${LOG}
-		
+
 		# Deploy hpo
 		if [ ${cluster_type} == "native" ]; then
 			deploy_hpo ${cluster_type} ${SERV_LOG}
 		else
 			deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
 		fi
-	
+
 		# Sleep for few seconds to reduce the ambiguity
 		sleep 5
-		
+
 		# Get the experiment id from search space JSON
 		current_id="a123"
+		current_name="petclinic-sample-2-75884c5549-npvgd"
 
 		# Post a valid experiment to RM-HPO /experiment_trials API.
 		exp="valid-experiment"
@@ -461,14 +459,14 @@ function get_trial_json_invalid_tests() {
 		run_get_trial_json_test ${exp_trial}
 
 		actual_result="${http_code}"
-		
+
 		expected_result_="^4[0-9][0-9]"
 		expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
 
 		echo "actual_result = $actual_result"
 		compare_result ${exp_trial} ${expected_result_} "${expected_behaviour}"
 		echo ""
-		
+
 		# Stop the HPO servers
 		echo "Terminating any running HPO servers..." | tee -a ${LOG_} ${LOG}
 		terminate_hpo ${cluster_type} | tee -a ${LOG_} ${LOG}
@@ -500,20 +498,20 @@ function validate_exp_trial() {
 
 	expected_tunables_len=$(cat ${parse_json} | jq '. | length')
 	actual_tunables_len=$(cat ${result}  | jq '. | length')
-	
+
 	echo "___________________________________ Validate experiment trial __________________________________________" | tee -a ${LOG_} ${LOG}
 	echo "" | tee -a ${LOG_} ${LOG}
 	echo "expected tunables length = ${expected_tunables_len} actual tunables length = ${actual_tunables_len}"
 	if [ "${expected_tunables_len}" -ne "${actual_tunables_len}" ]; then
 		failed=1
 		echo "Error - Number of expected and actual tunables should be same" | tee -a ${LOG_} ${LOG}
-		
+
 		echo "" | tee -a ${LOG_} ${LOG}
 		echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" | tee -a ${LOG_} ${LOG}
 	else
 		echo "" | tee -a ${LOG_} ${LOG}
 		echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" | tee -a ${LOG_} ${LOG}
-		
+
 		while [ "${tunable_count}" -lt "${expected_tunables_len}" ]
 		do
 			upperbound=$(cat ${parse_json} | jq '.['${tunable_count}'].upper_bound')
@@ -537,8 +535,8 @@ function validate_exp_trial() {
 			# validate the tunable value
 			echo "Validating the tunable value for ${actual_tunable_name}..." | tee -a ${LOG_} ${LOG}
 
- 			if [[ $(bc <<< "${actual_tunable_value} >= ${lowerbound} && ${actual_tunable_value} <= ${upperbound}") == 0 ]]; then
-		 		failed=1
+			if [[ $(bc <<< "${actual_tunable_value} >= ${lowerbound} && ${actual_tunable_value} <= ${upperbound}") == 0 ]]; then
+				failed=1
 				echo "Error - Actual Tunable value should be within the given range" | tee -a ${LOG_} ${LOG}
 			fi
 			echo "" | tee -a ${LOG_} ${LOG}
@@ -565,19 +563,20 @@ function get_trial_json_valid_tests() {
 		SERV_LOG="${TESTS_}/service.log"
 
 		echo "************************************* ${exp_trial} Test ****************************************" | tee -a ${LOG_} ${LOG}
-	
+
 		# Deploy hpo
 		if [ ${cluster_type} == "native" ]; then
 			deploy_hpo ${cluster_type} ${SERV_LOG}
 		else
 			deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
 		fi
-	
+
 		# Sleep for few seconds to reduce the ambiguity
 		sleep 5
 			
 		# Get the experiment id from search space JSON
 		current_id="a123"
+		current_name="petclinic-sample-2-75884c5549-npvgd"
 
 		# Post a valid experiment to RM-HPO /experiment_trials API.
 		exp="valid-experiment"
@@ -588,26 +587,26 @@ function get_trial_json_valid_tests() {
 			operation_generate_subsequent
 			trial_num="${response}"
 		fi
-		
+
 		# Query the RM-HPO /experiment_trials API for valid experiment id and trial number and get the result.
 		run_get_trial_json_test "valid-exp-trial" "${trial_num}"
 
 		actual_result="${http_code}"
-		
+
 		expected_result_="200"
 		expected_behaviour="RESPONSE_CODE = 200 OK"
 
 		echo "************ TESTS = $TESTS"
 		compare_result ${exp_trial} ${expected_result_} "${expected_behaviour}"
 		echo "************ TESTS = $TESTS"
-		
+
 		if [[ "${failed}" -eq 0 ]]; then
 			validate_exp_trial
 			if [[ ${failed} -eq 1 ]]; then
 				FAILED_CASES+=(${exp_trial})
 			fi
 		fi
-		
+
 		# Stop the HPO servers
 		echo "Terminating any running HPO servers..." | tee -a ${LOG_} ${LOG}
 		terminate_hpo ${cluster_type}  | tee -a ${LOG_} ${LOG}
@@ -665,7 +664,7 @@ function post_duplicate_exp_result() {
 
 		# Post a valid experiment result to HPO /experiment_trials API.
 		experiment_result="valid-experiment-result"
-	
+
 		echo -n "Post the experiment result to HPO..."
 		post_experiment_result_json "${hpo_post_exp_result_json[$experiment_result]}"
 
@@ -673,7 +672,7 @@ function post_duplicate_exp_result() {
 		sleep 5
 
 		# Post the duplicate experiment result to HPO /experiment_trials API.
-		echo -n "Post the same experiment result to HPO again for the same experiment_id and trial number..."
+		echo -n "Post the same experiment result to HPO again for the same experiment_name and trial number..."
 		post_experiment_result_json "${hpo_post_exp_result_json[$experiment_result]}"
 
 		actual_result="${http_code}"
@@ -709,9 +708,9 @@ function post_same_id_different_exp_result() {
 		# Sleep for few seconds to reduce the ambiguity
 		sleep 5
 
-		# Post a different valid experiment result for the same experiment_id and trial number to HPO /experiment_trials API.
+		# Post a different valid experiment result for the same experiment_name and trial number to HPO /experiment_trials API.
 		experiment_result="valid-different-result"
-		echo -n "Post the differnt experiment result to HPO again for the same experiment_id and trial number..."
+		echo -n "Post the differnt experiment result to HPO again for the same experiment_name and trial number..."
 		post_experiment_result_json "${hpo_post_exp_result_json[$experiment_result]}"
 
 		actual_result="${http_code}"
@@ -752,8 +751,9 @@ function other_exp_result_post_tests() {
 		# Sleep for few seconds to reduce the ambiguity
 		sleep 5
 
-		# Get the experiment_id from search space JSON
+		# Get the experiment_id and experiment_name from search space JSON
 		current_id="a123"
+		current_name="petclinic-sample-2-75884c5549-npvgd"
 
 		operation=$(echo ${operation//-/_})
 		${operation}
@@ -803,9 +803,11 @@ function hpo_sanity_test() {
 	form_hpo_api_url "experiment_trials"
 	echo "HPO URL = $hpo_url"  | tee -a ${LOG}
 
-	# Get the experiment id from the search space
+	# Get the experiment id and name from the search space
 	exp_id=$(echo ${hpo_post_experiment_json["valid-experiment"]} | jq '.search_space.experiment_id')
+	exp_name=$(echo ${hpo_post_experiment_json["valid-experiment"]} | jq '.search_space.experiment_name')
 	echo "Experiment id = $exp_id"
+	echo "Experiment name = $exp_name"
 
 	TESTS_=${TEST_DIR}
 	SERV_LOG="${TESTS_}/service.log"
@@ -848,21 +850,21 @@ function hpo_sanity_test() {
 		echo ""
 
 		curl="curl -H 'Accept: application/json'"
-	        url="http://localhost:8085/experiment_trials"
+		url="http://localhost:8085/experiment_trials"
 
-		get_trial_json=$(${curl} ''${hpo_url}'?experiment_id=a123&trial_number='${i}'' -w '\n%{http_code}' 2>&1)
+		get_trial_json=$(${curl} ''${hpo_url}'?experiment_name=petclinic-sample-2-75884c5549-npvgd&trial_number='${i}'' -w '\n%{http_code}' 2>&1)
 
-		get_trial_json_cmd="${curl} ${url}?experiment_id="a123"&trial_number=${i} -w '\n%{http_code}'"
+		get_trial_json_cmd="${curl} ${url}?experiment_name="petclinic-sample-2-75884c5549-npvgd"&trial_number=${i} -w '\n%{http_code}'"
 		echo "command used to query the experiment_trial API = ${get_trial_json_cmd}" | tee -a ${LOG}
 
-	        http_code=$(tail -n1 <<< "${get_trial_json}")
-      		response=$(echo -e "${get_trial_json}" | tail -2 | head -1)
-	        response=$(echo ${response} | cut -c 4-)
+		http_code=$(tail -n1 <<< "${get_trial_json}")
+		response=$(echo -e "${get_trial_json}" | tail -2 | head -1)
+		response=$(echo ${response} | cut -c 4-)
 
-	   	result="${TEST_DIR}/hpo_config_${i}.json" 
+		result="${TEST_DIR}/hpo_config_${i}.json"
 		parse_json="${TEST_DIR}/expected_hpo_config_${i}.json"
 
-	      	echo "${response}" > ${result}
+		echo "${response}" > ${result}
 		cat $result
 		verify_result "Get config from hpo trial ${i}" "${http_code}" "${expected_http_code}"
 
@@ -871,7 +873,7 @@ function hpo_sanity_test() {
 		echo "Post the experiment result for trial ${i}..." | tee -a ${LOG}
 		trial_result="success"
 		result_value="98.7"
-		exp_result_json='{"experiment_id":'${exp_id}',"trial_number":'${i}',"trial_result":"'${trial_result}'","result_value_type":"double","result_value":'${result_value}',"operation":"EXP_TRIAL_RESULT"}'
+		exp_result_json='{"experiment_name":'${exp_name}',"trial_number":'${i}',"trial_result":"'${trial_result}'","result_value_type":"double","result_value":'${result_value}',"operation":"EXP_TRIAL_RESULT"}'
 		post_experiment_result_json ${exp_result_json}
 		verify_result "Post experiment result for trial ${i}" "${http_code}" "${expected_http_code}"
 
@@ -880,14 +882,14 @@ function hpo_sanity_test() {
 		# Generate a subsequent trial
 		if [[ ${i} < $((N_TRIALS-1)) ]]; then
 			echo "" | tee -a ${LOG}
-		        echo "Generate subsequent config after trial ${i} ..." | tee -a ${LOG}
-			subsequent_trial='{"experiment_id":'${exp_id}',"operation":"EXP_TRIAL_GENERATE_SUBSEQUENT"}'
+			echo "Generate subsequent config after trial ${i} ..." | tee -a ${LOG}
+			subsequent_trial='{"experiment_name":'${exp_name}',"operation":"EXP_TRIAL_GENERATE_SUBSEQUENT"}'
 			post_experiment_json ${subsequent_trial}
 			verify_result "Post subsequent experiment after trial ${i}" "${http_code}" "${expected_http_code}"
 		fi
 	done
 
-	# Store the docker logs 
+	# Store the docker logs
 	if [ ${cluster_type} == "docker" ]; then
 		docker logs hpo_docker_container > ${TEST_DIR}/hpo_container.log 2>&1
 	fi
@@ -900,38 +902,37 @@ function hpo_sanity_test() {
 
 	# check for failed cases
 	echo "failed = $failed"
-        if [[ ${failed} == 0 ]]; then
-                ((TESTS_PASSED++))
-                ((TOTAL_TESTS_PASSED++))
-                echo "Test Passed" | tee -a ${LOG}
-        else
-                ((TESTS_FAILED++))
-                ((TOTAL_TESTS_FAILED++))
-                FAILED_CASES+=(${testcase})
-                echo "Check the logs for error messages : ${TEST_DIR}"| tee -a ${LOG}
-                echo "Test failed" | tee -a ${LOG}
-        fi
-
+	if [[ ${failed} == 0 ]]; then
+		((TESTS_PASSED++))
+		((TOTAL_TESTS_PASSED++))
+		echo "Test Passed" | tee -a ${LOG}
+	else
+		((TESTS_FAILED++))
+		((TOTAL_TESTS_FAILED++))
+		FAILED_CASES+=(${testcase})
+		echo "Check the logs for error messages : ${TEST_DIR}"| tee -a ${LOG}
+		echo "Test failed" | tee -a ${LOG}
+	fi
 }
 
 function verify_result() {
 	test_info=$1
 	http_code=$2
 	expected_http_code=$3
-	
-	 if [[ "${http_code}" -eq "000" ]]; then
-		 failed=1
-	 else
+
+	if [[ "${http_code}" -eq "000" ]]; then
+		failed=1
+	else
 		if [[ ${http_code} -ne ${expected_http_code} ]]; then
-	        	failed=1
+			failed=1
 			echo "${test_info} failed - http_code is not as expected, http_code = ${http_code} expected code = ${expected_http_code}" | tee -a ${LOG}
 		else
 			if [[ "${test_info}" =~ "Get config" ]]; then
-	                        validate_exp_trial
-        	                if [[ ${failed} == 1 ]]; then
+				validate_exp_trial
+				if [[ ${failed} == 1 ]]; then
 					echo "Validating hpo config failed" | tee -a ${LOG}
-                       		fi
+				fi
 			fi
 		fi
-	 fi
+	fi
 }

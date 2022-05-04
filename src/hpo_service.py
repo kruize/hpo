@@ -1,7 +1,24 @@
+"""
+Copyright (c) 2020, 2022 Red Hat, IBM Corporation and others.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
 import threading
 import json
 import csv
 from bayes_optuna import optuna_hpo
+from exceptions import ExperimentNotFoundError
 
 class HpoService:
     """
@@ -12,15 +29,15 @@ class HpoService:
         self.experiments = {}
 
     def newExperiment(self, id_, experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, objective_function, tunables, value_type):
-        if self.containsExperiment(id_):
+        if self.containsExperiment(experiment_name):
             print("Experiment already exists")
             return
 
-        self.experiments[id_] = optuna_hpo.HpoExperiment(experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type)
+        self.experiments[experiment_name] = optuna_hpo.HpoExperiment(experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type)
 
 
-    def startExperiment(self, id_):
-        experiment: optuna_hpo.HpoExperiment = self.experiments.get(id_)
+    def startExperiment(self, name):
+        experiment: optuna_hpo.HpoExperiment = self.experiments.get(name)
         started: threading.Condition = experiment.start()
         try:
             started.acquire()
@@ -31,25 +48,28 @@ class HpoService:
         if not value:
             print("Starting experiment timed  out!")
 
-    def containsExperiment(self, id_):
+    def containsExperiment(self, name):
         if self.experiments is None or not self.experiments :
             return False
-        return id_ in self.experiments.keys()
+        return name in self.experiments.keys()
 
-    def doesNotContainExperiment(self, id_):
-        return not self.containsExperiment(id_)
+    def doesNotContainExperiment(self, name):
+        return not self.containsExperiment(name)
 
-    def getExperiment(self, id_) -> optuna_hpo.HpoExperiment:
-        if self.doesNotContainExperiment(id_):
-            print("Experiment does not exist")
-            return
+    def getExperimentsList(self):
+        return self.experiments.keys()
 
-        return self.experiments.get(id_)
+    def getExperiment(self, name) -> optuna_hpo.HpoExperiment:
+        if self.doesNotContainExperiment(name):
+            print("Experiment " + name + " does not exist")
+            raise ExperimentNotFoundError
+
+        return self.experiments.get(name)
 
 
-    def get_trial_number(self, id_):
+    def get_trial_number(self, name):
 
-        experiment: optuna_hpo.HpoExperiment = self.getExperiment(id_)
+        experiment: optuna_hpo.HpoExperiment = self.getExperiment(name)
         """Return the trial number."""
         if experiment.hpo_algo_impl in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
             try:
@@ -66,10 +86,9 @@ class HpoService:
         if experiment.hpo_algo_impl in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
             try:
                 experiment.resultsAvailableCond.acquire()
-                trial_json_object = json.dumps(experiment.trialDetails.trial_json_object)
+                return json.dumps(experiment.trialDetails.trial_json_object)
             finally:
                 experiment.resultsAvailableCond.release()
-        return trial_json_object
 
 
     def set_result(self, id_, trial_result, result_value_type, result_value):
