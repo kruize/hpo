@@ -35,7 +35,7 @@ function hpo_api_tests() {
 	TESTS=0
 	((TOTAL_TEST_SUITES++))
 
-	hpo_api_tests=("hpo_post_experiment"  "hpo_get_trial_json" "hpo_post_exp_result" "hpo_sanity_test")
+	hpo_api_tests=("hpo_post_experiment"  "hpo_get_trial_json" "hpo_post_exp_result" "hpo_sanity_test" "hpo_grpc_sanity_test")
 
 	# check if the test case is supported
 	if [ ! -z "${testcase}" ]; then
@@ -212,7 +212,7 @@ function run_post_tests(){
 			expected_log_msg="${hpo_error_messages[$post_test]}"
 		fi
 
-		if [[ "${post_test}" == valid* || "${post_test}" == multiple_id || "${post_test}" == multiple_url ]]; then
+		if [[ "${post_test}" == valid* ]]; then
 			expected_result_="200"
 			expected_behaviour="RESPONSE_CODE = 200 OK"
 		else
@@ -480,23 +480,33 @@ function get_trial_json_invalid_tests() {
 
 # Validate the trial json returned by RM-HPO GET operation
 function validate_exp_trial() {
+	service=$1
 	tunable_count=0
 	# Sort the actual json based on tunable name
-	echo "Get config result "
 	echo ""
-	echo "********************************"
-	cat $result
-	echo "********************************"
+
+	if [ "${service}" == "rest" ]; then
+		echo "$(cat ${result} | jq  'sort_by(.tunable_name)')" > ${result}
+		# Sort the json based on tunable name
+		SEARCH_SPACE_JSON="/tmp/search_space.json"
+		echo "${hpo_post_experiment_json["valid-experiment"]}" > ${SEARCH_SPACE_JSON}
+		cat ${SEARCH_SPACE_JSON}
+		echo "$(jq '[.search_space.tunables[] | {lower_bound: .lower_bound, name: .name, upper_bound: .upper_bound}] | sort_by(.name)' ${SEARCH_SPACE_JSON})" > ${expected_json}
+	else
+		echo "$(cat ${result} | jq '.config' | jq  'sort_by(.name)')" > ${result}
+		EXP_JSON="./resources/searchspace_jsons/newExperiment.json"
+		echo "$(jq '[.tuneables[] | {lower_bound: .lower_bound, name: .name, upper_bound: .upper_bound}] | sort_by(.name)' ${EXP_JSON})" > ${expected_json}
+	fi
+
+
+	echo "Actual tunables json"
+	cat ${result}
 	echo ""
-	echo "$(cat ${result} | jq  'sort_by(.tunable_name)')" > ${result}
 
-	# Sort the json based on tunable name
-	SEARCH_SPACE_JSON="/tmp/search_space.json"
-	echo "${hpo_post_experiment_json["valid-experiment"]}" > ${SEARCH_SPACE_JSON}
-	cat ${SEARCH_SPACE_JSON}
-	echo "$(jq '[.search_space.tunables[] | {lower_bound: .lower_bound, name: .name, upper_bound: .upper_bound}] | sort_by(.name)' ${SEARCH_SPACE_JSON})" > ${parse_json}
+	echo "Expected tunables json"
+	cat ${expected_json}
 
-	expected_tunables_len=$(cat ${parse_json} | jq '. | length')
+	expected_tunables_len=$(cat ${expected_json} | jq '. | length')
 	actual_tunables_len=$(cat ${result}  | jq '. | length')
 
 	echo "___________________________________ Validate experiment trial __________________________________________" | tee -a ${LOG_} ${LOG}
@@ -514,11 +524,16 @@ function validate_exp_trial() {
 
 		while [ "${tunable_count}" -lt "${expected_tunables_len}" ]
 		do
-			upperbound=$(cat ${parse_json} | jq '.['${tunable_count}'].upper_bound')
-			lowerbound=$(cat ${parse_json} | jq '.['${tunable_count}'].lower_bound')
-			tunable_name=$(cat ${parse_json} | jq '.['${tunable_count}'].name')
-			actual_tunable_name=$(cat ${result} | jq '.['${tunable_count}'].tunable_name')
-			actual_tunable_value=$(cat ${result} | jq '.['${tunable_count}'].tunable_value')
+			upperbound=$(cat ${expected_json} | jq '.['${tunable_count}'].upper_bound')
+			lowerbound=$(cat ${expected_json} | jq '.['${tunable_count}'].lower_bound')
+			tunable_name=$(cat ${expected_json} | jq '.['${tunable_count}'].name')
+			if [ "${service}" == "rest" ]; then
+				actual_tunable_name=$(cat ${result} | jq '.['${tunable_count}'].tunable_name')
+				actual_tunable_value=$(cat ${result} | jq '.['${tunable_count}'].tunable_value')
+			else
+				actual_tunable_name=$(cat ${result} | jq '.['${tunable_count}'].name')
+				actual_tunable_value=$(cat ${result} | jq '.['${tunable_count}'].value')
+			fi
 
 			# validate the tunable name
 			echo "" | tee -a ${LOG_} ${LOG}
@@ -559,7 +574,7 @@ function get_trial_json_valid_tests() {
 		mkdir -p ${TESTS_}
 		LOG_="${TEST_DIR}/${FUNCNAME}.log"
 		result="${TESTS_}/${exp_trial}_result.log"
-		parse_json="${TESTS_}/${exp_trial}_expected_json.json"
+		expected_json="${TESTS_}/${exp_trial}_expected_json.json"
 		SERV_LOG="${TESTS_}/service.log"
 
 		echo "************************************* ${exp_trial} Test ****************************************" | tee -a ${LOG_} ${LOG}
@@ -601,7 +616,7 @@ function get_trial_json_valid_tests() {
 		echo "************ TESTS = $TESTS"
 
 		if [[ "${failed}" -eq 0 ]]; then
-			validate_exp_trial
+			validate_exp_trial "rest"
 			if [[ ${failed} -eq 1 ]]; then
 				FAILED_CASES+=(${exp_trial})
 			fi
@@ -790,7 +805,118 @@ function hpo_post_exp_result() {
 	other_exp_result_post_tests
 }
 
-# Sanity Test for HPO 
+# Sanity Test for HPO gRPC service
+function hpo_grpc_sanity_test() {
+	((TOTAL_TESTS++))
+	((TESTS++))
+
+	# Set the no. of trials
+	N_TRIALS=5
+	failed=0
+	EXP_JSON="./resources/searchspace_jsons/newExperiment.json"
+
+	# Get the experiment name from the search space
+	exp_name=$(cat ${EXP_JSON}  | jq '.experiment_name')
+	exp_name=$(echo ${exp_name} | sed 's/^"\(.*\)"$/\1/')
+	echo "Experiment name = $exp_name"
+
+	TESTS_=${TEST_DIR}
+	SERV_LOG="${TESTS_}/service.log"
+	echo "RESULTSDIR - ${TEST_DIR}" | tee -a ${LOG}
+	echo "" | tee -a ${LOG}
+
+	# Deploy hpo
+	if [ ${cluster_type} == "native" ]; then
+		deploy_hpo ${cluster_type} ${SERV_LOG}
+	else
+		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
+	fi
+
+	echo "Wait for HPO service to come up"
+	sleep 10
+
+	pwd
+
+	## Loop through the trials
+	for (( i=0 ; i<${N_TRIALS} ; i++ ))
+	do
+		echo ""
+		echo "*********************************** Trial ${i} *************************************"
+		LOG_="${TEST_DIR}/hpo-trial-${i}.log"
+		if [ ${i} == 0 ]; then
+			echo "Posting a new experiment..."
+			python ../src/grpc_client.py new --file="${EXP_JSON}"
+			verify_grpc_result "Post new experiment" $?
+		fi
+
+		# Get the config from HPO
+		sleep 2
+		echo ""
+		echo "Generate the config for trial ${i}..." | tee -a ${LOG}
+		echo ""
+		result="${TEST_DIR}/hpo_config_${i}.json"
+		expected_json="${TEST_DIR}/expected_hpo_config_${i}.json"
+
+		python ../src/grpc_client.py config --name ${exp_name} --trial 0 > ${result}
+		verify_grpc_result "Get config from hpo for trial ${i}" $?
+
+		# Post the experiment result to hpo
+		echo "" | tee -a ${LOG}
+		echo "Post the experiment result for trial ${i}..." | tee -a ${LOG}
+		result_value="98.7"
+
+		python ../src/grpc_client.py result --name "${exp_name}" --trial "${i}" --result SUCCESS --value_type "double" --value "${result_value}"
+		verify_grpc_result "Post new experiment result for trial ${i}" $?
+
+		sleep 5
+
+		# Generate a subsequent trial
+		if [[ ${i} < $((N_TRIALS-1)) ]]; then
+			echo "" | tee -a ${LOG}
+		        echo "Generate subsequent config after trial ${i} ..." | tee -a ${LOG}
+			python ../src/grpc_client.py next --name ${exp_name}
+			verify_grpc_result "Post subsequent experiment after trial ${i}" $?
+		fi
+	done
+
+	# Terminate any running HPO servers
+	echo "Terminating any running HPO servers..." | tee -a ${LOG}
+	terminate_hpo ${cluster_type}
+	echo "Terminating any running HPO servers...Done" | tee -a ${LOG}
+	sleep 2
+
+	# check for failed cases
+	if [[ ${failed} == 0 ]]; then
+		((TESTS_PASSED++))
+		((TOTAL_TESTS_PASSED++))
+		echo "Test Passed" | tee -a ${LOG}
+	else
+		((TESTS_FAILED++))
+		((TOTAL_TESTS_FAILED++))
+		FAILED_CASES+=(${testcase})
+		echo "Check the logs for error messages : ${TEST_DIR}"| tee -a ${LOG}
+		echo "Test failed" | tee -a ${LOG}
+	fi
+}
+
+function verify_grpc_result() {
+	test_info=$1
+	exit_code=$2
+
+	if [ ${exit_code} -ne 0 ]; then
+		failed=1
+		echo "$test_info failed!"
+	else
+		if [[ "${test_info}" =~ "Get config" ]]; then
+			validate_exp_trial "grpc"
+			if [[ ${failed} == 1 ]]; then
+				echo "Validating hpo config failed" | tee -a ${LOG}
+			fi
+		fi
+	fi
+}
+
+# Sanity Test for HPO REST service
 function hpo_sanity_test() {
 	((TOTAL_TESTS++))
 	((TESTS++))
@@ -862,7 +988,7 @@ function hpo_sanity_test() {
 		response=$(echo ${response} | cut -c 4-)
 
 		result="${TEST_DIR}/hpo_config_${i}.json"
-		parse_json="${TEST_DIR}/expected_hpo_config_${i}.json"
+		expected_json="${TEST_DIR}/expected_hpo_config_${i}.json"
 
 		echo "${response}" > ${result}
 		cat $result
@@ -928,7 +1054,7 @@ function verify_result() {
 			echo "${test_info} failed - http_code is not as expected, http_code = ${http_code} expected code = ${expected_http_code}" | tee -a ${LOG}
 		else
 			if [[ "${test_info}" =~ "Get config" ]]; then
-				validate_exp_trial
+				validate_exp_trial "rest"
 				if [[ ${failed} == 1 ]]; then
 					echo "Validating hpo config failed" | tee -a ${LOG}
 				fi
