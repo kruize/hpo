@@ -13,12 +13,15 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
+import sys
 import threading
 import json
 import csv
 from bayes_optuna import optuna_hpo
 from exceptions import ExperimentNotFoundError
+
+rank_value = 1
+
 
 class HpoService:
     """
@@ -86,6 +89,8 @@ class HpoService:
         if experiment.hpo_algo_impl in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
             try:
                 experiment.resultsAvailableCond.acquire()
+                # call method to write it in CSV
+                self.writeToCSV(experiment)
                 return json.dumps(experiment.trialDetails.trial_json_object)
             finally:
                 experiment.resultsAvailableCond.release()
@@ -104,22 +109,61 @@ class HpoService:
             finally:
                 experiment.resultsAvailableCond.release()
 
-    ## TODO: Need to update this
+    # TODO: Need to update this
     #  add trial results in a CSV file
-    def writeToCSV(self, trial_json_object, trial_number):
+    def writeToCSV(self, experiment):
 
-        # open a file for writing
-        config_file = open('src/trial_data/trial_configs.csv', 'w', newline='')
+        global rank_value
+        trial_json_object = experiment.trialDetails.trial_json_object
+        trial_number = experiment.trialDetails.trial_number
+        experiment_name = experiment.experiment_name
+
+        # open a file or append existing one for writing
+        file_name = "src/trial_data/" + experiment_name + "_trial_configs.csv"
+        config_file = open(file_name, 'a', newline='')
         csv_writer = csv.writer(config_file)
-        trial_json_object = json.loads(trial_json_object)
+
+        header = ["Rank"]
+        values = [rank_value]
         for trial in trial_json_object:
             if trial_number == 0:
-                header = trial.keys()
-                csv_writer.writerow(header)
-                trial_number += 1
-            # Writing data of CSV file
-            csv_writer.writerow(trial.values())
+                header.append(trial["tunable_name"])
+            values.append(trial["tunable_value"])
+
+        # Writing data of CSV file
+        if trial_number == 0:
+            csv_writer.writerow(["Experiment_Name: " + experiment_name])
+            csv_writer.writerow(header)
+        csv_writer.writerow(values)
 
         config_file.close()
+        rank_value += 1
+
+    def getConfigs(self, trial_number, experiment):
+
+        experiment_name = experiment.experiment_name
+        configs_json_array = []
+        file_name = "src/trial_data/" + experiment_name + "_trial_configs.csv"
+        try:
+            csv_file = open(file_name, 'r')
+        except FileNotFoundError:
+            print(f"File {file_name} not found.  Aborting")
+            sys.exit(1)
+        except OSError:
+            print(f"OS error occurred trying to open {file_name}")
+            sys.exit(1)
+        except Exception as err:
+            print(f"Unexpected error opening {file_name} is", repr(err))
+            sys.exit(1)  # or replace this with "raise" ?
+        else:
+            with csv_file:
+                reader = csv.reader(csv_file)
+                for row in reader:
+                    configs_json_array.append(row)
+
+            configs_json = json.dumps(configs_json_array, indent=4)
+            print("Best configs : \n", configs_json)
+            return configs_json
+
 
 instance: HpoService = HpoService();

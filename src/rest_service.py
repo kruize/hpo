@@ -30,12 +30,13 @@ import hpo_service
 
 logger = get_logger(__name__)
 
-n_trials = 10
+total_trials = 10
 n_jobs = 1
 autotune_object_ids = {}
 search_space_json = []
 
 api_endpoint = "/experiment_trials"
+api_endpoint_recommendation = "/recommendations"
 host_name="0.0.0.0"
 server_port = 8085
 
@@ -92,11 +93,37 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 self._set_response(200, data)
             else:
                 self._set_response(404, "-1")
-        elif (self.path == "/"):
+        elif re.search(api_endpoint_recommendation, self.path):
+            query = parse_qs(urlparse(self.path).query)
+            if "experiment_name" in query and "trials" in query:
+                data = self.getRecommendations(query)
+                if data == -1:
+                    self._set_response(403, "-1")
+                else:
+                    self._set_response(200, data)
+            else:
+                self._set_response(403, "-1")
+        elif self.path == "/":
             data = self.getHomeScreen()
             self._set_response(200, data)
         else:
             self._set_response(403, "-1")
+
+    # TODO: Complete the getConfigs() method
+    def getRecommendations(self, query):
+        experiment = hpo_service.instance.getExperiment(query["experiment_name"][0])
+        trial_number = hpo_service.instance.get_trial_number(query["experiment_name"][0])
+        if not experiment or not experiment.hasStarted():
+            logger.error("Experiment Name: {0} not found. It may not have started yet!"
+                         .format(query["experiment_name"][0]))
+            return -1
+        elif int(query["trials"][0]) > trial_number:
+            logger.error(
+                "Cannot fetch {0} trials. Only {1} trials has been completed till now!"
+                .format(int(query["trials"][0]), (int(trial_number))))
+            return -1
+        else:
+            return hpo_service.instance.getConfigs(trial_number, experiment)
 
     def getHomeScreen(self):
         fin = open(welcome_page)
@@ -142,13 +169,14 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
 def get_search_create_study(search_space_json, operation):
     # TODO: validate structure of search_space_json
+    global total_trials
 
     if operation == "EXP_TRIAL_GENERATE_NEW":
         if "parallel_trials" not in search_space_json:
             search_space_json["parallel_trials"] = n_jobs
         experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type = get_all_tunables(
             search_space_json)
-        if (not parallel_trials):
+        if not parallel_trials:
             parallel_trials = n_jobs
         elif parallel_trials != 1:
             raise Exception("Parallel Trials value should be '1' only!")

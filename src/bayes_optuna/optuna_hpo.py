@@ -53,11 +53,6 @@ class TrialDetails:
         else: 
             logger.error("Error! Cannot fetch results, Experiment is still running or hasn't started yet.")
 
-    #TODO : Need to get the study object here to fetch configs based on current experiment
-    def getConfigs(self,trial_number, exp_obj):
-        print(trial_number)
-        print(exp_obj)
-
 
 class HpoExperiment:
     """
