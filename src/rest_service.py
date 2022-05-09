@@ -113,17 +113,22 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     def getRecommendations(self, query):
         experiment = hpo_service.instance.getExperiment(query["experiment_name"][0])
         trial_number = hpo_service.instance.get_trial_number(query["experiment_name"][0])
+        trial_result_needed = int(query["trials"][0])
         if not experiment or not experiment.hasStarted():
             logger.error("Experiment Name: {0} not found. It may not have started yet!"
                          .format(query["experiment_name"][0]))
             return -1
-        elif int(query["trials"][0]) > trial_number:
+        elif trial_result_needed <= 0:
+            logger.error(
+                "Invalid Trials value. Should be greater than 0")
+            return -1
+        elif trial_result_needed > trial_number:
             logger.error(
                 "Cannot fetch {0} trials. Only {1} trials has been completed till now!"
-                .format(int(query["trials"][0]), (int(trial_number))))
+                .format(trial_result_needed, (int(trial_number))))
             return -1
         else:
-            return hpo_service.instance.getConfigs(trial_number, experiment)
+            return hpo_service.instance.getConfigs(trial_result_needed, experiment)
 
     def getHomeScreen(self):
         fin = open(welcome_page)

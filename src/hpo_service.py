@@ -17,6 +17,7 @@ import sys
 import threading
 import json
 import csv
+import itertools
 from bayes_optuna import optuna_hpo
 from exceptions import ExperimentNotFoundError
 
@@ -132,7 +133,6 @@ class HpoService:
 
         # Writing data of CSV file
         if trial_number == 0:
-            csv_writer.writerow(["Experiment_Name: " + experiment_name])
             csv_writer.writerow(header)
         csv_writer.writerow(values)
 
@@ -143,25 +143,24 @@ class HpoService:
 
         experiment_name = experiment.experiment_name
         configs_json_array = []
-        file_name = "src/trial_data/" + experiment_name + "_trial_configs.csv"
+        csv_file_path = "src/trial_data/" + experiment_name + "_trial_configs.csv"
         try:
-            csv_file = open(file_name, 'r')
+            csv_file = open(csv_file_path, 'r')
         except FileNotFoundError:
-            print(f"File {file_name} not found.  Aborting")
-            sys.exit(1)
-        except OSError:
-            print(f"OS error occurred trying to open {file_name}")
-            sys.exit(1)
-        except Exception as err:
-            print(f"Unexpected error opening {file_name} is", repr(err))
-            sys.exit(1)  # or replace this with "raise" ?
+            print(f"File {csv_file_path} not found.  Aborting")
+            raise FileNotFoundError
         else:
+            # read csv file
             with csv_file:
-                reader = csv.reader(csv_file)
-                for row in reader:
+                # load csv file data using csv library's dictionary reader
+                csv_reader = csv.DictReader(csv_file)
+                # convert each csv row into python dict
+                for row in itertools.islice(csv_reader, trial_number):
+                    # add this python dict to json array
                     configs_json_array.append(row)
 
-            configs_json = json.dumps(configs_json_array, indent=4)
+                # convert python jsonArray to JSON String and write to file
+                configs_json = json.dumps(configs_json_array, indent=4)
             print("Best configs : \n", configs_json)
             return configs_json
 

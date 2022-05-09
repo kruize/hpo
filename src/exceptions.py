@@ -21,3 +21,8 @@ class Error(Exception):
 class ExperimentNotFoundError(Error):
     """Raised when the input value is too small"""
     pass
+
+#TODO: Need to complete this
+class FileNotFoundError(Error):
+    """Raised when the requested file is not available"""
+    pass
