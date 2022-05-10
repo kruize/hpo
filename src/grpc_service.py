@@ -85,20 +85,24 @@ class HpoService(hpo_pb2_grpc.HpoServiceServicer):
 
     def GetTrialConfig(self, request, context):
         if hpo_service.instance.containsExperiment(request.experiment_name):
-            data = json.loads(hpo_service.instance.get_trial_json_object(request.experiment_name))
-            trialConfig : hpo_pb2.TrialConfig = hpo_pb2.TrialConfig()
-            for config in data:
-                tunable: hpo_pb2.TunableConfig = hpo_pb2.TunableConfig()
-                tunable.name = config['tunable_name']
-                tunable.value = config['tunable_value']
-                trialConfig.config.extend([tunable])
+            if(hpo_service.instance.get_trial_number(request.experiment_name) == request.trial):
+                data = json.loads(hpo_service.instance.get_trial_json_object(request.experiment_name))
+                trialConfig : hpo_pb2.TrialConfig = hpo_pb2.TrialConfig()
+                for config in data:
+                    tunable: hpo_pb2.TunableConfig = hpo_pb2.TunableConfig()
+                    tunable.name = config['tunable_name']
+                    tunable.value = config['tunable_value']
+                    trialConfig.config.extend([tunable])
 
-            context.set_code(grpc.StatusCode.OK)
-            return trialConfig
+                context.set_code(grpc.StatusCode.OK)
+                return trialConfig
+            else:
+                context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+                context.set_details('Invalid trial number {} for experiment: {}'.format(str(request.trial), request.experiment_name) )
         else:
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details('Could not find experiment: %s' % request.experiment_name)
-            return hpo_pb2.TunableConfig()
+        return hpo_pb2.TunableConfig()
 
     def UpdateTrialResult(self, request, context):
         if (hpo_service.instance.containsExperiment(request.experiment_name) and
