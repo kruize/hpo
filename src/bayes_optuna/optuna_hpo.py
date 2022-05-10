@@ -37,6 +37,7 @@ class TrialDetails:
     result_value_type = ""
     result_value = 0
 
+
 class HpoExperiment:
     """
     HpoExperiment contains the details of a Running experiment.
@@ -56,7 +57,8 @@ class HpoExperiment:
     experimentStartedCond = threading.Condition()
     started = False
 
-    def __init__(self,  experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type):
+    def __init__(self, experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_,
+                 objective_function, tunables, value_type):
         self.experiment_name = experiment_name
         self.total_trials = total_trials
         self.parallel_trials = parallel_trials
@@ -87,15 +89,14 @@ class HpoExperiment:
         return started
 
     def notifyStarted(self):
-            #notify hpo_service.startExperiment() that experiment is ready to accept results
-            if not self.hasStarted():
-                try:
-                    self.experimentStartedCond.acquire()
-                    self.started = True
-                    self.experimentStartedCond.notify()
-                finally:
-                    self.experimentStartedCond.release()
-
+        # notify hpo_service.startExperiment() that experiment is ready to accept results
+        if not self.hasStarted():
+            try:
+                self.experimentStartedCond.acquire()
+                self.started = True
+                self.experimentStartedCond.notify()
+            finally:
+                self.experimentStartedCond.release()
 
     def perform_experiment(self):
         self.resultsAvailableCond.acquire()
@@ -179,7 +180,6 @@ class HpoExperiment:
         logger.info("Recommended config: " + str(recommended_config))
 
 
-
 class Objective(TrialDetails):
     """
     A class used to define search space and return the actual slo value.
@@ -207,7 +207,6 @@ class Objective(TrialDetails):
             self.experiment.trialDetails.result_value = 0
         finally:
             self.experiment.resultsAvailableCond.release()
-
 
         # Define search space
         for tunable in self.tunables:

@@ -36,12 +36,12 @@ autotune_object_ids = {}
 search_space_json = []
 
 api_endpoint = "/experiment_trials"
-host_name="0.0.0.0"
+host_name = "0.0.0.0"
 server_port = 8085
 
 fileDir = os.path.dirname(os.path.realpath('index.html'))
 filename = os.path.join(fileDir, 'index.html')
-welcome_page=filename
+welcome_page = filename
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
@@ -86,15 +86,19 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         if re.search(api_endpoint, self.path):
             query = parse_qs(urlparse(self.path).query)
 
-            if ("experiment_name" in query and "trial_number" in query and hpo_service.instance.containsExperiment(query["experiment_name"][0]) and
-                    query["trial_number"][0] == str(hpo_service.instance.get_trial_number(query["experiment_name"][0]))):
-                logger.info("Experiment_Name = " + str(hpo_service.instance.getExperiment(query["experiment_name"][0]).experiment_name))
-                logger.info("Trial_Number = " + str(hpo_service.instance.getExperiment(query["experiment_name"][0]).trialDetails.trial_number))
+            if ("experiment_name" in query and "trial_number" in query and hpo_service.instance.containsExperiment(
+                    query["experiment_name"][0]) and
+                    query["trial_number"][0] == str(
+                        hpo_service.instance.get_trial_number(query["experiment_name"][0]))):
+                logger.info("Experiment_Name = " + str(
+                    hpo_service.instance.getExperiment(query["experiment_name"][0]).experiment_name))
+                logger.info("Trial_Number = " + str(
+                    hpo_service.instance.getExperiment(query["experiment_name"][0]).trialDetails.trial_number))
                 data = hpo_service.instance.get_trial_json_object(query["experiment_name"][0])
                 self._set_response(200, data)
             else:
                 self._set_response(404, "-1")
-        elif (self.path == "/"):
+        elif self.path == "/":
             data = self.getHomeScreen()
             self._set_response(200, data)
         else:
@@ -110,7 +114,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         """Process EXP_TRIAL_GENERATE_NEW operation."""
         is_valid_json_object = validate_trial_generate_json(json_object)
 
-        if is_valid_json_object and hpo_service.instance.doesNotContainExperiment(json_object["search_space"]["experiment_name"]):
+        if is_valid_json_object and hpo_service.instance.doesNotContainExperiment(
+                json_object["search_space"]["experiment_name"]):
             search_space_json = json_object["search_space"]
             if str(search_space_json["experiment_name"]).isspace() or not str(search_space_json["experiment_name"]):
                 self._set_response(400, "-1")
@@ -128,7 +133,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         if is_valid_json_object and hpo_service.instance.containsExperiment(experiment_name):
             trial_number = hpo_service.instance.get_trial_number(experiment_name)
             if trial_number == -1:
-                self._set_response(400, "Trials completed for experiment: "+experiment_name)
+                self._set_response(400, "Trials completed for experiment: " + experiment_name)
             else:
                 self._set_response(200, str(trial_number))
         else:
@@ -138,7 +143,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         """Process EXP_TRIAL_RESULT operation."""
         if (hpo_service.instance.containsExperiment(json_object["experiment_name"]) and
                 json_object["trial_number"] == hpo_service.instance.get_trial_number(json_object["experiment_name"])):
-            hpo_service.instance.set_result(json_object["experiment_name"], json_object["trial_result"], json_object["result_value_type"],
+            hpo_service.instance.set_result(json_object["experiment_name"], json_object["trial_result"],
+                                            json_object["result_value_type"],
                                             json_object["result_value"])
             self._set_response(200, "0")
         else:
@@ -153,16 +159,17 @@ def get_search_create_study(search_space_json, operation):
             search_space_json["parallel_trials"] = n_jobs
         experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type = get_all_tunables(
             search_space_json)
-        if (not parallel_trials):
+        if not parallel_trials:
             parallel_trials = n_jobs
         elif parallel_trials != 1:
             raise Exception("Parallel Trials value should be '1' only!")
 
-        logger.info("Total Trials = "+str(total_trials))
-        logger.info("Parallel Trials = "+str(parallel_trials))
+        logger.info("Total Trials = " + str(total_trials))
+        logger.info("Parallel Trials = " + str(parallel_trials))
 
         if hpo_algo_impl in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
-            hpo_service.instance.newExperiment(id_, experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, objective_function,
+            hpo_service.instance.newExperiment(id_, experiment_name, total_trials, parallel_trials, direction,
+                                               hpo_algo_impl, objective_function,
                                                tunables, value_type)
             print("Starting Experiment: " + experiment_name)
             hpo_service.instance.startExperiment(experiment_name)
@@ -177,11 +184,11 @@ def get_search_space(id_, url):
     return search_space_json
 
 
-
 def main():
     server = HTTPServer((host_name, server_port), HTTPRequestHandler)
     logger.info("Access server at http://%s:%s" % ("localhost", server_port))
     server.serve_forever()
+
 
 if __name__ == '__main__':
     main()
