@@ -31,6 +31,21 @@ service HpoService {
   rpc GetTrialConfig(ExperimentTrial) returns (TrialConfig) {}
   rpc UpdateTrialResult(ExperimentTrialResult) returns (ExperimentTrialReply) {}
   rpc GenerateNextConfig(ExperimentNameParams) returns (NewExperimentsReply) {}
+  rpc GetRecommendedConfig(ExperimentNameParams) returns (RecommendedConfigReply){}
+}
+
+message RecommendedConfigReply {
+  string experiment_name = 1;
+  string direction = 2;
+  OptimalValue optimal_value = 3;
+  repeated TunableConfig tunables = 4;
+
+  message OptimalValue {
+    string objective_function = 1;
+    float value = 2;
+    string value_type = 3;
+  }
+
 }
 
 message NumberExperimentsReply {
@@ -71,15 +86,15 @@ message ExperimentTrialResult{
   int32 trial = 2;
   Result result = 3;
   string value_type = 4;
-  double value = 5;
+  float value = 5;
 }
 
 message ExperimentDetails {
   message Tunable{
       string value_type = 1;
-      int32 lower_bound = 2;
+      float lower_bound = 2;
       string name = 3;
-      int32 upper_bound = 4;
+      float upper_bound = 4;
       double step = 5;
   }
 
@@ -99,6 +114,7 @@ message ExperimentDetails {
 message TunableConfig {
   string name = 1;
   float value = 2;
+  string value_type = 3;
 }
 
 message TrialConfig {
