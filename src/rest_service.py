@@ -27,6 +27,7 @@ from tunables import get_all_tunables
 from logger import get_logger
 
 import hpo_service
+import db_connection
 
 logger = get_logger(__name__)
 
@@ -113,13 +114,13 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     def handle_generate_new_operation(self, json_object):
         """Process EXP_TRIAL_GENERATE_NEW operation."""
         is_valid_json_object = validate_trial_generate_json(json_object)
-
-        if is_valid_json_object and hpo_service.instance.doesNotContainExperiment(
-                json_object["search_space"]["experiment_name"]):
+        experiment_name = json_object["search_space"]["experiment_name"]
+        if is_valid_json_object and hpo_service.instance.doesNotContainExperiment(experiment_name):
             search_space_json = json_object["search_space"]
             if str(search_space_json["experiment_name"]).isspace() or not str(search_space_json["experiment_name"]):
                 self._set_response(400, "-1")
                 return
+            db_connection.DBConnectionHandler.insert_data(experiment_name, search_space_json, search_space_json["objective_function"])
             get_search_create_study(search_space_json, json_object["operation"])
             trial_number = hpo_service.instance.get_trial_number(json_object["search_space"]["experiment_name"])
             self._set_response(200, str(trial_number))
