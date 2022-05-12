@@ -167,7 +167,7 @@ def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     hpo_pb2_grpc.add_HpoServiceServicer_to_server(HpoService(), server)
     server.add_insecure_port(host_name + ':' + str(server_port))
-    print("Starting gRPC server at http://%s:%s" % (host_name, server_port))
+    logger.info("Starting gRPC server at http://%s:%s" % (host_name, server_port))
 
     server.start()
     server.wait_for_termination()
