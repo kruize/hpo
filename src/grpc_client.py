@@ -49,9 +49,12 @@ def list():
     empty = hpo_pb2.NumberExperimentsReply()
     fun = lambda stub: stub.ExperimentsList(empty)
     experiments: hpo_pb2.ExperimentsListReply = run(fun)
-    print("Running Experiments:")
-    for experiment in experiments.experiment:
-        click.echo(" %s" % experiment)
+    if experiments != None:
+        click.echo("Running Experiments:")
+        for experiment in experiments.experiment:
+            click.echo(" %s" % experiment)
+    else:
+        raise click.ClickException(" No running experiments found")
 
 
 @main.command()
@@ -143,19 +146,19 @@ def run(func):
         stub = hpo_pb2_grpc.HpoServiceStub(channel)
         try:
             response = func(stub)
+            return response
         except grpc.RpcError as rpc_error:
             if rpc_error.code() == grpc.StatusCode.CANCELLED:
                 pass
             elif rpc_error.code() == grpc.StatusCode.UNAVAILABLE:
-                pass
+                raise click.ClickException("An error occurred executing command: {}".format(rpc_error.details()))
             elif rpc_error.code() == grpc.StatusCode.NOT_FOUND:
                 raise click.ClickException(rpc_error.details())
             elif rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
                 raise click.ClickException(rpc_error.details())
             else:
                 raise click.ClickException("Received unknown RPC error: code={" + str(rpc_error.code()) + "} message={" + rpc_error.details() + "}")
-        return response
-
+        return
 
 def NewExperiment(stub, **args):
     empty = hpo_pb2.NumberExperimentsReply()
