@@ -120,7 +120,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             if str(search_space_json["experiment_name"]).isspace() or not str(search_space_json["experiment_name"]):
                 self._set_response(400, "-1")
                 return
-            db_connection.DBConnectionHandler.insert_data(experiment_name, search_space_json, search_space_json["objective_function"])
+            obj_function = search_space_json["objective_function"]
+            db_connection.conn_create()
+            db_connection.insert_data(experiment_name, search_space_json, obj_function)
             get_search_create_study(search_space_json, json_object["operation"])
             trial_number = hpo_service.instance.get_trial_number(json_object["search_space"]["experiment_name"])
             self._set_response(200, str(trial_number))

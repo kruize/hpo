@@ -135,11 +135,9 @@ class HpoExperiment:
             sampler = optuna.integration.SkoptSampler()
 
         study_name = self.experiment_name
-        storage_name = "sqlite:///./src/db/hpo.db"
 
         # Create a study object
-        study = optuna.create_study(direction=self.direction, sampler=sampler, study_name=study_name,
-                                    storage=storage_name)
+        study = optuna.create_study(direction=self.direction, sampler=sampler, study_name=study_name)
 
         # Execute an optimization by using an 'Objective' instance
         study.optimize(Objective(self), n_trials=self.total_trials, n_jobs=self.parallel_trials)
