@@ -122,7 +122,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 return
             obj_function = search_space_json["objective_function"]
             db_connection.conn_create()
-            db_connection.insert_data(experiment_name, search_space_json, obj_function)
+            db_connection.insert_experiment_data(experiment_name, search_space_json, obj_function)
             get_search_create_study(search_space_json, json_object["operation"])
             trial_number = hpo_service.instance.get_trial_number(json_object["search_space"]["experiment_name"])
             self._set_response(200, str(trial_number))
@@ -149,6 +149,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             hpo_service.instance.set_result(json_object["experiment_name"], json_object["trial_result"],
                                             json_object["result_value_type"],
                                             json_object["result_value"])
+            # call db function to store experiment details after each trial
+            trial_json = hpo_service.instance.get_trial_json_object(json_object["experiment_name"])
+            db_connection.insert_experiment_details(json_object, trial_json)
             self._set_response(200, "0")
         else:
             self._set_response(400, "-1")

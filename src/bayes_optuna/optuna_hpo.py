@@ -19,6 +19,8 @@ import threading
 
 from logger import get_logger
 
+from .. import db_connection
+
 logger = get_logger(__name__)
 
 trials = []
@@ -180,6 +182,11 @@ class HpoExperiment:
         recommended_config["optimal_value"] = optimal_value
 
         logger.info("Recommended config: " + str(recommended_config))
+
+        # call db function to store the configs
+
+        db_connection.insert_config_details(self.experiment_name, study.best_trial, study.best_params, study.best_value,
+                                            recommended_config)
 
 
 class Objective(TrialDetails):
