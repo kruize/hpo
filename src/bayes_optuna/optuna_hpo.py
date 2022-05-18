@@ -19,7 +19,7 @@ import threading
 
 from logger import get_logger
 
-from .. import db_connection
+from db_files import db_connection
 
 logger = get_logger(__name__)
 
@@ -185,8 +185,8 @@ class HpoExperiment:
 
         # call db function to store the configs
 
-        db_connection.insert_config_details(self.experiment_name, study.best_trial, study.best_params, study.best_value,
-                                            recommended_config)
+        db_connection.insert_config_details(self.experiment_name, str(study.best_params), study.best_value,
+                                            str(study.best_trial), str(recommended_config))
 
 
 class Objective(TrialDetails):

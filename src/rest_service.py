@@ -27,7 +27,7 @@ from tunables import get_all_tunables
 from logger import get_logger
 
 import hpo_service
-import db_connection
+from db_files import db_connection
 
 logger = get_logger(__name__)
 
@@ -37,6 +37,7 @@ autotune_object_ids = {}
 search_space_json = []
 
 api_endpoint = "/experiment_trials"
+api_endpoint_recommendation = "/recommendations"
 host_name = "0.0.0.0"
 server_port = 8085
 
@@ -98,12 +99,39 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 data = hpo_service.instance.get_trial_json_object(query["experiment_name"][0])
                 self._set_response(200, data)
             else:
-                self._set_response(404, "-1")
+                self._set_response(404, "Invalid URL or missing required parameters!")
+        elif re.search(api_endpoint_recommendation, self.path):
+            query = parse_qs(urlparse(self.path).query)
+            # check if the request contains 'experiment_name' and 'trials'
+            if "experiment_name" in query and "trials" in query:
+                self.getRecommendations(query)
+            else:
+                self._set_response(404, "Invalid URL or missing required parameters!")
         elif self.path == "/":
             data = self.getHomeScreen()
             self._set_response(200, data)
         else:
-            self._set_response(403, "-1")
+            self._set_response(404, "Error! The requested resource could not be found.")
+
+    def getRecommendations(self, query):
+        experiment = query["experiment_name"][0]
+        trial_result_needed = int(query["trials"][0])
+        if trial_result_needed <= 0:
+            data = "Invalid Trials value. Should be greater than 0"
+            logger.error(data)
+            self._set_response(403, data)
+            return
+
+        # call database to fetch the configs
+        db_response = db_connection.get_recommended_configs(trial_result_needed, experiment)
+
+        # check if the response is valid JSON else return the corresponding error response
+        try:
+            json.loads(db_response)
+            self._set_response(200, db_response)
+        except ValueError:
+            logger.error(db_response)
+            self._set_response(403, db_response)
 
     def getHomeScreen(self):
         fin = open(welcome_page)
@@ -121,8 +149,15 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                 self._set_response(400, "-1")
                 return
             obj_function = search_space_json["objective_function"]
+
+            # call db function to open a connection and insert data in experiments table
             db_connection.conn_create()
-            db_connection.insert_experiment_data(experiment_name, search_space_json, obj_function)
+            response = db_connection.insert_experiment_data(experiment_name, search_space_json, obj_function)
+            if response:
+                logger.error(response)
+                self._set_response(403, response)
+                return
+
             get_search_create_study(search_space_json, json_object["operation"])
             trial_number = hpo_service.instance.get_trial_number(json_object["search_space"]["experiment_name"])
             self._set_response(200, str(trial_number))
@@ -149,9 +184,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             hpo_service.instance.set_result(json_object["experiment_name"], json_object["trial_result"],
                                             json_object["result_value_type"],
                                             json_object["result_value"])
-            # call db function to store experiment details after each trial
             trial_json = hpo_service.instance.get_trial_json_object(json_object["experiment_name"])
+
+            # call db_files function to store experiment details after each trial
             db_connection.insert_experiment_details(json_object, trial_json)
+
             self._set_response(200, "0")
         else:
             self._set_response(400, "-1")
