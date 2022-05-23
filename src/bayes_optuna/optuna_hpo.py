@@ -56,6 +56,8 @@ class HpoExperiment:
     resultsAvailableCond = threading.Condition()
     experimentStartedCond = threading.Condition()
     started = False
+    # recommended_config (json): A JSON containing the recommended config.
+    recommended_config = {}
 
     def __init__(self, experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_,
                  objective_function, tunables, value_type):
@@ -151,33 +153,36 @@ class HpoExperiment:
 
         logger.debug("All trials: " + str(trials))
 
-        # recommended_config (json): A JSON containing the recommended config.
-        recommended_config = {}
+        try:
+            self.resultsAvailableCond.acquire()
+            optimal_value = {"objective_function": {
+                "name": self.objective_function,
+                "value": study.best_value,
+                "value_type": self.value_type
+            }, "tunables": []}
 
-        optimal_value = {"objective_function": {
-            "name": self.objective_function,
-            "value": study.best_value,
-            "value_type": self.value_type
-        }, "tunables": []}
+            for tunable in self.tunables:
+                for key, value in study.best_params.items():
+                    if key == tunable["name"]:
+                        tunable_value = value
+                optimal_value["tunables"].append(
+                    {
+                        "name": tunable["name"],
+                        "value": tunable_value,
+                        "value_type": tunable["value_type"]
+                    }
+                )
 
-        for tunable in self.tunables:
-            for key, value in study.best_params.items():
-                if key == tunable["name"]:
-                    tunable_value = value
-            optimal_value["tunables"].append(
-                {
-                    "name": tunable["name"],
-                    "value": tunable_value,
-                    "value_type": tunable["value_type"]
-                }
-            )
+            self.recommended_config["id"] = self.id_
+            self.recommended_config["experiment_name"] = self.experiment_name
+            self.recommended_config["direction"] = self.direction
+            self.recommended_config["optimal_value"] = optimal_value
+        finally:
+            self.resultsAvailableCond.release()
 
-        recommended_config["id"] = self.id_
-        recommended_config["experiment_name"] = self.experiment_name
-        recommended_config["direction"] = self.direction
-        recommended_config["optimal_value"] = optimal_value
 
-        logger.info("Recommended config: " + str(recommended_config))
+
+        logger.info("Recommended config: " + str(self.recommended_config))
 
 
 class Objective(TrialDetails):

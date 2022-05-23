@@ -125,6 +125,22 @@ def next(name):
     reply: hpo_pb2.NewExperimentsReply = run(fun)
     click.echo("Next Trial: {}".format(reply.trial_number))
 
+@main.command()
+@click.option("--name", prompt=" Enter name", type=str)
+def recommended(name):
+    """Generate next configuration set for running experiment"""
+    experiment: hpo_pb2.ExperimentNameParams = hpo_pb2.ExperimentNameParams()
+    experiment.experiment_name = name
+    fun = lambda stub : stub.GetRecommendedConfig(experiment)
+    recommendedConfig: hpo_pb2.RecommendedConfigReply = run(fun)
+    click.echo("Recommended configuration for experiment: {}".format(recommendedConfig.experiment_name))
+    click.echo("\t Direction: {}".format(recommendedConfig.direction))
+    click.echo("\t Objective Function: {}".format(recommendedConfig.optimal_value.objective_function))
+    click.echo("\t Optimal Value: {}".format(recommendedConfig.optimal_value.value))
+    click.echo("\t Tuneables: ")
+    for tuneable in recommendedConfig.tunables:
+        click.echo("\t\t {}: {}".format(tuneable.name, tuneable.value))
+
 def run(func):
     # NOTE(gRPC Python Team): .close() is possible on a channel and should be
     # used in circumstances in which the with statement does not fit the needs

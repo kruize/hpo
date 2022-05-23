@@ -87,9 +87,10 @@ class HpoService:
         if experiment.hpo_algo_impl in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
             try:
                 experiment.resultsAvailableCond.acquire()
-                return json.dumps(experiment.trialDetails.trial_json_object)
+                trialConfig = json.dumps(experiment.trialDetails.trial_json_object)
             finally:
                 experiment.resultsAvailableCond.release()
+            return trialConfig
 
     def set_result(self, id_, trial_result, result_value_type, result_value):
         experiment: optuna_hpo.HpoExperiment = self.getExperiment(id_)
@@ -103,6 +104,16 @@ class HpoService:
                 experiment.resultsAvailableCond.notify()
             finally:
                 experiment.resultsAvailableCond.release()
+
+    def get_recommended_config(self, id_):
+        experiment: optuna_hpo.HpoExperiment = self.getExperiment(id_)
+        try:
+            experiment.resultsAvailableCond.acquire()
+            recommendedConfig = experiment.recommended_config
+        finally:
+            experiment.resultsAvailableCond.release()
+
+        return recommendedConfig
 
 
 instance: HpoService = HpoService()
