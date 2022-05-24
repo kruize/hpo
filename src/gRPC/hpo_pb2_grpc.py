@@ -50,6 +50,11 @@ class HpoServiceStub(object):
                 request_serializer=hpo__pb2.ExperimentNameParams.SerializeToString,
                 response_deserializer=hpo__pb2.NewExperimentsReply.FromString,
                 )
+        self.GetRecommendedConfig = channel.unary_unary(
+                '/helloworld.HpoService/GetRecommendedConfig',
+                request_serializer=hpo__pb2.ExperimentNameParams.SerializeToString,
+                response_deserializer=hpo__pb2.RecommendedConfigReply.FromString,
+                )
 
 
 class HpoServiceServicer(object):
@@ -98,6 +103,12 @@ class HpoServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetRecommendedConfig(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_HpoServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -135,6 +146,11 @@ def add_HpoServiceServicer_to_server(servicer, server):
                     servicer.GenerateNextConfig,
                     request_deserializer=hpo__pb2.ExperimentNameParams.FromString,
                     response_serializer=hpo__pb2.NewExperimentsReply.SerializeToString,
+            ),
+            'GetRecommendedConfig': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetRecommendedConfig,
+                    request_deserializer=hpo__pb2.ExperimentNameParams.FromString,
+                    response_serializer=hpo__pb2.RecommendedConfigReply.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -263,5 +279,22 @@ class HpoService(object):
         return grpc.experimental.unary_unary(request, target, '/helloworld.HpoService/GenerateNextConfig',
             hpo__pb2.ExperimentNameParams.SerializeToString,
             hpo__pb2.NewExperimentsReply.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetRecommendedConfig(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/helloworld.HpoService/GetRecommendedConfig',
+            hpo__pb2.ExperimentNameParams.SerializeToString,
+            hpo__pb2.RecommendedConfigReply.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

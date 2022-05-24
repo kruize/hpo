@@ -49,9 +49,12 @@ def list():
     empty = hpo_pb2.NumberExperimentsReply()
     fun = lambda stub: stub.ExperimentsList(empty)
     experiments: hpo_pb2.ExperimentsListReply = run(fun)
-    print("Running Experiments:")
-    for experiment in experiments.experiment:
-        click.echo(" %s" % experiment)
+    if experiments != None:
+        click.echo("Running Experiments:")
+        for experiment in experiments.experiment:
+            click.echo(" %s" % experiment)
+    else:
+        raise click.ClickException(" No running experiments found")
 
 
 @main.command()
@@ -122,6 +125,22 @@ def next(name):
     reply: hpo_pb2.NewExperimentsReply = run(fun)
     click.echo("Next Trial: {}".format(reply.trial_number))
 
+@main.command()
+@click.option("--name", prompt=" Enter name", type=str)
+def recommended(name):
+    """Generate next configuration set for running experiment"""
+    experiment: hpo_pb2.ExperimentNameParams = hpo_pb2.ExperimentNameParams()
+    experiment.experiment_name = name
+    fun = lambda stub : stub.GetRecommendedConfig(experiment)
+    recommendedConfig: hpo_pb2.RecommendedConfigReply = run(fun)
+    click.echo("Recommended configuration for experiment: {}".format(recommendedConfig.experiment_name))
+    click.echo("\t Direction: {}".format(recommendedConfig.direction))
+    click.echo("\t Objective Function: {}".format(recommendedConfig.optimal_value.objective_function))
+    click.echo("\t Optimal Value: {}".format(recommendedConfig.optimal_value.value))
+    click.echo("\t Tuneables: ")
+    for tuneable in recommendedConfig.tunables:
+        click.echo("\t\t {}: {}".format(tuneable.name, tuneable.value))
+
 def run(func):
     # NOTE(gRPC Python Team): .close() is possible on a channel and should be
     # used in circumstances in which the with statement does not fit the needs
@@ -143,19 +162,19 @@ def run(func):
         stub = hpo_pb2_grpc.HpoServiceStub(channel)
         try:
             response = func(stub)
+            return response
         except grpc.RpcError as rpc_error:
             if rpc_error.code() == grpc.StatusCode.CANCELLED:
                 pass
             elif rpc_error.code() == grpc.StatusCode.UNAVAILABLE:
-                pass
+                raise click.ClickException("An error occurred executing command: {}".format(rpc_error.details()))
             elif rpc_error.code() == grpc.StatusCode.NOT_FOUND:
                 raise click.ClickException(rpc_error.details())
             elif rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
                 raise click.ClickException(rpc_error.details())
             else:
                 raise click.ClickException("Received unknown RPC error: code={" + str(rpc_error.code()) + "} message={" + rpc_error.details() + "}")
-        return response
-
+        return
 
 def NewExperiment(stub, **args):
     empty = hpo_pb2.NumberExperimentsReply()

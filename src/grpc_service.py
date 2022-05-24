@@ -15,7 +15,10 @@ limitations under the License.
 """
 
 from concurrent import futures
-import logging
+from logger import get_logger
+
+logger = get_logger(__name__)
+
 
 import grpc
 import json
@@ -23,7 +26,7 @@ from gRPC import hpo_pb2, hpo_pb2_grpc
 import hpo_service
 from google.protobuf.json_format import MessageToJson
 from bayes_optuna.optuna_hpo import HpoExperiment
-from gRPC.hpo_pb2 import NewExperimentsReply
+from gRPC.hpo_pb2 import NewExperimentsReply, RecommendedConfigReply, TunableConfig
 from exceptions import ExperimentNotFoundError
 
 host_name="0.0.0.0"
@@ -36,26 +39,26 @@ class HpoService(hpo_pb2_grpc.HpoServiceServicer):
 
     def ExperimentsList(self, request, context):
         experiments = hpo_service.instance.getExperimentsList()
-        reply = hpo_pb2.ExperimentsListReply()
+        experimentsListreply = hpo_pb2.ExperimentsListReply()
         for experiment in experiments:
-            reply.experiment.extend([experiment])
+            experimentsListreply.experiment.extend([experiment])
         context.set_code(grpc.StatusCode.OK)
-        return reply
+        return experimentsListreply
 
     def GetExperimentDetails(self, request, context):
         try:
             experiment: HpoExperiment = hpo_service.instance.getExperiment(request.experiment_name)
-            reply = hpo_pb2.ExperimentDetails()
-            reply.experiment_name = experiment.experiment_name
-            reply.direction = experiment.direction
-            reply.hpo_algo_impl = experiment.hpo_algo_impl
+            experimentDetailsReply = hpo_pb2.ExperimentDetails()
+            experimentDetailsReply.experiment_name = experiment.experiment_name
+            experimentDetailsReply.direction = experiment.direction
+            experimentDetailsReply.hpo_algo_impl = experiment.hpo_algo_impl
             # reply.id_ = experiment.id_
-            reply.objective_function = experiment.objective_function
+            experimentDetailsReply.objective_function = experiment.objective_function
             # TODO:: expand tunables message
             # reply.tunables = experiment.tunables
-            reply.started = experiment.started
+            experimentDetailsReply.started = experiment.started
             context.set_code(grpc.StatusCode.OK)
-            return reply
+            return experimentDetailsReply
         except ExperimentNotFoundError:
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details('Could not find experiment: %s' % request.experiment_name)
@@ -74,10 +77,10 @@ class HpoService(hpo_pb2_grpc.HpoServiceServicer):
                                                                            tuneables, request.value_type)
             hpo_service.instance.startExperiment(request.experiment_name)
             experiment: HpoExperiment = hpo_service.instance.getExperiment(request.experiment_name)
-            reply: NewExperimentsReply = NewExperimentsReply()
-            reply.trial_number = experiment.trialDetails.trial_number
+            newExperimentReply: NewExperimentsReply = NewExperimentsReply()
+            newExperimentReply.trial_number = experiment.trialDetails.trial_number
             context.set_code(grpc.StatusCode.OK)
-            return reply
+            return newExperimentReply
         else:
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
             context.set_details('Invalid algorithm: %s' % request.hpo_algo_impl)
@@ -85,47 +88,86 @@ class HpoService(hpo_pb2_grpc.HpoServiceServicer):
 
     def GetTrialConfig(self, request, context):
         if hpo_service.instance.containsExperiment(request.experiment_name):
-            data = json.loads(hpo_service.instance.get_trial_json_object(request.experiment_name))
-            trialConfig : hpo_pb2.TrialConfig = hpo_pb2.TrialConfig()
-            for config in data:
-                tunable: hpo_pb2.TunableConfig = hpo_pb2.TunableConfig()
-                tunable.name = config['tunable_name']
-                tunable.value = config['tunable_value']
-                trialConfig.config.extend([tunable])
+            if(hpo_service.instance.get_trial_number(request.experiment_name) == request.trial):
+                data = json.loads(hpo_service.instance.get_trial_json_object(request.experiment_name))
+                trialConfig : hpo_pb2.TrialConfig = hpo_pb2.TrialConfig()
+                logger.debug("New config for experiment {}, trial {}".format(request.experiment_name, request.trial))
+                for config in data:
+                    tunable: hpo_pb2.TunableConfig = hpo_pb2.TunableConfig()
+                    tunable.name = config['tunable_name']
+                    tunable.value = config['tunable_value']
+                    trialConfig.config.extend([tunable])
+                    logger.debug("{}: {}".format(tunable.name, tunable.value))
 
-            context.set_code(grpc.StatusCode.OK)
-            return trialConfig
+                context.set_code(grpc.StatusCode.OK)
+                return trialConfig
+            else:
+                context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+                context.set_details('Invalid trial number {} for experiment: {}'.format(str(request.trial), request.experiment_name) )
         else:
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details('Could not find experiment: %s' % request.experiment_name)
-            return hpo_pb2.TunableConfig()
+        return hpo_pb2.TunableConfig()
 
     def UpdateTrialResult(self, request, context):
-        if (hpo_service.instance.containsExperiment(request.experiment_name) and
-                request.trial == hpo_service.instance.get_trial_number(request.experiment_name)):
-            hpo_service.instance.set_result(request.experiment_name,
-                                            request.result,
-                                            request.value_type,
-                                            request.value)
-            context.set_code(grpc.StatusCode.OK)
-            return hpo_pb2.ExperimentTrialReply()
-        else:
+        if (hpo_service.instance.doesNotContainExperiment(request.experiment_name) ):
             context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details('Experiment not found or invalid trial number!')
+            context.set_details('Experiment not found!')
             return hpo_pb2.ExperimentTrialReply()
+        if ( request.trial != hpo_service.instance.get_trial_number(request.experiment_name)):
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details('Invalid trial number!')
+            return hpo_pb2.ExperimentTrialReply()
+
+        hpo_service.instance.set_result(request.experiment_name,
+                                        request.result,
+                                        request.value_type,
+                                        request.value)
+        context.set_code(grpc.StatusCode.OK)
+        return hpo_pb2.ExperimentTrialReply()
 
     def GenerateNextConfig(self, request, context):
         trial_number = hpo_service.instance.get_trial_number(request.experiment_name)
-        reply : NewExperimentsReply = NewExperimentsReply()
-        reply.trial_number = trial_number
+        nextConfigReply : NewExperimentsReply = NewExperimentsReply()
+        nextConfigReply.trial_number = trial_number
         context.set_code(grpc.StatusCode.OK)
-        return reply
+        return nextConfigReply
+
+    def GetRecommendedConfig(self, request, context):
+        if( hpo_service.instance.doesNotContainExperiment(request.experiment_name) ):
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details('Experiment not found!')
+            return RecommendedConfigReply()
+
+        if (-1 != hpo_service.instance.get_trial_number(request.experiment_name)):
+            context.set_code(grpc.StatusCode.FAILED_PRECONDITION)
+            context.set_details('Experiment has not yet finished running!')
+            return RecommendedConfigReply()
+
+        recommendedConfig = hpo_service.instance.get_recommended_config(request.experiment_name)
+        recommendedConfigReply : RecommendedConfigReply = RecommendedConfigReply()
+        recommendedConfigReply.experiment_name = recommendedConfig["experiment_name"]
+        recommendedConfigReply.direction = recommendedConfig["direction"]
+
+        recommendedConfigReply.optimal_value.objective_function = recommendedConfig["optimal_value"]["objective_function"]["name"]
+        recommendedConfigReply.optimal_value.value = recommendedConfig["optimal_value"]["objective_function"]["value"]
+        recommendedConfigReply.optimal_value.value_type = recommendedConfig["optimal_value"]["objective_function"]["value_type"]
+
+        for tunable in recommendedConfig["optimal_value"]["tunables"]:
+            tunableConfig : TunableConfig = TunableConfig()
+            tunableConfig.name = tunable["name"]
+            tunableConfig.value = tunable["value"]
+            tunableConfig.value_type = tunable["value_type"]
+            recommendedConfigReply.tunables.append(tunableConfig)
+
+        context.set_code(grpc.StatusCode.OK)
+        return recommendedConfigReply
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     hpo_pb2_grpc.add_HpoServiceServicer_to_server(HpoService(), server)
     server.add_insecure_port(host_name + ':' + str(server_port))
-    print("Starting gRPC server at http://%s:%s" % (host_name, server_port))
+    logger.info("Starting gRPC server at http://%s:%s" % (host_name, server_port))
 
     server.start()
     server.wait_for_termination()
