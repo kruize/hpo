@@ -212,7 +212,7 @@ function run_post_tests(){
 			expected_log_msg="${hpo_error_messages[$post_test]}"
 		fi
 
-		if [[ "${post_test}" == valid* || "${post_test}" == multiple_id || "${post_test}" == multiple_url ]]; then
+		if [[ "${post_test}" == valid* ]]; then
 			expected_result_="200"
 			expected_behaviour="RESPONSE_CODE = 200 OK"
 		else
