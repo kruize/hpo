@@ -20,14 +20,11 @@
 CURRENT_DIR="$(dirname "$(realpath "$0")")"
 SCRIPTS_DIR="${CURRENT_DIR}"
 
-PATH_TO_HPO_SERVICE=${SCRIPTS_DIR}/../../../hyperparameter_tuning
-PATH_TO_SEARCHSPACE=${SCRIPTS_DIR}
-
-SEARCH_SPACE_JSON=${SCRIPTS_DIR}/../../resources/searchspace_jsons/searchspace.json
+PATH_TO_HPO_SERVICE=${SCRIPTS_DIR}/../../../src
 
 setup=1
 
-while getopts tj:sp:-: gopts
+while getopts tsp:-: gopts
 do
 	case ${gopts} in
 	p)
@@ -35,9 +32,6 @@ do
 		;;
 	t)
 		setup=0
-		;;
-	j)
-		SEARCH_SPACE_JSON="${OPTARG}"
 		;;
 	s)
 		setup=1
@@ -53,20 +47,14 @@ fi
 
 function usage() {
 	echo ""
-	echo "Usage: $0 -p log_dir -j <search space json> [-s] [-t]" 
+	echo "Usage: $0 -p log_dir [-s] [-t]" 
 	echo "Where -s = start(default), -t = terminate" 
 	echo ""
 	exit -1
 }
 
 function start_servers() {
-	export N_TRIALS=5
-	export N_JOBS=1
 	export PYTHONUNBUFFERED=TRUE
-
-	# Start the Search Space service
-	echo "Starting searchspace service..."
-	nohup python3 ${PATH_TO_SEARCHSPACE}/search_space.py ${SEARCH_SPACE_JSON} &> ${log_dir}/searchspace.log &
 
 	# Start the HPO REST API service 
 	echo "Starting HPO REST API service..."
@@ -74,9 +62,6 @@ function start_servers() {
 }
 
 function stop_servers() {
-	echo "Stopping searchspace service..."
-	ps -ef | grep search_space.py | grep -v grep | awk '{print $2}' | xargs kill -9
-
 	echo "Stopping HPO REST API service..."
 	ps -ef | grep service.py | grep -v grep | awk '{print $2}' | xargs kill -9
 }

@@ -34,6 +34,24 @@ function check_err() {
 	fi
 }
 
+# Check if service is already running
+function check_prereq() {
+	
+	if [ "$1" = "running" ]; then
+		if [ -n "$2" ]; then
+			echo "Error: Service is already Running."
+			echo
+			exit -1
+		fi
+	else 
+		if [ -z "$2" ]; then
+			echo "Error: Service is already Stopped."
+			echo
+			exit -1
+		fi
+	fi
+}
+
 ###############################  v Docker v #################################
 
 function docker_start() {
@@ -47,7 +65,11 @@ function docker_start() {
 	echo ${HPO_CONTAINER_IMAGE}
 	echo
 
-	${CONTAINER_RUNTIME} run -d --name hpo_docker_container -p 8085:8085 ${HPO_CONTAINER_IMAGE} >/dev/null 2>&1
+	# Check if the container with name 'hpo_docker_container' is already running
+	
+	check_prereq running ${SERVICE_STATUS_DOCKER}
+
+	${CONTAINER_RUNTIME} run -d --name hpo_docker_container -p 8085:8085 -p 50051:50051 ${HPO_CONTAINER_IMAGE} >/dev/null 2>&1
 	check_err "Unexpected error occured. Service Stopped!"
 
 	echo
@@ -64,6 +86,9 @@ function docker_terminate() {
 	echo
 	echo "###   Removing HPO Docker Container"
 	echo
+
+	# Check if the container with name 'hpo_docker_container' is already stopped
+	check_prereq stopped ${SERVICE_STATUS_DOCKER}
 
 	${CONTAINER_RUNTIME} rm -f  hpo_docker_container >/dev/null 2>&1
 	check_err "Failed to stop hpo_docker_container!"
@@ -85,11 +110,14 @@ function native_start() {
 	echo
 	echo "### Installing dependencies.........."
 	echo
-	python3 -m pip install --user -r requirements.txt
+	python3 -m pip install --user -r requirements.txt >/dev/null 2>&1
 
 	echo
 	echo "### Starting the service..."
 	echo
+
+	# check if service is already running
+	check_prereq running ${SERVICE_STATUS_NATIVE}
 
 	python3 -u src/service.py
 }
@@ -97,8 +125,11 @@ function native_start() {
 function native_terminate() {
 
 	echo
-	echo -n "###   Stopping HPO Service"
+	echo "### Stopping HPO Service..."
 	echo
+
+	# check if service is already stopped
+	check_prereq stopped ${SERVICE_STATUS_NATIVE}
 
 	ps -u | grep service.py | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1
 	check_err "Failed to stop HPO Service!"

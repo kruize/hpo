@@ -68,7 +68,7 @@ function set_tags() {
 }
 
 # Iterate through the commandline options
-while getopts do:pv: gopts
+while getopts dpo:v: gopts
 do
 	case ${gopts} in
 	d)

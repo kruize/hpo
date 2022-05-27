@@ -17,9 +17,6 @@ limitations under the License.
 import optuna
 import threading
 
-import os
-import time
-
 from logger import get_logger
 
 logger = get_logger(__name__)
@@ -40,6 +37,7 @@ class TrialDetails:
     result_value_type = ""
     result_value = 0
 
+
 class HpoExperiment:
     """
     HpoExperiment contains the details of a Running experiment.
@@ -58,8 +56,11 @@ class HpoExperiment:
     resultsAvailableCond = threading.Condition()
     experimentStartedCond = threading.Condition()
     started = False
+    # recommended_config (json): A JSON containing the recommended config.
+    recommended_config = {}
 
-    def __init__(self,  experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type):
+    def __init__(self, experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_,
+                 objective_function, tunables, value_type):
         self.experiment_name = experiment_name
         self.total_trials = total_trials
         self.parallel_trials = parallel_trials
@@ -69,7 +70,7 @@ class HpoExperiment:
         self.objective_function = objective_function
         self.tunables = tunables
         self.value_type = value_type
-
+        self.trialDetails = TrialDetails()
         self.thread = threading.Thread(target=self.recommend)
 
     def start(self) -> threading.Condition:
@@ -90,15 +91,14 @@ class HpoExperiment:
         return started
 
     def notifyStarted(self):
-            #notify hpo_service.startExperiment() that experiment is ready to accept results
-            if not self.hasStarted():
-                try:
-                    self.experimentStartedCond.acquire()
-                    self.started = True
-                    self.experimentStartedCond.notify()
-                finally:
-                    self.experimentStartedCond.release()
-
+        # notify hpo_service.startExperiment() that experiment is ready to accept results
+        if not self.hasStarted():
+            try:
+                self.experimentStartedCond.acquire()
+                self.started = True
+                self.experimentStartedCond.notify()
+            finally:
+                self.experimentStartedCond.release()
 
     def perform_experiment(self):
         self.resultsAvailableCond.acquire()
@@ -137,7 +137,7 @@ class HpoExperiment:
             sampler = optuna.integration.SkoptSampler()
 
         # Create a study object
-        study = optuna.create_study(direction=self.direction, sampler=sampler)
+        study = optuna.create_study(direction=self.direction, sampler=sampler, study_name=self.experiment_name)
 
         # Execute an optimization by using an 'Objective' instance
         study.optimize(Objective(self), n_trials=self.total_trials, n_jobs=self.parallel_trials)
@@ -153,34 +153,36 @@ class HpoExperiment:
 
         logger.debug("All trials: " + str(trials))
 
-        # recommended_config (json): A JSON containing the recommended config.
-        recommended_config = {}
+        try:
+            self.resultsAvailableCond.acquire()
+            optimal_value = {"objective_function": {
+                "name": self.objective_function,
+                "value": study.best_value,
+                "value_type": self.value_type
+            }, "tunables": []}
 
-        optimal_value = {"objective_function": {
-            "name": self.objective_function,
-            "value": study.best_value,
-            "value_type": self.value_type
-        }, "tunables": []}
+            for tunable in self.tunables:
+                for key, value in study.best_params.items():
+                    if key == tunable["name"]:
+                        tunable_value = value
+                optimal_value["tunables"].append(
+                    {
+                        "name": tunable["name"],
+                        "value": tunable_value,
+                        "value_type": tunable["value_type"]
+                    }
+                )
 
-        for tunable in self.tunables:
-            for key, value in study.best_params.items():
-                if key == tunable["name"]:
-                    tunable_value = value
-            optimal_value["tunables"].append(
-                {
-                    "name": tunable["name"],
-                    "value": tunable_value,
-                    "value_type": tunable["value_type"]
-                }
-            )
+            self.recommended_config["id"] = self.id_
+            self.recommended_config["experiment_name"] = self.experiment_name
+            self.recommended_config["direction"] = self.direction
+            self.recommended_config["optimal_value"] = optimal_value
+        finally:
+            self.resultsAvailableCond.release()
 
-        recommended_config["id"] = self.id_
-        recommended_config["experiment_name"] = self.experiment_name
-        recommended_config["direction"] = self.direction
-        recommended_config["optimal_value"] = optimal_value
 
-        logger.info("Recommended config: " + str(recommended_config))
 
+        logger.info("Recommended config: " + str(self.recommended_config))
 
 
 class Objective(TrialDetails):
@@ -211,28 +213,26 @@ class Objective(TrialDetails):
         finally:
             self.experiment.resultsAvailableCond.release()
 
-
-        # Define search space
-        for tunable in self.tunables:
-            if tunable["value_type"].lower() == "double":
-                tunable_value = trial.suggest_discrete_uniform(
-                    tunable["name"], tunable["lower_bound"], tunable["upper_bound"], tunable["step"]
-                )
-            elif tunable["value_type"].lower() == "integer":
-                tunable_value = trial.suggest_int(
-                    tunable["name"], tunable["lower_bound"], tunable["upper_bound"], tunable["step"]
-                )
-            elif tunable["value_type"].lower() == "categorical":
-                tunable_value = trial.suggest_categorical(tunable["name"], tunable["choices"])
-
-            experiment_tunables.append({"tunable_name": tunable["name"], "tunable_value": tunable_value})
-
-        config["experiment_tunables"] = experiment_tunables
-
-        logger.debug("Experiment tunables: " + str(experiment_tunables))
-
         try:
             self.experiment.resultsAvailableCond.acquire()
+            # Define search space
+            for tunable in self.tunables:
+                if tunable["value_type"].lower() == "double":
+                    tunable_value = trial.suggest_discrete_uniform(
+                        tunable["name"], tunable["lower_bound"], tunable["upper_bound"], tunable["step"]
+                    )
+                elif tunable["value_type"].lower() == "integer":
+                    tunable_value = trial.suggest_int(
+                        tunable["name"], tunable["lower_bound"], tunable["upper_bound"], tunable["step"]
+                    )
+                elif tunable["value_type"].lower() == "categorical":
+                    tunable_value = trial.suggest_categorical(tunable["name"], tunable["choices"])
+
+                experiment_tunables.append({"tunable_name": tunable["name"], "tunable_value": tunable_value})
+
+            config["experiment_tunables"] = experiment_tunables
+
+            logger.debug("Experiment tunables: " + str(experiment_tunables))
             self.experiment.trialDetails.trial_json_object = experiment_tunables
         finally:
             self.experiment.resultsAvailableCond.release()
