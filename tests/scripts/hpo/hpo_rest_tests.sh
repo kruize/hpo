@@ -923,7 +923,6 @@ function hpo_multiple_exp_test() {
 
 		# Replace the experiment name
 		json=$(echo $exp_json | sed -e 's/petclinic-sample-2-75884c5549-npvgd/petclinic-sample-'${i}'/')
-		echo "************json = $json"
 		post_experiment_json "$json"
 		verify_result "Post new experiment" "${http_code}" "${expected_http_code}"
 
@@ -961,7 +960,7 @@ function hpo_multiple_exp_test() {
 			response=$(echo ${response} | cut -c 4-)
 
 			result="${TEST_DIR}/hpo_config_exp${i}_trial${trial_num}.json"
-			expected_json="${TEST_DIR}/expected_hpo_config_exp${i}_trial${trial_num}.json"
+			expected_json="${TEST_DIR}/expected_hpo_config_exp${i}.json"
 
 			echo "${response}" > ${result}
 			cat $result

@@ -205,7 +205,7 @@ function hpo_grpc_multiple_exp_test() {
 			echo "Generate the config for trial experiment ${exp_name} and ${trial_num}..." | tee -a ${LOG}
 			echo ""
 			result="${TEST_DIR}/hpo_config_exp${i}_trial${trial_num}.json"
-			expected_json="${TEST_DIR}/expected_hpo_config_exp${i}_trial${trial_num}.json"
+			expected_json="${TEST_DIR}/expected_hpo_config_exp${i}.json"
 		
 			get_trial_json_cmd="python ../src/grpc_client.py config --name ${exp_name} --trial ${trial_num}"
 			echo "command to query the experiment_trial API = ${get_trial_json_cmd}" | tee -a ${LOG}
