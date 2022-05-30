@@ -833,9 +833,7 @@ function hpo_grpc_sanity_test() {
 	fi
 
 	echo "Wait for HPO service to come up"
-	sleep 10
-
-	pwd
+	sleep 60
 
 	## Loop through the trials
 	for (( i=0 ; i<${N_TRIALS} ; i++ ))
@@ -857,7 +855,7 @@ function hpo_grpc_sanity_test() {
 		result="${TEST_DIR}/hpo_config_${i}.json"
 		expected_json="${TEST_DIR}/expected_hpo_config_${i}.json"
 
-		python ../src/grpc_client.py config --name ${exp_name} --trial 0 > ${result}
+		python ../src/grpc_client.py config --name ${exp_name} --trial ${i} > ${result}
 		verify_grpc_result "Get config from hpo for trial ${i}" $?
 
 		# Post the experiment result to hpo
