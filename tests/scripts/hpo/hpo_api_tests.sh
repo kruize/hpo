@@ -947,7 +947,8 @@ function hpo_sanity_test() {
 		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
 	fi
 
-	sleep 10
+	# Wait for HPO service to be deployed
+	sleep 60
 
 	expected_http_code="200"
 
