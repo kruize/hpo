@@ -21,7 +21,6 @@ jobs:
       - name: Build hpo
         run: |
           echo Build hpo
-          cd hpo
           ./build_hpo.sh -o hpo:test
           docker images | grep hpo     
       - name: docker login
@@ -37,7 +36,7 @@ jobs:
         run: |
           echo Running sanity test on docker
           ls
-          cd hpo/tests         
+          cd tests
           ./test_hpo.sh -c docker -o kruize/hpo:test --resultsdir=${GITHUB_WORKSPACE} --testsuite=hpo_api_tests --testcase=hpo_sanity_test
       - name: Archive results
         if: always()
