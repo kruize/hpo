@@ -183,11 +183,6 @@ class HpoExperiment:
 
         logger.info("Recommended config: " + str(recommended_config))
 
-        # call db function to store the configs
-
-        db_connection.insert_config_details(self.experiment_name, str(study.best_params), study.best_value,
-                                            str(study.best_trial), str(recommended_config))
-
 
 class Objective(TrialDetails):
     """

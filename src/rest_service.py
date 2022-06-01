@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
+import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import re
 import cgi
@@ -27,7 +27,10 @@ from tunables import get_all_tunables
 from logger import get_logger
 
 import hpo_service
-from db_files import db_connection
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BASE_DIR)
+from db import tables, operations
 
 logger = get_logger(__name__)
 
@@ -123,7 +126,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             return
 
         # call database to fetch the configs
-        db_response = db_connection.get_recommended_configs(trial_result_needed, experiment)
+        db_response = operations.get_recommended_configs(trial_result_needed, experiment)
 
         # check if the response is valid JSON else return the corresponding error response
         try:
@@ -151,11 +154,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             obj_function = search_space_json["objective_function"]
 
             # call db function to open a connection and insert data in experiments table
-            db_connection.conn_create()
-            response = db_connection.insert_experiment_data(experiment_name, search_space_json, obj_function)
+            tables.create_tables()
+            response = operations.insert_experiment_data(experiment_name, search_space_json, obj_function)
+
             if response:
-                logger.error(response)
-                self._set_response(403, response)
+                self._set_response(403, "-1")
                 return
 
             get_search_create_study(search_space_json, json_object["operation"])
@@ -187,7 +190,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             trial_json = hpo_service.instance.get_trial_json_object(json_object["experiment_name"])
 
             # call db_files function to store experiment details after each trial
-            db_connection.insert_experiment_details(json_object, trial_json)
+            response = operations.insert_trial_details(json_object, trial_json)
+
+            if response:
+                self._set_response(403, "-1")
+                return
 
             self._set_response(200, "0")
         else:
