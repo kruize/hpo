@@ -19,7 +19,6 @@ import threading
 
 from logger import get_logger
 
-from db_files import db_connection
 
 logger = get_logger(__name__)
 

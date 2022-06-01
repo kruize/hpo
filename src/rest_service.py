@@ -117,16 +117,16 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self._set_response(404, "Error! The requested resource could not be found.")
 
     def getRecommendations(self, query):
-        experiment = query["experiment_name"][0]
+        experiment_name = str(query["experiment_name"][0]).replace("-", "_")
         trial_result_needed = int(query["trials"][0])
-        if trial_result_needed <= 0:
-            data = "Invalid Trials value. Should be greater than 0"
+        if trial_result_needed < 0:
+            data = "Invalid Trials value"
             logger.error(data)
             self._set_response(403, data)
             return
 
-        # call database to fetch the configs
-        db_response = operations.get_recommended_configs(trial_result_needed, experiment)
+        # call database operations function to fetch the configs
+        db_response = operations.get_recommended_configs(trial_result_needed, experiment_name)
 
         # check if the response is valid JSON else return the corresponding error response
         try:
@@ -134,7 +134,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self._set_response(200, db_response)
         except ValueError:
             logger.error(db_response)
-            self._set_response(403, db_response)
+            self._set_response(403, "-1")
 
     def getHomeScreen(self):
         fin = open(welcome_page)
@@ -189,7 +189,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                                             json_object["result_value"])
             trial_json = hpo_service.instance.get_trial_json_object(json_object["experiment_name"])
 
-            # call db_files function to store experiment details after each trial
+            # call db operations function to store experiment details after each trial
             response = operations.insert_trial_details(json_object, trial_json)
 
             if response:

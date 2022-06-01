@@ -83,6 +83,7 @@ def insert_trial_details(json_object, trial_json):
             conn.close()
 
 
+# Update rank in the table based on the results_value
 def update_rank(conn, experiment_name):
     cur = conn.cursor()
     sql = "select results_value from experiment_trial_details where experiment_name = '{}' order by results_value"\
@@ -113,23 +114,32 @@ def get_recommended_configs(trial_number, experiment_name):
             .format(experiment_name)
         cur.execute(sql)
         query_result = cur.fetchall()[0][0]
-        if query_result == 0:
-            return "Experiment not found"
+        if not query_result:
+            return
 
-        # check if the requested trials has been completed or not
-        sql = "SELECT count(trial_number) from experiment_trial_details where experiment_name = '{}'"\
-            .format(experiment_name)
-        cur.execute(sql)
-        query_result = cur.fetchall()[0][0]
-        if query_result < trial_number:
-            return "Trials not completed yet or exceeds the provided trial limit"
+        query = "SELECT trial_number,rank,experiment_name,trial_config, results_value,trial_result_status from " \
+                "experiment_trial_details "
+        # if the trial value is 0, return all the records sorted by rank
+        if trial_number == 0:
+            logger.info("Fetching all the trials based on rank...")
+            query += "order by rank"
+            cur.execute(query)
+        # else fetch the records based on requested trial_number
+        else:
+            # check if the requested trials has been completed or not
+            sql = "SELECT count(trial_number) from experiment_trial_details where experiment_name = '{}'" \
+                .format(experiment_name)
+            cur.execute(sql)
+            query_result = cur.fetchall()[0][0]
+            if query_result < trial_number:
+                logger.info("\nRequested trial exceeds the completed trial limit!")
+                trial_number = query_result
 
-        print("Fetching best configs from top {} trials...\n".format(trial_number))
-        sql = "SELECT trial_number,rank,experiment_name,trial_config, results_value,trial_result_status from " \
-              "experiment_trial_details where experiment_name = '{}' and trial_number between 0 and {} order by rank"\
-            .format(experiment_name, trial_number - 1)
+            logger.info("Fetching best configs from top {} trials...\n".format(trial_number))
+            query += "where experiment_name = '{}' and rank <= {} order by rank".format(experiment_name, trial_number)
+            cur.execute(query)
 
-        cur.execute(sql)
+        # Store the result fetched from DB in a dictionary and create JSON from it
         for row in cur.fetchall():
             json_dict = {'Trial_Number': row[0], 'Rank': row[1], 'Experiment_Name': row[2], 'Trial_Config': row[3],
                          'Results_Value': row[4], 'Trial_Result_Status': row[5]}
@@ -143,4 +153,5 @@ def get_recommended_configs(trial_number, experiment_name):
     finally:
         if conn is not None:
             conn.close()
-        return json.dumps(json_list)
+        if json_list:
+            return json.dumps(json_list)

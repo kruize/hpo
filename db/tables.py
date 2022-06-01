@@ -39,7 +39,7 @@ def create_tables():
         """
         CREATE TABLE experiment_trial_details (
             id SERIAL PRIMARY KEY,
-            trial_number INTEGER,
+            trial_number VARCHAR,
             rank INTEGER,
             experiment_name VARCHAR NOT NULL,
             trial_config VARCHAR,
