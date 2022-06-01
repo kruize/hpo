@@ -5,3 +5,5 @@ jsonschema
 grpcio
 click
 protobuf
+configparser
+psycopg2
