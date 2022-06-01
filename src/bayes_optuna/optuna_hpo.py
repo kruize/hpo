@@ -57,6 +57,8 @@ class HpoExperiment:
     resultsAvailableCond = threading.Condition()
     experimentStartedCond = threading.Condition()
     started = False
+    # recommended_config (json): A JSON containing the recommended config.
+    recommended_config = {}
 
     def __init__(self, experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_,
                  objective_function, tunables, value_type):
@@ -154,33 +156,36 @@ class HpoExperiment:
 
         logger.debug("All trials: " + str(trials))
 
-        # recommended_config (json): A JSON containing the recommended config.
-        recommended_config = {}
+        try:
+            self.resultsAvailableCond.acquire()
+            optimal_value = {"objective_function": {
+                "name": self.objective_function,
+                "value": study.best_value,
+                "value_type": self.value_type
+            }, "tunables": []}
 
-        optimal_value = {"objective_function": {
-            "name": self.objective_function,
-            "value": study.best_value,
-            "value_type": self.value_type
-        }, "tunables": []}
+            for tunable in self.tunables:
+                for key, value in study.best_params.items():
+                    if key == tunable["name"]:
+                        tunable_value = value
+                optimal_value["tunables"].append(
+                    {
+                        "name": tunable["name"],
+                        "value": tunable_value,
+                        "value_type": tunable["value_type"]
+                    }
+                )
 
-        for tunable in self.tunables:
-            for key, value in study.best_params.items():
-                if key == tunable["name"]:
-                    tunable_value = value
-            optimal_value["tunables"].append(
-                {
-                    "name": tunable["name"],
-                    "value": tunable_value,
-                    "value_type": tunable["value_type"]
-                }
-            )
+            self.recommended_config["id"] = self.id_
+            self.recommended_config["experiment_name"] = self.experiment_name
+            self.recommended_config["direction"] = self.direction
+            self.recommended_config["optimal_value"] = optimal_value
+        finally:
+            self.resultsAvailableCond.release()
 
-        recommended_config["id"] = self.id_
-        recommended_config["experiment_name"] = self.experiment_name
-        recommended_config["direction"] = self.direction
-        recommended_config["optimal_value"] = optimal_value
 
-        logger.info("Recommended config: " + str(recommended_config))
+
+        logger.info("Recommended config: " + str(self.recommended_config))
 
 
 class Objective(TrialDetails):
@@ -211,27 +216,26 @@ class Objective(TrialDetails):
         finally:
             self.experiment.resultsAvailableCond.release()
 
-        # Define search space
-        for tunable in self.tunables:
-            if tunable["value_type"].lower() == "double":
-                tunable_value = trial.suggest_discrete_uniform(
-                    tunable["name"], tunable["lower_bound"], tunable["upper_bound"], tunable["step"]
-                )
-            elif tunable["value_type"].lower() == "integer":
-                tunable_value = trial.suggest_int(
-                    tunable["name"], tunable["lower_bound"], tunable["upper_bound"], tunable["step"]
-                )
-            elif tunable["value_type"].lower() == "categorical":
-                tunable_value = trial.suggest_categorical(tunable["name"], tunable["choices"])
-
-            experiment_tunables.append({"tunable_name": tunable["name"], "tunable_value": tunable_value})
-
-        config["experiment_tunables"] = experiment_tunables
-
-        logger.debug("Experiment tunables: " + str(experiment_tunables))
-
         try:
             self.experiment.resultsAvailableCond.acquire()
+            # Define search space
+            for tunable in self.tunables:
+                if tunable["value_type"].lower() == "double":
+                    tunable_value = trial.suggest_discrete_uniform(
+                        tunable["name"], tunable["lower_bound"], tunable["upper_bound"], tunable["step"]
+                    )
+                elif tunable["value_type"].lower() == "integer":
+                    tunable_value = trial.suggest_int(
+                        tunable["name"], tunable["lower_bound"], tunable["upper_bound"], tunable["step"]
+                    )
+                elif tunable["value_type"].lower() == "categorical":
+                    tunable_value = trial.suggest_categorical(tunable["name"], tunable["choices"])
+
+                experiment_tunables.append({"tunable_name": tunable["name"], "tunable_value": tunable_value})
+
+            config["experiment_tunables"] = experiment_tunables
+
+            logger.debug("Experiment tunables: " + str(experiment_tunables))
             self.experiment.trialDetails.trial_json_object = experiment_tunables
         finally:
             self.experiment.resultsAvailableCond.release()

@@ -95,3 +95,13 @@ $ python3 ./grpc_client.py new --file=/tmp/hpo/newExperiment.json
 > $ export HPO_HOST=remoteMachine.com
 > $ export HPO_PORT=9191
 > ```
+
+
+## gRPC Development
+
+
+To generate the python gRPC python classes, execute the follwoing command in the `src/` directory
+
+```shell
+$ python3 -m grpc_tools.protoc -I ./gRPC/protos --python_out=./gRPC --grpc_python_out=./gRPC gRPC/protos/*.proto
+```
