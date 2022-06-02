@@ -8,6 +8,7 @@ HPO functional tests to validate the functionality of Hyper parameter optimizati
 - Post experiments with both valid & invalid values in the experiment json
 - Get the HPO generated config using both valid & invalid values for the experiment id & trial number
 - Post experiment results with both valid & invalid values in the experiment results json
+- Sanity test that posts an experiment, gets the configuration, posts the result for the experiment & posts a subsequent experiment repeatedly
 
 ## Functional tests description
 

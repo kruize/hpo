@@ -158,7 +158,7 @@ function check_test_case() {
 		exit -1
 	fi
 	
-	if [ "${testcase_matched}" -eq "0" ]; then
+	if [[ "${testcase_matched}" -eq "0" ]]; then
 		echo ""
 		echo "Error: Invalid testcase **${testcase}** "
 		test_case_usage ${checkfor}
