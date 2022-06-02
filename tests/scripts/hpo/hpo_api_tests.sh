@@ -157,7 +157,18 @@ function check_server_status() {
 	else
 		echo "Error Starting the HPO REST API service..." | tee -a ${LOG_} ${LOG}
 		echo "See ${TESTS_}/service.log for more details" | tee -a ${LOG_} ${LOG}
-		exit 0
+		cat "${TESTS_}/service.log"
+		exit 1
+	fi
+
+	grpc_service_log_msg="Starting gRPC server at"
+	if grep -q "${grpc_service_log_msg}" "${TESTS_}/service.log" ; then
+		echo "HPO GRPC API service started successfully..." | tee -a ${LOG_} ${LOG}
+	else
+		echo "Error Starting the HPO GRPC API service..." | tee -a ${LOG_} ${LOG}
+		echo "See ${TESTS_}/service.log for more details" | tee -a ${LOG_} ${LOG}
+		cat "${TESTS_}/service.log"
+		exit 1
 	fi
 }
 
@@ -194,7 +205,9 @@ function run_post_tests(){
 		fi
 
 		# Sleep for few seconds to reduce the ambiguity
-		sleep 5
+		sleep 30
+		# Check if HPO services are started
+		check_server_status
 
 		# Get the experiment id from search space JSON
 
@@ -346,7 +359,10 @@ function other_post_experiment_tests() {
 		fi
 
 		# Sleep for few seconds to reduce the ambiguity
-		sleep 5
+		sleep 30
+
+		# Check if HPO services are started
+		check_server_status
 
 		operation=$(echo ${operation//-/_})
 		${operation}
@@ -446,7 +462,10 @@ function get_trial_json_invalid_tests() {
 		fi
 
 		# Sleep for few seconds to reduce the ambiguity
-		sleep 5
+		sleep 30
+
+		# Check if HPO services are started
+		check_server_status
 
 		# Get the experiment id from search space JSON
 		current_id="a123"
@@ -587,7 +606,10 @@ function get_trial_json_valid_tests() {
 		fi
 
 		# Sleep for few seconds to reduce the ambiguity
-		sleep 5
+		sleep 30
+
+		# Check if HPO services are started
+		check_server_status
 			
 		# Get the experiment id from search space JSON
 		current_id="a123"
@@ -764,7 +786,10 @@ function other_exp_result_post_tests() {
 		fi
 	
 		# Sleep for few seconds to reduce the ambiguity
-		sleep 5
+		sleep 30
+
+		# Check if HPO services are started
+		check_server_status
 
 		# Get the experiment_id and experiment_name from search space JSON
 		current_id="a123"
@@ -834,6 +859,9 @@ function hpo_grpc_sanity_test() {
 
 	echo "Wait for HPO service to come up"
 	sleep 60
+
+	# Check if HPO services are started
+	check_server_status
 
 	## Loop through the trials
 	for (( i=0 ; i<${N_TRIALS} ; i++ ))
@@ -947,6 +975,9 @@ function hpo_sanity_test() {
 
 	# Wait for HPO service to be deployed
 	sleep 60
+
+	# Check if HPO services are started
+	check_server_status
 
 	expected_http_code="200"
 
