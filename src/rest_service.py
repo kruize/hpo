@@ -74,6 +74,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                     self.handle_generate_subsequent_operation(json_object)
                 elif json_object["operation"] == "EXP_TRIAL_RESULT":
                     self.handle_result_operation(json_object)
+                elif json_object["operation"] == "EXP_STOP":
+                    self.handle_stop_operation(json_object)
                 else:
                     self._set_response(400, "-1")
             else:
@@ -149,6 +151,14 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self._set_response(200, "0")
         else:
             self._set_response(400, "-1")
+
+    def handle_stop_operation(self, json_object):
+        """Process EXP_STOP operation."""
+        if ( hpo_service.instance.containsExperiment(json_object["experiment_name"]) ):
+            hpo_service.instance.stopExperiment(json_object["experiment_name"])
+            self._set_response(200, "0")
+        else:
+            self._set_response(404, "Experiment not found")
 
 
 def get_search_create_study(search_space_json, operation):

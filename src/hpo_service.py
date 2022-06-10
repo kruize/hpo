@@ -28,6 +28,7 @@ class HpoService:
 
     def __init__(self):
         self.experiments = {}
+        self.expStateCond = threading.Condition()  #We might weant a more fine grained locking mechanism, e.g.readerwriterlock
 
     def newExperiment(self, id_, experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl,
                       objective_function, tunables, value_type):
@@ -35,12 +36,31 @@ class HpoService:
             print("Experiment already exists")
             return
 
-        self.experiments[experiment_name] = optuna_hpo.HpoExperiment(experiment_name, total_trials, parallel_trials,
+        try:
+            self.expStateCond.acquire()
+            self.experiments[experiment_name] = optuna_hpo.HpoExperiment(experiment_name, total_trials, parallel_trials,
                                                                      direction, hpo_algo_impl, id_, objective_function,
                                                                      tunables, value_type)
+        finally:
+            self.expStateCond.release()
+
+    def stopExperiment(self, experiment_name):
+        try:
+            self.expStateCond.acquire()
+            if self.containsExperiment(experiment_name):
+                experiment: optuna_hpo.HpoExperiment = self.experiments[experiment_name]
+                experiment.stop()
+                del self.experiments[experiment_name]
+        finally:
+            self.expStateCond.release()
 
     def startExperiment(self, name):
-        experiment: optuna_hpo.HpoExperiment = self.experiments.get(name)
+        try:
+            self.expStateCond.acquire()
+            experiment: optuna_hpo.HpoExperiment = self.experiments.get(name)
+        finally:
+            self.expStateCond.release()
+
         started: threading.Condition = experiment.start()
         try:
             started.acquire()
@@ -52,22 +72,39 @@ class HpoService:
             print("Starting experiment timed  out!")
 
     def containsExperiment(self, name):
-        if self.experiments is None or not self.experiments:
-            return False
-        return name in self.experiments.keys()
+        result = False
+        try:
+            self.expStateCond.acquire()
+            if self.experiments is not None or self.experiments:
+                result = name in self.experiments.keys()
+        finally:
+            self.expStateCond.release()
+
+        return result
 
     def doesNotContainExperiment(self, name):
         return not self.containsExperiment(name)
 
     def getExperimentsList(self):
-        return self.experiments.keys()
+        try:
+            self.expStateCond.acquire()
+            expKeys = self.experiments.keys()
+        finally:
+            self.expStateCond.release()
+
+        return expKeys
 
     def getExperiment(self, name) -> optuna_hpo.HpoExperiment:
         if self.doesNotContainExperiment(name):
             print("Experiment " + name + " does not exist")
             raise ExperimentNotFoundError
+        try:
+            self.expStateCond.acquire()
+            expname = self.experiments.get(name)
+        finally:
+            self.expStateCond.release()
 
-        return self.experiments.get(name)
+        return expname
 
     def get_trial_number(self, name):
 
