@@ -103,8 +103,8 @@ function deploy_hpo() {
 		exit -1
 	fi
 
-	sleep 2
 	if [ ${cluster_type} == "docker" ]; then
+  	sleep 2
 		log=$3
 		docker logs hpo_docker_container > "${log}" 2>&1
 	fi
