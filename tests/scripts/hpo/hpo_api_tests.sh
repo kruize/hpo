@@ -275,6 +275,13 @@ function run_post_tests(){
 		fi
 
 		actual_result="${http_code}"
+
+		should_stop_expriment=false
+		if [[ "${actual_result}" -eq "200" ]]; then
+			should_stop_expriment=true
+		fi
+
+
 		echo ""
 		echo "***************** service log ********************" 
 		cat "${TESTS_}/service.log"
@@ -300,7 +307,9 @@ function run_post_tests(){
 		fi
 		echo ""
 
-    stop_experiment "$experiment_name"
+    if [ "$should_stop_expriment" == true ]; then
+      stop_experiment "$experiment_name";
+    fi
 
 		echo "" | tee -a ${LOG_} ${LOG}
 
@@ -350,7 +359,8 @@ function operation_generate_subsequent() {
 	experiment_result="valid-experiment-result"
 	current_id="a123"
 	current_name="petclinic-sample-2-75884c5549-npvgd"
-	create_post_exp_result_json_array "${current_name}" "${trial_num}"
+# This function is not implemented, causes errors in testsuite
+#	create_post_exp_result_json_array "${current_name}" "${trial_num}"
 	post_experiment_result_json "${hpo_post_exp_result_json[$experiment_result]}"
 
 
@@ -916,6 +926,10 @@ function hpo_grpc_sanity_test() {
 		fi
 	done
 
+  #Validate removing test
+  python ../src/grpc_client.py stop --name ${exp_name}
+  verify_grpc_result "Stop running experiment ${exp_name}" $?
+
 	# Terminate any running HPO servers
 	echo "Terminating any running HPO servers..." | tee -a ${LOG}
 	terminate_hpo ${cluster_type}
@@ -1049,6 +1063,13 @@ function hpo_sanity_test() {
 			verify_result "Post subsequent experiment after trial ${i}" "${http_code}" "${expected_http_code}"
 		fi
 	done
+
+  #Validate removing test
+  stop_experiment='{"experiment_name":'${exp_name}',"operation":"EXP_STOP"}'
+  post_experiment_json ${stop_experiment}
+  verify_result "Stop running experiment ${exp_name}" "${http_code}" "200"
+
+  #verify test has been remove
 
 	# Store the docker logs
 	if [ ${cluster_type} == "docker" ]; then

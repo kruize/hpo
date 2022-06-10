@@ -49,8 +49,8 @@ class HpoService:
             self.expStateCond.acquire()
             if self.containsExperiment(experiment_name):
                 experiment: optuna_hpo.HpoExperiment = self.experiments[experiment_name]
-                experiment.stop()
                 del self.experiments[experiment_name]
+                experiment.stop()
         finally:
             self.expStateCond.release()
 

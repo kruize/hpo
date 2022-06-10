@@ -115,9 +115,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     def handle_generate_new_operation(self, json_object):
         """Process EXP_TRIAL_GENERATE_NEW operation."""
         is_valid_json_object = validate_trial_generate_json(json_object)
+        existingExperiment = hpo_service.instance.containsExperiment(json_object["search_space"]["experiment_name"])
 
-        if is_valid_json_object and hpo_service.instance.doesNotContainExperiment(
-                json_object["search_space"]["experiment_name"]):
+        if is_valid_json_object and not existingExperiment:
             search_space_json = json_object["search_space"]
             if str(search_space_json["experiment_name"]).isspace() or not str(search_space_json["experiment_name"]):
                 self._set_response(400, "-1")
