@@ -55,6 +55,7 @@ class HpoExperiment:
     trialDetails = TrialDetails()
     resultsAvailableCond = threading.Condition()
     experimentStartedCond = threading.Condition()
+    isRunning = True
     started = False
     # recommended_config (json): A JSON containing the recommended config.
     recommended_config = {}
@@ -76,6 +77,7 @@ class HpoExperiment:
     def start(self) -> threading.Condition:
         try:
             self.experimentStartedCond.acquire()
+            self.thread.daemon = True
             self.thread.start()
         finally:
             self.experimentStartedCond.release()
@@ -101,11 +103,15 @@ class HpoExperiment:
                 self.experimentStartedCond.release()
 
     def perform_experiment(self):
-        self.resultsAvailableCond.acquire()
-        self.resultsAvailableCond.wait()
-        result_value = self.trialDetails.result_value
-        trial_result = self.trialDetails.trial_result
-        self.resultsAvailableCond.release()
+        try:
+            self.resultsAvailableCond.acquire()
+            self.resultsAvailableCond.wait()
+            if self.isRunning == False:
+                raise Exception("Stopping experiment: {}".format(self.experiment_name))
+            result_value = self.trialDetails.result_value
+            trial_result = self.trialDetails.trial_result
+        finally:
+            self.resultsAvailableCond.release()
         return result_value, trial_result
 
     def recommend(self):
@@ -183,6 +189,14 @@ class HpoExperiment:
 
 
         logger.info("Recommended config: " + str(self.recommended_config))
+
+    def stop(self):
+        try:
+            self.resultsAvailableCond.acquire()
+            self.isRunning = False
+            self.resultsAvailableCond.notify()
+        finally:
+            self.resultsAvailableCond.release()
 
 
 class Objective(TrialDetails):
