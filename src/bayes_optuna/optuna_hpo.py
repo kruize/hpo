@@ -143,52 +143,54 @@ class HpoExperiment:
             sampler = optuna.integration.SkoptSampler()
 
         # Create a study object
-        study = optuna.create_study(direction=self.direction, sampler=sampler, study_name=self.experiment_name)
-
-        # Execute an optimization by using an 'Objective' instance
-        study.optimize(Objective(self), n_trials=self.total_trials, n_jobs=self.parallel_trials)
-
-        self.trialDetails.trial_number = -1
-
-        # Get the best parameter
-        logger.info("Best parameter: " + str(study.best_params))
-        # Get the best value
-        logger.info("Best value: " + str(study.best_value))
-        # Get the best trial
-        logger.info("Best trial: " + str(study.best_trial))
-
-        logger.debug("All trials: " + str(trials))
-
         try:
-            self.resultsAvailableCond.acquire()
-            optimal_value = {"objective_function": {
-                "name": self.objective_function,
-                "value": study.best_value,
-                "value_type": self.value_type
-            }, "tunables": []}
-
-            for tunable in self.tunables:
-                for key, value in study.best_params.items():
-                    if key == tunable["name"]:
-                        tunable_value = value
-                optimal_value["tunables"].append(
-                    {
-                        "name": tunable["name"],
-                        "value": tunable_value,
-                        "value_type": tunable["value_type"]
-                    }
-                )
-
-            self.recommended_config["id"] = self.id_
-            self.recommended_config["experiment_name"] = self.experiment_name
-            self.recommended_config["direction"] = self.direction
-            self.recommended_config["optimal_value"] = optimal_value
-        finally:
-            self.resultsAvailableCond.release()
+            study = optuna.create_study(direction=self.direction, sampler=sampler, study_name=self.experiment_name)
 
 
+            # Execute an optimization by using an 'Objective' instance
+            study.optimize(Objective(self), n_trials=self.total_trials, n_jobs=self.parallel_trials)
 
-        logger.info("Recommended config: " + str(self.recommended_config))
+            self.trialDetails.trial_number = -1
+
+            # Get the best parameter
+            logger.info("Best parameter: " + str(study.best_params))
+            # Get the best value
+            logger.info("Best value: " + str(study.best_value))
+            # Get the best trial
+            logger.info("Best trial: " + str(study.best_trial))
+
+            logger.debug("All trials: " + str(trials))
+
+            try:
+                self.resultsAvailableCond.acquire()
+                optimal_value = {"objective_function": {
+                    "name": self.objective_function,
+                    "value": study.best_value,
+                    "value_type": self.value_type
+                }, "tunables": []}
+
+                for tunable in self.tunables:
+                    for key, value in study.best_params.items():
+                        if key == tunable["name"]:
+                            tunable_value = value
+                    optimal_value["tunables"].append(
+                        {
+                            "name": tunable["name"],
+                            "value": tunable_value,
+                            "value_type": tunable["value_type"]
+                        }
+                    )
+
+                self.recommended_config["id"] = self.id_
+                self.recommended_config["experiment_name"] = self.experiment_name
+                self.recommended_config["direction"] = self.direction
+                self.recommended_config["optimal_value"] = optimal_value
+            finally:
+                self.resultsAvailableCond.release()
+
+            logger.info("Recommended config: " + str(self.recommended_config))
+        except:
+            logger.warn("Experiment stopped: " + str(self.experiment_name))
 
     def stop(self):
         try:
