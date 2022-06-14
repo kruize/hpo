@@ -168,11 +168,10 @@ function stop_experiment() {
 	echo "Curl command used to stop the experiment = ${stop_experiment_cmd}" | tee -a ${LOG_} ${LOG}
 	echo "" | tee -a ${LOG_} ${LOG}
 
-	echo "${post_cmd}" >> ${LOG_} ${LOG}
+	echo "${stop_experiment_cmd}" >> ${LOG_} ${LOG}
 
-
-	http_code=$(tail -n1 <<< "${post_cmd}")
-	response=$(echo -e "${post_cmd}" | tail -2 | head -1)
+	http_code=$(tail -n1 <<< "${stop_experiment_cmd}")
+	response=$(echo -e "${stop_experiment_cmd}" | tail -2 | head -1)
 
 	echo "Response is ${response}" >> ${LOG_} ${LOG}
 	echo "http_code is $http_code Response is ${response}"
