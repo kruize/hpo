@@ -158,7 +158,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             hpo_service.instance.stopExperiment(json_object["experiment_name"])
             self._set_response(200, "0")
         else:
-            self._set_response(404, "Experiment not found")
+            self._set_response(404, "-1")
 
 
 def get_search_create_study(search_space_json, operation):
