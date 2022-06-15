@@ -116,9 +116,6 @@ hpo_error_messages=([invalid-id]="KeyError: '01234567890123456789012345678901234
 [empty-name]="KeyError: ' '"
 [no-name]="KeyError: 'experiment_name'"
 [null-name]="KeyError: None"
-[empty-url]="Invalid URL ''"
-[no-url]="KeyError: 'url'"
-[null-url]="Invalid URL 'None'"
 [no-operation]="KeyError: 'operation'")
 
 

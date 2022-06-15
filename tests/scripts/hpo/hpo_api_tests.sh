@@ -160,7 +160,9 @@ function stop_experiment() {
 
 	form_hpo_api_url "experiment_trials"
 
-	remove_experiment='{"experiment_name":"'${exp_name}'","operation":"EXP_STOP"}'
+	remove_experiment='{"experiment_name":'${exp_name}',"operation":"EXP_STOP"}'
+
+	post_cmd=$(curl -s -H 'Content-Type: application/json' ${hpo_url}  -d "${remove_experiment}"  -w '\n%{http_code}' 2>&1)
 
 	stop_experiment_cmd="curl -s -H 'Content-Type: application/json' ${hpo_url} -d '${remove_experiment}'  -w '\n%{http_code}'"
 
@@ -168,10 +170,10 @@ function stop_experiment() {
 	echo "Curl command used to stop the experiment = ${stop_experiment_cmd}" | tee -a ${LOG_} ${LOG}
 	echo "" | tee -a ${LOG_} ${LOG}
 
-	echo "${stop_experiment_cmd}" >> ${LOG_} ${LOG}
+	echo "${post_cmd}" >> ${LOG_} ${LOG}
 
-	http_code=$(tail -n1 <<< "${stop_experiment_cmd}")
-	response=$(echo -e "${stop_experiment_cmd}" | tail -2 | head -1)
+	http_code=$(tail -n1 <<< "${post_cmd}")
+	response=$(echo -e "${post_cmd}" | tail -2 | head -1)
 
 	echo "Response is ${response}" >> ${LOG_} ${LOG}
 	echo "http_code is $http_code Response is ${response}"
@@ -220,34 +222,37 @@ function run_post_tests(){
 	fi
 
 	SERV_LOG="${TEST_DIR}/service.log"
-  # Deploy hpo
-  if [ ${cluster_type} == "native" ]; then
-    deploy_hpo ${cluster_type} ${SERV_LOG}
-  else
-    deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
-  fi
-
-  # Check if HPO services are started
-  check_server_status
+	# Deploy hpo
+	if [ ${cluster_type} == "native" ]; then
+		deploy_hpo ${cluster_type} ${SERV_LOG}
+	else
+		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
+	fi
+	
+	# Check if HPO services are started
+	check_server_status
 
 	for post_test in "${exp_tests[@]}"
 	do
+
+		# Get the length of the service log before the test
+		log_length_before_test=$(cat ${SERV_LOG} | wc -l)
+
 		TESTS_="${TEST_DIR}/${post_test}"
 		mkdir -p ${TESTS_}
 		LOG_="${TEST_DIR}/${post_test}.log"
-		SERV_LOG="${TESTS_}/service.log"
+		TEST_SERV_LOG="${TESTS_}/service.log"
 
 		echo "************************************* ${post_test} Test ****************************************" | tee -a ${LOG_} ${LOG}
 		echo "" | tee -a ${LOG_} ${LOG}
 
 		exp="${post_test}"	
 
-    experiment_name=""
-		# Get the experiment id from search space JSON
-
+		experiment_name=""
 		if [ "${hpo_test_name}" == "hpo_post_exp_result" ]; then
 			exp="valid-experiment"
-			experiment_name = $(echo ${hpo_post_experiment_json[${exp}]} |  jq -r .search_space.experiment_name )
+			# Get the experiment id from search space JSON
+			experiment_name=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_name')
 			# Post the experiment JSON to HPO /experiment_trials API
 			post_experiment_json "${hpo_post_experiment_json[${exp}]}"
 
@@ -255,7 +260,8 @@ function run_post_tests(){
 			post_experiment_result_json "${hpo_post_exp_result_json[$post_test]}"
 			expected_log_msg="${hpo_exp_result_error_messages[$post_test]}"
 		else
-		  experiment_name = $(echo ${hpo_post_experiment_json[${$post_test}]} |  jq -r .search_space.experiment_name )
+			# Get the experiment id from search space JSON
+			experiment_name=$(echo ${hpo_post_experiment_json[${post_test}]} | jq '.search_space.experiment_name')
 			# Post the experiment JSON to HPO /experiment_trials API
 			post_experiment_json "${hpo_post_experiment_json[$post_test]}"
 			expected_log_msg="${hpo_error_messages[$post_test]}"
@@ -276,15 +282,19 @@ function run_post_tests(){
 			should_stop_expriment=true
 		fi
 
-
+		# Extract the lines from the service log after log_length_before_test
+		extract_lines=`expr ${log_length_before_test} + 1`
+		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
+		
 		echo ""
-		echo "***************** service log ********************" 
-		cat "${TESTS_}/service.log"
-		echo "***************** service log ********************"
+		echo "log_length_before_test ${log_length_before_test}"
+		echo "extract_lines ${extract_lines}"
+		echo ""
+
 		echo ""
 		if [[ "${http_code}" -eq "000" ]]; then
 			if [[ ! -z ${expected_log_msg} ]]; then
-				if grep -q "${expected_log_msg}" "${TESTS_}/service.log" ; then
+				if grep -q "${expected_log_msg}" "${TEST_SERV_LOG}" ; then
 					failed=0 
 				else
 					failed=1
@@ -302,23 +312,25 @@ function run_post_tests(){
 		fi
 		echo ""
 
-    if [ "$should_stop_expriment" == true ]; then
-      stop_experiment "$experiment_name";
-    fi
+		if [ "$should_stop_expriment" == true ]; then
+			stop_experiment "$experiment_name"
+		fi
 
 		echo "" | tee -a ${LOG_} ${LOG}
-
+		
 	done
-  # Stop the HPO servers
-  echo "Terminating any running HPO servers..." | tee -a ${LOG}
-  terminate_hpo ${cluster_type}
-  echo "Terminating any running HPO servers...Done" | tee -a ${LOG}
+	
+	# Stop the HPO servers
+	echo "Terminating any running HPO servers..." | tee -a ${LOG}
+	terminate_hpo ${cluster_type}
+	echo "Terminating any running HPO servers...Done" | tee -a ${LOG}
 
 	echo "*********************************************************************************************************" | tee -a ${LOG_} ${LOG}
 }
 
 # Do a post on experiment_trials for the same experiment id again with "operation: EXP_TRIAL_GENERATE_NEW" and check if experiments have started from the beginning
 function post_duplicate_experiments() {
+	experiment_name=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_name')
 	post_experiment_json "${hpo_post_experiment_json[$exp]}"
 
 	if [ "${http_code}" == "200" ]; then
@@ -336,6 +348,7 @@ function post_duplicate_experiments() {
 		expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
 
 		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}"
+      		stop_experiment "$experiment_name"
 	else
 		failed=1
 		expected_behaviour="RESPONSE_CODE = 200 OK"
@@ -346,20 +359,19 @@ function post_duplicate_experiments() {
 
 # Do a post on experiment_trials for the same experiment id again with "operation: EXP_TRIAL_GENERATE_SUBSEQUENT" and check if same experiment continues
 function operation_generate_subsequent() {
+	current_id=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_id')
+	current_name=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_name')
+
 	post_experiment_json "${hpo_post_experiment_json[$exp]}"
 	trial_num="${response}"
 
 	# Post a valid experiment result to HPO /experiment_trials API.
 	echo -n "Post a valid experiment result to HPO..." | tee -a ${LOG_} ${LOG}
 	experiment_result="valid-experiment-result"
-	current_id="a123"
-	current_name="petclinic-sample-2-75884c5549-npvgd"
-# This function is not implemented, causes errors in testsuite
-#	create_post_exp_result_json_array "${current_name}" "${trial_num}"
+
 	post_experiment_result_json "${hpo_post_exp_result_json[$experiment_result]}"
 
-
-  # Post the json with same Id having "operation: EXP_TRIAL_GENERATE_SUBSEQUENT"
+	# Post the json with same Id having "operation: EXP_TRIAL_GENERATE_SUBSEQUENT"
 	echo "Post the json with same Id having operation: EXP_TRIAL_GENERATE_SUBSEQUENT" | tee -a ${LOG_} ${LOG}
 	exp="generate-subsequent"
 	post_experiment_json "${hpo_post_experiment_json[$exp]}"
@@ -378,21 +390,25 @@ function operation_generate_subsequent() {
 function other_post_experiment_tests() {
 	exp="valid-experiment"
 
-  SERV_LOG="${TEST_DIR}/service.log"
-  # Deploy hpo
-  if [ ${cluster_type} == "native" ]; then
-    deploy_hpo ${cluster_type} ${SERV_LOG}
-  else
-    deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
-  fi
-
-  # Check if HPO services are started
-  check_server_status
+	SERV_LOG="${TEST_DIR}/other_post_exps_service.log"
+	# Deploy hpo
+	if [ ${cluster_type} == "native" ]; then
+		deploy_hpo ${cluster_type} ${SERV_LOG}
+	else
+		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
+	fi
+	
+	# Check if HPO services are started
+	check_server_status
 
 	for operation in "${other_post_experiment_tests[@]}"
 	do
+		# Get the length of the service log before the test
+		log_length_before_test=$(cat ${SERV_LOG} | wc -l)
+
 		TESTS_="${TEST_DIR}/${operation}"
 		mkdir -p ${TESTS_}
+		TEST_SERV_LOG="${TESTS_}/service.log"
 		LOG_="${TEST_DIR}/${operation}.log"
 
 		echo ""
@@ -402,15 +418,18 @@ function other_post_experiment_tests() {
 		${operation}
 		echo ""
 
-
+		# Extract the lines from the service log after log_length_before_test
+		extract_lines=`expr ${log_length_before_test} + 1`
+		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
 	done
-  # Stop the HPO servers
-  echo "Terminating any running HPO servers..." | tee -a ${LOG}
-  terminate_hpo ${cluster_type}
-  echo "Terminating any running HPO servers...Done" | tee -a ${LOG}
-
-  # Sleep for few seconds to reduce the ambiguity
-  sleep 5
+	
+	# Stop the HPO servers
+	echo "Terminating any running HPO servers..." | tee -a ${LOG}
+	terminate_hpo ${cluster_type}
+	echo "Terminating any running HPO servers...Done" | tee -a ${LOG}
+	
+	# Sleep for few seconds to reduce the ambiguity
+	sleep 5
 
 	echo "*********************************************************************************************************" | tee -a ${LOG_} ${LOG}
 }
@@ -474,21 +493,23 @@ function run_get_trial_json_test() {
 	echo "${response}" > ${result}
 }
 
+
 # validate obtaining trial json from RM-HPO /experiment_trials API for invalid queries
 # input: test name 
 function get_trial_json_invalid_tests() {
 	__test_name__=$1
 
 	SERV_LOG="${TEST_DIR}/service.log"
-  # Deploy hpo
-  if [ ${cluster_type} == "native" ]; then
-    deploy_hpo ${cluster_type} ${SERV_LOG}
-  else
-    deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
-  fi
 
-  # Check if HPO services are started
-  check_server_status
+	# Deploy hpo
+	if [ ${cluster_type} == "native" ]; then
+		deploy_hpo ${cluster_type} ${SERV_LOG}
+	else
+		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
+	fi
+	
+	# Check if HPO services are started
+	check_server_status
 
 	IFS=' ' read -r -a get_trial_json_invalid_tests <<<  ${hpo_get_trial_json_tests[$FUNCNAME]}
 	for exp_trial in "${get_trial_json_invalid_tests[@]}"
@@ -501,11 +522,11 @@ function get_trial_json_invalid_tests() {
 		echo "************************************* ${exp_trial} Test ****************************************" | tee -a ${LOG_} ${LOG}
 
 		# Get the experiment id from search space JSON
-		current_id="a123"
-		current_name="petclinic-sample-2-75884c5549-npvgd"
+		exp="valid-experiment"
+		current_id=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_id')
+		current_name=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_name')
 
 		# Post a valid experiment to RM-HPO /experiment_trials API.
-		exp="valid-experiment"
 		post_experiment_json "${hpo_post_experiment_json[$exp]}"
 
 		run_get_trial_json_test ${exp_trial}
@@ -518,18 +539,17 @@ function get_trial_json_invalid_tests() {
 		echo "actual_result = $actual_result"
 		compare_result ${exp_trial} ${expected_result_} "${expected_behaviour}"
 		echo ""
-
-    stop_experiment "$current_name"
-
-
+		
+		stop_experiment "$current_name"
 	done
-  # Stop the HPO servers
-  echo "Terminating any running HPO servers..." | tee -a ${LOG_} ${LOG}
-  terminate_hpo ${cluster_type} | tee -a ${LOG_} ${LOG}
-  echo "Terminating any running HPO servers...Done" | tee -a ${LOG_} ${LOG}
-
-  # Sleep for few seconds to reduce the ambiguity
-  sleep 5
+	
+	# Stop the HPO servers
+	echo "Terminating any running HPO servers..." | tee -a ${LOG_} ${LOG}
+	terminate_hpo ${cluster_type} | tee -a ${LOG_} ${LOG}
+	echo "Terminating any running HPO servers...Done" | tee -a ${LOG_} ${LOG}
+	
+	# Sleep for few seconds to reduce the ambiguity
+	sleep 5
 	echo "*********************************************************************************************************" | tee -a ${LOG_} ${LOG}
 }
 
@@ -622,16 +642,16 @@ function validate_exp_trial() {
 function get_trial_json_valid_tests() {
 	__test_name__=$1
 
-  SERV_LOG="${TEST_DIR}/service.log"
-  # Deploy hpo
-  if [ ${cluster_type} == "native" ]; then
-    deploy_hpo ${cluster_type} ${SERV_LOG}
-  else
-    deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
-  fi
-
-  # Check if HPO services are started
-  check_server_status
+	SERV_LOG="${TEST_DIR}/service.log"
+	# Deploy hpo
+	if [ ${cluster_type} == "native" ]; then
+		deploy_hpo ${cluster_type} ${SERV_LOG}
+	else
+		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
+	fi
+	
+	# Check if HPO services are started
+	check_server_status
 
 	IFS=' ' read -r -a get_trial_json_valid_tests <<<  ${hpo_get_trial_json_tests[$FUNCNAME]}
 	for exp_trial in "${get_trial_json_valid_tests[@]}"
@@ -645,11 +665,11 @@ function get_trial_json_valid_tests() {
 		echo "************************************* ${exp_trial} Test ****************************************" | tee -a ${LOG_} ${LOG}
 
 		# Get the experiment id from search space JSON
-		current_id="a123"
-		current_name="petclinic-sample-2-75884c5549-npvgd"
+		exp="valid-experiment"
+		current_id=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_id')
+		current_name=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_name')
 
 		# Post a valid experiment to RM-HPO /experiment_trials API.
-		exp="valid-experiment"
 		if [ "${exp_trial}" == "valid-exp-trial" ]; then
 			post_experiment_json "${hpo_post_experiment_json[$exp]}"
 			trial_num="${response}"
@@ -666,9 +686,7 @@ function get_trial_json_valid_tests() {
 		expected_result_="200"
 		expected_behaviour="RESPONSE_CODE = 200 OK"
 
-		echo "************ TESTS = $TESTS"
 		compare_result ${exp_trial} ${expected_result_} "${expected_behaviour}"
-		echo "************ TESTS = $TESTS"
 
 		if [[ "${failed}" -eq 0 ]]; then
 			validate_exp_trial "rest"
@@ -677,20 +695,18 @@ function get_trial_json_valid_tests() {
 			fi
 		fi
 
-    stop_experiment "$current_name"
+		stop_experiment "$current_name"
 
 		echo "*********************************************************************************************************" | tee -a ${LOG_} ${LOG}
 	done
 
-  # Stop the HPO servers
-  echo "Terminating any running HPO servers..." | tee -a ${LOG_} ${LOG}
-  terminate_hpo ${cluster_type} | tee -a ${LOG_} ${LOG}
-  echo "Terminating any running HPO servers...Done" | tee -a ${LOG_} ${LOG}
-
-  # Sleep for few seconds to reduce the ambiguity
-  sleep 5
-
-	echo "************ TESTS = $TESTS"
+	# Stop the HPO servers
+	echo "Terminating any running HPO servers..." | tee -a ${LOG_} ${LOG}
+	terminate_hpo ${cluster_type} | tee -a ${LOG_} ${LOG}
+	echo "Terminating any running HPO servers...Done" | tee -a ${LOG_} ${LOG}
+	
+	# Sleep for few seconds to reduce the ambiguity
+	sleep 5
 }
 
 # Post the experiment result to HPO /experiment_trials API
@@ -731,13 +747,11 @@ function post_duplicate_exp_result() {
 	if [ "${http_code}" == "200" ]; then
 		failed=0
 
-
 		# Post a valid experiment result to HPO /experiment_trials API.
 		experiment_result="valid-experiment-result"
 
 		echo -n "Post the experiment result to HPO..."
 		post_experiment_result_json "${hpo_post_exp_result_json[$experiment_result]}"
-
 
 		# Post the duplicate experiment result to HPO /experiment_trials API.
 		echo -n "Post the same experiment result to HPO again for the same experiment_name and trial number..."
@@ -765,7 +779,6 @@ function post_same_id_different_exp_result() {
 	if [ "${http_code}" == "200" ]; then
 		failed=0
 
-
 		# Post a valid experiment result to HPO /experiment_trials API.
 		experiment_result="valid-experiment-result"
 		echo -n "Post the experiment result to HPO..."
@@ -773,7 +786,7 @@ function post_same_id_different_exp_result() {
 
 		# Post a different valid experiment result for the same experiment_name and trial number to HPO /experiment_trials API.
 		experiment_result="valid-different-result"
-		echo -n "Post the differnt experiment result to HPO again for the same experiment_name and trial number..."
+		echo -n "Post different experiment result to HPO again for the same experiment_name and trial number..."
 		post_experiment_result_json "${hpo_post_exp_result_json[$experiment_result]}"
 
 		actual_result="${http_code}"
@@ -795,42 +808,54 @@ function post_same_id_different_exp_result() {
 # input: Test name
 function other_exp_result_post_tests() {
 
-	SERV_LOG="${TEST_DIR}/service.log"
-  # Deploy hpo
-  if [ ${cluster_type} == "native" ]; then
-    deploy_hpo ${cluster_type} ${SERV_LOG}
-  else
-    deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
-  fi
-
-  # Check if HPO services are started
-  check_server_status
+	SERV_LOG="${TEST_DIR}/other_exp_res_post_service.log"
+	# Deploy hpo
+	if [ ${cluster_type} == "native" ]; then
+		deploy_hpo ${cluster_type} ${SERV_LOG}
+	else
+		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
+	fi
+	
+	# Check if HPO services are started
+	check_server_status
 
 	for operation in "${other_exp_result_post_tests[@]}"
 	do
+		# Get the length of the service log before the test
+		log_length_before_test=$(cat ${SERV_LOG} | wc -l)
+
 		TESTS_="${TEST_DIR}/${operation}"
 		mkdir -p ${TESTS_}
+		TEST_SERV_LOG="${TESTS_}/service.log"
 		LOG_="${TEST_DIR}/${operation}.log"
 
 		echo "************************************* ${operation} Test ****************************************" | tee -a ${LOG_} ${LOG}
 
-		# Get the experiment_id and experiment_name from search space JSON
-		current_id="a123"
-		current_name="petclinic-sample-2-75884c5549-npvgd"
+		# Get the experiment id from search space JSON
+		exp="valid-experiment"
+		current_id=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_id')
+		current_name=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_name')
 
 		operation=$(echo ${operation//-/_})
 		${operation}
 		echo ""
 
-		echo "*********************************************************************************************************" | tee -a ${LOG_} ${LOG}
-	done	
-  # Stop the HPO servers
-  echo "Terminating any running HPO servers..." | tee -a ${LOG}
-  terminate_hpo ${cluster_type}
-  echo "Terminating any running HPO servers...Done" | tee -a ${LOG}
+		# Extract the lines from the service log after log_length_before_test
+		extract_lines=`expr ${log_length_before_test} + 1`
+		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
 
-  # Sleep for few seconds to reduce the ambiguity
-  sleep 5
+      		stop_experiment "$current_name"
+
+		echo "*********************************************************************************************************" | tee -a ${LOG_} ${LOG}
+	done
+	
+	# Stop the HPO servers
+	echo "Terminating any running HPO servers..." | tee -a ${LOG}
+	terminate_hpo ${cluster_type}
+	echo "Terminating any running HPO servers...Done" | tee -a ${LOG}
+	
+	# Sleep for few seconds to reduce the ambiguity
+	sleep 5
 }
 
 # Tests for HPO /experiment_trials API POST experiment
