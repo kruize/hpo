@@ -21,6 +21,16 @@ spec:
       - name: hpo
         image: "{{ HPO_IMAGE }}"
         imagePullPolicy: Always
+        env:
+          - name: LOGGING_LEVEL
+            valueFrom:
+              configMapKeyRef:
+                name: hpo-config
+                key: logging_level
+                optional: true
+        envFrom:
+          - configMapRef:
+              name: hpo-config
         ports:
          - name: hpo-port
            containerPort: 8085

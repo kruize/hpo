@@ -127,9 +127,6 @@ function minikube_first() {
 	${kubectl_cmd} apply -f ${HPO_SA_MANIFEST}
 	check_err "Error: Failed to create service account and RBAC"
 
-	${kubectl_cmd} apply -f ${HPO_ROLE_MANIFEST}
-	check_err "Error: Failed to create role"
-
 	sed -e "s|{{ HPO_NAMESPACE }}|${hpo_ns}|" ${HPO_RB_MANIFEST_TEMPLATE} > ${HPO_RB_MANIFEST}
 	${kubectl_cmd} apply -f ${HPO_RB_MANIFEST}
 	check_err "Error: Failed to create role binding"
@@ -137,6 +134,9 @@ function minikube_first() {
 
 # You can deploy using kubectl
 function minikube_deploy() {
+    echo
+	echo "Creating environment variable in minikube cluster using configMap"
+	${kubectl_cmd} apply -f ${HPO_CONFIGMAPS}/${cluster_type}-config.yaml
 
 	echo "Info: Deploying hpo yaml to minikube cluster"
 
@@ -179,12 +179,12 @@ function minikube_terminate() {
 	${kubectl_cmd} delete -f ${HPO_SA_MANIFEST} 2>/dev/null
 
 	echo
-	echo "Removing hpo role"
-	${kubectl_cmd} delete -f ${HPO_ROLE_MANIFEST} 2>/dev/null
-
-	echo
 	echo "Removing hpo rolebinding"
 	${kubectl_cmd} delete -f ${HPO_RB_MANIFEST} 2>/dev/null
+
+	echo
+	echo "Removing HPO configmap"
+	${kubectl_cmd} delete -f ${HPO_CONFIGMAPS}/${cluster_type}-config.yaml 2>/dev/null
 
 	rm ${HPO_DEPLOY_MANIFEST}
 	rm ${HPO_RB_MANIFEST}

@@ -24,10 +24,10 @@ HPO_VERSION=$(sed -e 's/^"//' -e 's/"$//' <<<"$HPO_VERSION")
 HPO_SA_MANIFEST="manifests/hpo-operator-sa.yaml"
 HPO_DEPLOY_MANIFEST_TEMPLATE="manifests/hpo-operator-deployment.yaml_template"
 HPO_DEPLOY_MANIFEST="manifests/hpo-operator-deployment.yaml"
-HPO_ROLE_MANIFEST="manifests/hpo-operator-role.yaml"
 HPO_RB_MANIFEST_TEMPLATE="manifests/hpo-operator-rolebinding.yaml_template"
 HPO_RB_MANIFEST="manifests/hpo-operator-rolebinding.yaml"
 HPO_SA_NAME="hpo-sa"
+HPO_CONFIGMAPS="manifests/configmaps"
 
 #default values
 setup=1
@@ -73,6 +73,9 @@ do
 	c)
 		cluster_type="${OPTARG}"
 		check_cluster_type
+		;;
+    d)
+		HPO_CONFIGMAPS="${OPTARG}"
 		;;
  	n)
 		hpo_ns="${OPTARG}"
