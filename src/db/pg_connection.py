@@ -15,8 +15,10 @@ limitations under the License.
 """
 import psycopg2
 
-from config import config
 from logger import get_logger
+
+from src.db.config import config
+
 logger = get_logger(__name__)
 
 
@@ -34,7 +36,8 @@ def connect_to_pg():
 
         return conn
     except (Exception, psycopg2.DatabaseError) as error:
-        logger.error(error)
+        logger.error("Failed to start DB")
         if conn is not None:
             conn.close()
             logger.info('Database connection closed.')
+        return conn

@@ -30,7 +30,7 @@ import hpo_service
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
-from db import tables, operations
+from db import pg_connection, tables, operations
 
 logger = get_logger(__name__)
 
@@ -236,6 +236,13 @@ def get_search_space(id_, url):
 
 def main():
     server = HTTPServer((host_name, server_port), HTTPRequestHandler)
+
+    # check if DB is running
+    conn = pg_connection.connect_to_pg()
+    if conn is None:
+        logger.error("Database is not Running. Exiting...")
+        sys.exit()
+
     logger.info("Access server at http://%s:%s" % ("localhost", server_port))
     server.serve_forever()
 
