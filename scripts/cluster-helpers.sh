@@ -139,3 +139,50 @@ function native_terminate() {
 	echo
 
 }
+
+###############################  v Database v #################################
+
+function database_start() {
+
+    echo
+	echo "### Pulling the Database image..."
+
+    ${CONTAINER_RUNTIME} pull ${PG_CONTAINER_IMAGE} >/dev/null 2>&1
+	check_err "Unexpected error occured. Service Stopped!"
+
+	echo
+	echo "### Image downloaded successfully"
+	echo
+
+	echo
+	echo "### Starting Database Container..."
+	echo
+
+	${CONTAINER_RUNTIME} run -p 5432:5432 -d --name postgresql_HPO_DB -e POSTGRESQL_PASSWORD=Hpo@RedHat \
+	-e POSTGRESQL_USER=hpo_admin -e POSTGRESQL_DATABASE=hpodb -v pgdata:/var/lib/postgresql/data \
+	${PG_CONTAINER_IMAGE} >/dev/null 2>&1
+	check_err "Unexpected error occured. Service Stopped!"
+
+	echo
+	echo "### Database Docker Service started successfully"
+	echo
+	sleep 2
+}
+
+function database_terminate() {
+
+	echo
+	echo "###   Removing Database Docker Container"
+	echo
+
+	# Check if the container with name 'hpo_docker_container' is already stopped
+	check_prereq stopped ${SERVICE_STATUS_DATABASE}
+
+	${CONTAINER_RUNTIME} rm -f  postgresql_HPO_DB >/dev/null 2>&1
+	check_err "Failed to stop postgresql_HPO_DB!"
+
+	echo
+	echo "###  Database terminated successfully "
+	echo
+
+}

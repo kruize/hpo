@@ -23,6 +23,8 @@ HPO_VERSION=$(sed -e 's/^"//' -e 's/"$//' <<<"$HPO_VERSION")
 echo
 echo "Using version: ${HPO_VERSION}"
 HPO_CONTAINER_IMAGE=${HPO_REPO}:${HPO_VERSION}
+PG_VERSION="latest"
+PG_CONTAINER_IMAGE="quay.io/centos7/postgresql-13-centos7":${PG_VERSION}
 
 #default values
 setup=1
@@ -79,10 +81,15 @@ resolve_container_runtime
 # Get Service Status 
 SERVICE_STATUS_NATIVE=$(ps -u | grep service.py | grep -v grep)
 SERVICE_STATUS_DOCKER=$(${CONTAINER_RUNTIME} ps | grep hpo_docker_container)
+SERVICE_STATUS_DATABASE=$(${CONTAINER_RUNTIME} ps | grep postgresql_HPO_DB)
 
 # Call the proper setup function based on the cluster_type
 if [ ${setup} == 1 ]; then
+    # Start DB Server first
+    database_start
 	${cluster_type}_start
 else
+    # Stop DB Server
+    database_terminate
 	${cluster_type}_terminate
 fi
