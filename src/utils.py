@@ -43,3 +43,4 @@ class HPOErrorConstants:
 class HPOMessages:
     RESULT_STATUS = "Result posted successfully"
     TRIAL_COMPLETION_STATUS = "Trials completed for experiment: "
+    EXPERIMENT_STOP = "Experiment stopped"

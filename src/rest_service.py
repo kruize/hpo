@@ -205,11 +205,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
     def handle_stop_operation(self, json_object):
         """Process EXP_STOP operation."""
-        if ( hpo_service.instance.containsExperiment(json_object["experiment_name"]) ):
+        if hpo_service.instance.containsExperiment(json_object["experiment_name"]):
             hpo_service.instance.stopExperiment(json_object["experiment_name"])
-            self._set_response(200, "0")
+            self._set_response(200, HPOMessages.EXPERIMENT_STOP)
         else:
-            self._set_response(404, "-1")
+            self._set_response(404, HPOErrorConstants.EXPERIMENT_NOT_FOUND)
 
 
 def get_search_create_study(search_space_json, operation):
