@@ -77,7 +77,7 @@ run_post_exp_result_tests=("empty-name"
 
 other_exp_result_post_tests=("post-duplicate-exp-result" "post-same-id-different-exp-result")
 
-declare -A hpo_post_experiment_json=([invalid-id]='{"operation":"EXP_TRIAL_GENERATE_NEW","search_space":{"experiment_name":"petclinic-sample-2-75884c5549-npvgd","total_trials":5,"parallel_trials":1,experiment_id":"0123456789012345678901234567890123456789012345678901234567890123456789","value_type":"double","hpo_algo_impl":"optuna_tpe","objective_function":"transaction_response_time","tunables":[{"value_type":"double","lower_bound":150,"name":"memoryRequest","upper_bound":300,"step":1},{"value_type":"double","lower_bound":1,"name":"cpuRequest","upper_bound":3,"step":0.01}],"slo_class":"response_time","direction":"minimize"}}'
+declare -A hpo_post_experiment_json=([invalid-id]='{"operation":"EXP_TRIAL_GENERATE_NEW","search_space":{"experiment_name":"petclinic-sample-2-75884c5549-npvgd","total_trials":5,"parallel_trials":1,"experiment_id":"0123456789012345678901234567890123456789012345678901234567890123456789","value_type":"double","hpo_algo_impl":"optuna_tpe","objective_function":"transaction_response_time","tunables":[{"value_type":"double","lower_bound":150,"name":"memoryRequest","upper_bound":300,"step":1},{"value_type":"double","lower_bound":1,"name":"cpuRequest","upper_bound":3,"step":0.01}],"slo_class":"response_time","direction":"minimize"}}'
 
 	[empty-id]='{"operation":"EXP_TRIAL_GENERATE_NEW","search_space":{"experiment_name":"petclinic-sample-2-75884c5549-npvgd","total_trials":5,"parallel_trials":1,"experiment_id":" ","value_type":"double","hpo_algo_impl":"optuna_tpe","objective_function":"transaction_response_time","tunables":[{"value_type":"double","lower_bound":150,"name":"memoryRequest","upper_bound":300,"step":1},{"value_type":"double","lower_bound":1,"name":"cpuRequest","upper_bound":3,"step":0.01}],"slo_class":"response_time","direction":"minimize"}}'
 
@@ -116,9 +116,6 @@ hpo_error_messages=([invalid-id]="KeyError: '01234567890123456789012345678901234
 [empty-name]="KeyError: ' '"
 [no-name]="KeyError: 'experiment_name'"
 [null-name]="KeyError: None"
-[empty-url]="Invalid URL ''"
-[no-url]="KeyError: 'url'"
-[null-url]="Invalid URL 'None'"
 [no-operation]="KeyError: 'operation'")
 
 

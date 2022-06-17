@@ -74,6 +74,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                     self.handle_generate_subsequent_operation(json_object)
                 elif json_object["operation"] == "EXP_TRIAL_RESULT":
                     self.handle_result_operation(json_object)
+                elif json_object["operation"] == "EXP_STOP":
+                    self.handle_stop_operation(json_object)
                 else:
                     self._set_response(400, "-1")
             else:
@@ -113,9 +115,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     def handle_generate_new_operation(self, json_object):
         """Process EXP_TRIAL_GENERATE_NEW operation."""
         is_valid_json_object = validate_trial_generate_json(json_object)
+        existingExperiment = hpo_service.instance.containsExperiment(json_object["search_space"]["experiment_name"])
 
-        if is_valid_json_object and hpo_service.instance.doesNotContainExperiment(
-                json_object["search_space"]["experiment_name"]):
+        if is_valid_json_object and not existingExperiment:
             search_space_json = json_object["search_space"]
             if str(search_space_json["experiment_name"]).isspace() or not str(search_space_json["experiment_name"]):
                 self._set_response(400, "-1")
@@ -149,6 +151,14 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             self._set_response(200, "0")
         else:
             self._set_response(400, "-1")
+
+    def handle_stop_operation(self, json_object):
+        """Process EXP_STOP operation."""
+        if ( hpo_service.instance.containsExperiment(json_object["experiment_name"]) ):
+            hpo_service.instance.stopExperiment(json_object["experiment_name"])
+            self._set_response(200, "0")
+        else:
+            self._set_response(404, "-1")
 
 
 def get_search_create_study(search_space_json, operation):
