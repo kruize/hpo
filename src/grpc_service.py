@@ -57,6 +57,7 @@ class HpoService(hpo_pb2_grpc.HpoServiceServicer):
             # TODO:: expand tunables message
             # reply.tunables = experiment.tunables
             experimentDetailsReply.started = experiment.started
+            experimentDetailsReply.current_trial = experiment.trialDetails.trial_number
             context.set_code(grpc.StatusCode.OK)
             return experimentDetailsReply
         except ExperimentNotFoundError:
@@ -86,6 +87,14 @@ class HpoService(hpo_pb2_grpc.HpoServiceServicer):
             context.set_details('Invalid algorithm: %s' % request.hpo_algo_impl)
             return
 
+    def StopExperiment(self, request, context):
+        if hpo_service.instance.containsExperiment(request.experiment_name):
+            hpo_service.instance.stopExperiment(request.experiment_name)
+        else:
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details('Invalid experiment name: %s' % request.experiment_name)
+        return hpo_pb2.ExperimentEmptyReply()
+
     def GetTrialConfig(self, request, context):
         if hpo_service.instance.containsExperiment(request.experiment_name):
             if(hpo_service.instance.get_trial_number(request.experiment_name) == request.trial):
@@ -113,18 +122,18 @@ class HpoService(hpo_pb2_grpc.HpoServiceServicer):
         if (hpo_service.instance.doesNotContainExperiment(request.experiment_name) ):
             context.set_code(grpc.StatusCode.NOT_FOUND)
             context.set_details('Experiment not found!')
-            return hpo_pb2.ExperimentTrialReply()
+            return hpo_pb2.ExperimentEmptyReply()
         if ( request.trial != hpo_service.instance.get_trial_number(request.experiment_name)):
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
             context.set_details('Invalid trial number!')
-            return hpo_pb2.ExperimentTrialReply()
+            return hpo_pb2.ExperimentEmptyReply()
 
         hpo_service.instance.set_result(request.experiment_name,
                                         request.result,
                                         request.value_type,
                                         request.value)
         context.set_code(grpc.StatusCode.OK)
-        return hpo_pb2.ExperimentTrialReply()
+        return hpo_pb2.ExperimentEmptyReply()
 
     def GenerateNextConfig(self, request, context):
         trial_number = hpo_service.instance.get_trial_number(request.experiment_name)

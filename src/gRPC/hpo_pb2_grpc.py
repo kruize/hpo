@@ -30,6 +30,11 @@ class HpoServiceStub(object):
                 request_serializer=hpo__pb2.ExperimentDetails.SerializeToString,
                 response_deserializer=hpo__pb2.NewExperimentsReply.FromString,
                 )
+        self.StopExperiment = channel.unary_unary(
+                '/helloworld.HpoService/StopExperiment',
+                request_serializer=hpo__pb2.ExperimentNameParams.SerializeToString,
+                response_deserializer=hpo__pb2.ExperimentEmptyReply.FromString,
+                )
         self.GetExperimentDetails = channel.unary_unary(
                 '/helloworld.HpoService/GetExperimentDetails',
                 request_serializer=hpo__pb2.ExperimentNameParams.SerializeToString,
@@ -43,7 +48,7 @@ class HpoServiceStub(object):
         self.UpdateTrialResult = channel.unary_unary(
                 '/helloworld.HpoService/UpdateTrialResult',
                 request_serializer=hpo__pb2.ExperimentTrialResult.SerializeToString,
-                response_deserializer=hpo__pb2.ExperimentTrialReply.FromString,
+                response_deserializer=hpo__pb2.ExperimentEmptyReply.FromString,
                 )
         self.GenerateNextConfig = channel.unary_unary(
                 '/helloworld.HpoService/GenerateNextConfig',
@@ -74,6 +79,12 @@ class HpoServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def NewExperiment(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def StopExperiment(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -127,6 +138,11 @@ def add_HpoServiceServicer_to_server(servicer, server):
                     request_deserializer=hpo__pb2.ExperimentDetails.FromString,
                     response_serializer=hpo__pb2.NewExperimentsReply.SerializeToString,
             ),
+            'StopExperiment': grpc.unary_unary_rpc_method_handler(
+                    servicer.StopExperiment,
+                    request_deserializer=hpo__pb2.ExperimentNameParams.FromString,
+                    response_serializer=hpo__pb2.ExperimentEmptyReply.SerializeToString,
+            ),
             'GetExperimentDetails': grpc.unary_unary_rpc_method_handler(
                     servicer.GetExperimentDetails,
                     request_deserializer=hpo__pb2.ExperimentNameParams.FromString,
@@ -140,7 +156,7 @@ def add_HpoServiceServicer_to_server(servicer, server):
             'UpdateTrialResult': grpc.unary_unary_rpc_method_handler(
                     servicer.UpdateTrialResult,
                     request_deserializer=hpo__pb2.ExperimentTrialResult.FromString,
-                    response_serializer=hpo__pb2.ExperimentTrialReply.SerializeToString,
+                    response_serializer=hpo__pb2.ExperimentEmptyReply.SerializeToString,
             ),
             'GenerateNextConfig': grpc.unary_unary_rpc_method_handler(
                     servicer.GenerateNextConfig,
@@ -215,6 +231,23 @@ class HpoService(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
+    def StopExperiment(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/helloworld.HpoService/StopExperiment',
+            hpo__pb2.ExperimentNameParams.SerializeToString,
+            hpo__pb2.ExperimentEmptyReply.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
     def GetExperimentDetails(request,
             target,
             options=(),
@@ -261,7 +294,7 @@ class HpoService(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/helloworld.HpoService/UpdateTrialResult',
             hpo__pb2.ExperimentTrialResult.SerializeToString,
-            hpo__pb2.ExperimentTrialReply.FromString,
+            hpo__pb2.ExperimentEmptyReply.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

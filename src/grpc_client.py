@@ -84,6 +84,18 @@ def new(file):
     response: hpo_pb2.NewExperimentsReply = run(fun)
     click.echo("Trial Number: {}".format(response.trial_number))
 
+
+@main.command()
+@click.option("--name", prompt=" Experiment name", type=str)
+def stop(name):
+    """Stop and remove running experiment"""
+    expr: hpo_pb2.ExperimentNameParams = hpo_pb2.ExperimentNameParams()
+    expr.experiment_name = name
+    fun = lambda stub: stub.StopExperiment(expr)
+    run(fun)
+    click.echo("Stopped: {}".format(name))
+
+
 @main.command()
 @click.option("--name", prompt=" Experiment name", type=str)
 @click.option("--trial", prompt=" Trial number", type=int)

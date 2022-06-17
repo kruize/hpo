@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\thpo.proto\x12\nhelloworld\"\x88\x02\n\x16RecommendedConfigReply\x12\x17\n\x0f\x65xperiment_name\x18\x01 \x01(\t\x12\x11\n\tdirection\x18\x02 \x01(\t\x12\x46\n\roptimal_value\x18\x03 \x01(\x0b\x32/.helloworld.RecommendedConfigReply.OptimalValue\x12+\n\x08tunables\x18\x04 \x03(\x0b\x32\x19.helloworld.TunableConfig\x1aM\n\x0cOptimalValue\x12\x1a\n\x12objective_function\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02\x12\x12\n\nvalue_type\x18\x03 \x01(\t\"\'\n\x16NumberExperimentsReply\x12\r\n\x05\x63ount\x18\x01 \x01(\x05\"+\n\x13NewExperimentsReply\x12\x14\n\x0ctrial_number\x18\x01 \x01(\x05\"*\n\x14\x45xperimentsListReply\x12\x12\n\nexperiment\x18\x01 \x03(\t\"\x19\n\x17NumberExperimentsParams\"\x17\n\x15\x45xperimentsListParams\"\x16\n\x14\x45xperimentTrialReply\"/\n\x14\x45xperimentNameParams\x12\x17\n\x0f\x65xperiment_name\x18\x01 \x01(\t\"9\n\x0f\x45xperimentTrial\x12\x17\n\x0f\x65xperiment_name\x18\x01 \x01(\t\x12\r\n\x05trial\x18\x02 \x01(\x05\"\xcb\x01\n\x15\x45xperimentTrialResult\x12\x17\n\x0f\x65xperiment_name\x18\x01 \x01(\t\x12\r\n\x05trial\x18\x02 \x01(\x05\x12\x38\n\x06result\x18\x03 \x01(\x0e\x32(.helloworld.ExperimentTrialResult.Result\x12\x12\n\nvalue_type\x18\x04 \x01(\t\x12\r\n\x05value\x18\x05 \x01(\x02\"-\n\x06Result\x12\x0b\n\x07SUCCESS\x10\x00\x12\x0b\n\x07\x46\x41ILURE\x10\x01\x12\t\n\x05PRUNE\x10\x02\"\x8f\x03\n\x11\x45xperimentDetails\x12\x17\n\x0f\x65xperiment_name\x18\x01 \x01(\t\x12\x14\n\x0ctotal_trials\x18\x02 \x01(\x05\x12\x17\n\x0fparallel_trials\x18\x03 \x01(\x05\x12\x11\n\tdirection\x18\x04 \x01(\t\x12\x15\n\rhpo_algo_impl\x18\x05 \x01(\t\x12\x15\n\rexperiment_id\x18\x06 \x01(\t\x12\x1a\n\x12objective_function\x18\x07 \x01(\t\x12\x38\n\ttuneables\x18\x08 \x03(\x0b\x32%.helloworld.ExperimentDetails.Tunable\x12\x12\n\nvalue_type\x18\t \x01(\t\x12\x11\n\tslo_class\x18\n \x01(\t\x12\x0f\n\x07started\x18\x0b \x01(\x08\x1a\x63\n\x07Tunable\x12\x12\n\nvalue_type\x18\x01 \x01(\t\x12\x13\n\x0blower_bound\x18\x02 \x01(\x02\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x13\n\x0bupper_bound\x18\x04 \x01(\x02\x12\x0c\n\x04step\x18\x05 \x01(\x01\"@\n\rTunableConfig\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02\x12\x12\n\nvalue_type\x18\x03 \x01(\t\"8\n\x0bTrialConfig\x12)\n\x06\x63onfig\x18\x01 \x03(\x0b\x32\x19.helloworld.TunableConfig2\xd5\x05\n\nHpoService\x12^\n\x11NumberExperiments\x12#.helloworld.NumberExperimentsParams\x1a\".helloworld.NumberExperimentsReply\"\x00\x12X\n\x0f\x45xperimentsList\x12!.helloworld.ExperimentsListParams\x1a .helloworld.ExperimentsListReply\"\x00\x12Q\n\rNewExperiment\x12\x1d.helloworld.ExperimentDetails\x1a\x1f.helloworld.NewExperimentsReply\"\x00\x12Y\n\x14GetExperimentDetails\x12 .helloworld.ExperimentNameParams\x1a\x1d.helloworld.ExperimentDetails\"\x00\x12H\n\x0eGetTrialConfig\x12\x1b.helloworld.ExperimentTrial\x1a\x17.helloworld.TrialConfig\"\x00\x12Z\n\x11UpdateTrialResult\x12!.helloworld.ExperimentTrialResult\x1a .helloworld.ExperimentTrialReply\"\x00\x12Y\n\x12GenerateNextConfig\x12 .helloworld.ExperimentNameParams\x1a\x1f.helloworld.NewExperimentsReply\"\x00\x12^\n\x14GetRecommendedConfig\x12 .helloworld.ExperimentNameParams\x1a\".helloworld.RecommendedConfigReply\"\x00\x42\x1c\n\rio.kruize.hpoB\x03HpoP\x01\xa2\x02\x03HLWb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\thpo.proto\x12\nhelloworld\"\x88\x02\n\x16RecommendedConfigReply\x12\x17\n\x0f\x65xperiment_name\x18\x01 \x01(\t\x12\x11\n\tdirection\x18\x02 \x01(\t\x12\x46\n\roptimal_value\x18\x03 \x01(\x0b\x32/.helloworld.RecommendedConfigReply.OptimalValue\x12+\n\x08tunables\x18\x04 \x03(\x0b\x32\x19.helloworld.TunableConfig\x1aM\n\x0cOptimalValue\x12\x1a\n\x12objective_function\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02\x12\x12\n\nvalue_type\x18\x03 \x01(\t\"\'\n\x16NumberExperimentsReply\x12\r\n\x05\x63ount\x18\x01 \x01(\x05\"+\n\x13NewExperimentsReply\x12\x14\n\x0ctrial_number\x18\x01 \x01(\x05\"*\n\x14\x45xperimentsListReply\x12\x12\n\nexperiment\x18\x01 \x03(\t\"\x19\n\x17NumberExperimentsParams\"\x17\n\x15\x45xperimentsListParams\"\x16\n\x14\x45xperimentEmptyReply\"/\n\x14\x45xperimentNameParams\x12\x17\n\x0f\x65xperiment_name\x18\x01 \x01(\t\"9\n\x0f\x45xperimentTrial\x12\x17\n\x0f\x65xperiment_name\x18\x01 \x01(\t\x12\r\n\x05trial\x18\x02 \x01(\x05\"\xcb\x01\n\x15\x45xperimentTrialResult\x12\x17\n\x0f\x65xperiment_name\x18\x01 \x01(\t\x12\r\n\x05trial\x18\x02 \x01(\x05\x12\x38\n\x06result\x18\x03 \x01(\x0e\x32(.helloworld.ExperimentTrialResult.Result\x12\x12\n\nvalue_type\x18\x04 \x01(\t\x12\r\n\x05value\x18\x05 \x01(\x02\"-\n\x06Result\x12\x0b\n\x07SUCCESS\x10\x00\x12\x0b\n\x07\x46\x41ILURE\x10\x01\x12\t\n\x05PRUNE\x10\x02\"\xa6\x03\n\x11\x45xperimentDetails\x12\x17\n\x0f\x65xperiment_name\x18\x01 \x01(\t\x12\x14\n\x0ctotal_trials\x18\x02 \x01(\x05\x12\x17\n\x0fparallel_trials\x18\x03 \x01(\x05\x12\x15\n\rcurrent_trial\x18\x0c \x01(\x05\x12\x11\n\tdirection\x18\x04 \x01(\t\x12\x15\n\rhpo_algo_impl\x18\x05 \x01(\t\x12\x15\n\rexperiment_id\x18\x06 \x01(\t\x12\x1a\n\x12objective_function\x18\x07 \x01(\t\x12\x38\n\ttuneables\x18\x08 \x03(\x0b\x32%.helloworld.ExperimentDetails.Tunable\x12\x12\n\nvalue_type\x18\t \x01(\t\x12\x11\n\tslo_class\x18\n \x01(\t\x12\x0f\n\x07started\x18\x0b \x01(\x08\x1a\x63\n\x07Tunable\x12\x12\n\nvalue_type\x18\x01 \x01(\t\x12\x13\n\x0blower_bound\x18\x02 \x01(\x02\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x13\n\x0bupper_bound\x18\x04 \x01(\x02\x12\x0c\n\x04step\x18\x05 \x01(\x01\"@\n\rTunableConfig\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02\x12\x12\n\nvalue_type\x18\x03 \x01(\t\"8\n\x0bTrialConfig\x12)\n\x06\x63onfig\x18\x01 \x03(\x0b\x32\x19.helloworld.TunableConfig2\xad\x06\n\nHpoService\x12^\n\x11NumberExperiments\x12#.helloworld.NumberExperimentsParams\x1a\".helloworld.NumberExperimentsReply\"\x00\x12X\n\x0f\x45xperimentsList\x12!.helloworld.ExperimentsListParams\x1a .helloworld.ExperimentsListReply\"\x00\x12Q\n\rNewExperiment\x12\x1d.helloworld.ExperimentDetails\x1a\x1f.helloworld.NewExperimentsReply\"\x00\x12V\n\x0eStopExperiment\x12 .helloworld.ExperimentNameParams\x1a .helloworld.ExperimentEmptyReply\"\x00\x12Y\n\x14GetExperimentDetails\x12 .helloworld.ExperimentNameParams\x1a\x1d.helloworld.ExperimentDetails\"\x00\x12H\n\x0eGetTrialConfig\x12\x1b.helloworld.ExperimentTrial\x1a\x17.helloworld.TrialConfig\"\x00\x12Z\n\x11UpdateTrialResult\x12!.helloworld.ExperimentTrialResult\x1a .helloworld.ExperimentEmptyReply\"\x00\x12Y\n\x12GenerateNextConfig\x12 .helloworld.ExperimentNameParams\x1a\x1f.helloworld.NewExperimentsReply\"\x00\x12^\n\x14GetRecommendedConfig\x12 .helloworld.ExperimentNameParams\x1a\".helloworld.RecommendedConfigReply\"\x00\x42\x1c\n\rio.kruize.hpoB\x03HpoP\x01\xa2\x02\x03HLWb\x06proto3')
 
 
 
@@ -25,7 +25,7 @@ _NEWEXPERIMENTSREPLY = DESCRIPTOR.message_types_by_name['NewExperimentsReply']
 _EXPERIMENTSLISTREPLY = DESCRIPTOR.message_types_by_name['ExperimentsListReply']
 _NUMBEREXPERIMENTSPARAMS = DESCRIPTOR.message_types_by_name['NumberExperimentsParams']
 _EXPERIMENTSLISTPARAMS = DESCRIPTOR.message_types_by_name['ExperimentsListParams']
-_EXPERIMENTTRIALREPLY = DESCRIPTOR.message_types_by_name['ExperimentTrialReply']
+_EXPERIMENTEMPTYREPLY = DESCRIPTOR.message_types_by_name['ExperimentEmptyReply']
 _EXPERIMENTNAMEPARAMS = DESCRIPTOR.message_types_by_name['ExperimentNameParams']
 _EXPERIMENTTRIAL = DESCRIPTOR.message_types_by_name['ExperimentTrial']
 _EXPERIMENTTRIALRESULT = DESCRIPTOR.message_types_by_name['ExperimentTrialResult']
@@ -84,12 +84,12 @@ ExperimentsListParams = _reflection.GeneratedProtocolMessageType('ExperimentsLis
   })
 _sym_db.RegisterMessage(ExperimentsListParams)
 
-ExperimentTrialReply = _reflection.GeneratedProtocolMessageType('ExperimentTrialReply', (_message.Message,), {
-  'DESCRIPTOR' : _EXPERIMENTTRIALREPLY,
+ExperimentEmptyReply = _reflection.GeneratedProtocolMessageType('ExperimentEmptyReply', (_message.Message,), {
+  'DESCRIPTOR' : _EXPERIMENTEMPTYREPLY,
   '__module__' : 'hpo_pb2'
-  # @@protoc_insertion_point(class_scope:helloworld.ExperimentTrialReply)
+  # @@protoc_insertion_point(class_scope:helloworld.ExperimentEmptyReply)
   })
-_sym_db.RegisterMessage(ExperimentTrialReply)
+_sym_db.RegisterMessage(ExperimentEmptyReply)
 
 ExperimentNameParams = _reflection.GeneratedProtocolMessageType('ExperimentNameParams', (_message.Message,), {
   'DESCRIPTOR' : _EXPERIMENTNAMEPARAMS,
@@ -160,8 +160,8 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _NUMBEREXPERIMENTSPARAMS._serialized_end=447
   _EXPERIMENTSLISTPARAMS._serialized_start=449
   _EXPERIMENTSLISTPARAMS._serialized_end=472
-  _EXPERIMENTTRIALREPLY._serialized_start=474
-  _EXPERIMENTTRIALREPLY._serialized_end=496
+  _EXPERIMENTEMPTYREPLY._serialized_start=474
+  _EXPERIMENTEMPTYREPLY._serialized_end=496
   _EXPERIMENTNAMEPARAMS._serialized_start=498
   _EXPERIMENTNAMEPARAMS._serialized_end=545
   _EXPERIMENTTRIAL._serialized_start=547
@@ -171,13 +171,13 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _EXPERIMENTTRIALRESULT_RESULT._serialized_start=765
   _EXPERIMENTTRIALRESULT_RESULT._serialized_end=810
   _EXPERIMENTDETAILS._serialized_start=813
-  _EXPERIMENTDETAILS._serialized_end=1212
-  _EXPERIMENTDETAILS_TUNABLE._serialized_start=1113
-  _EXPERIMENTDETAILS_TUNABLE._serialized_end=1212
-  _TUNABLECONFIG._serialized_start=1214
-  _TUNABLECONFIG._serialized_end=1278
-  _TRIALCONFIG._serialized_start=1280
-  _TRIALCONFIG._serialized_end=1336
-  _HPOSERVICE._serialized_start=1339
-  _HPOSERVICE._serialized_end=2064
+  _EXPERIMENTDETAILS._serialized_end=1235
+  _EXPERIMENTDETAILS_TUNABLE._serialized_start=1136
+  _EXPERIMENTDETAILS_TUNABLE._serialized_end=1235
+  _TUNABLECONFIG._serialized_start=1237
+  _TUNABLECONFIG._serialized_end=1301
+  _TRIALCONFIG._serialized_start=1303
+  _TRIALCONFIG._serialized_end=1359
+  _HPOSERVICE._serialized_start=1362
+  _HPOSERVICE._serialized_end=2175
 # @@protoc_insertion_point(module_scope)

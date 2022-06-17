@@ -114,6 +114,27 @@ Here is an example Search Space JSON
 }
 ```
 
+## Stop experiment
+Stop a running experiment before the experiment has finished
+
+```
+'POST /experiment_trials'
+'Content-Type: application/json'
+
+curl -H 'Content-Type: application/json' http://<URL>:<PORT>/experiment_trials -d 
+'{
+    "operation": EXP_STOP",
+    "experiment_name" : "name"
+}'
+
+Response:
+Status code   Response body
+200                0
+400                -1
+403                -1
+404                -1
+```
+
 ##  Health
 Get the status of HPO.
 
