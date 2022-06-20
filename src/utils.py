@@ -19,6 +19,7 @@ class HPOSupportedTypes:
     DIRECTIONS_SUPPORTED = ("minimize", "maximize")
     VALUE_TYPES_SUPPORTED = ("double", "int", float)
     ALGOS_SUPPORTED = ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt")
+    TRIAL_RESULT_STATUS = ("success", "failure", "error")
 
 
 class HPOErrorConstants:
@@ -30,6 +31,7 @@ class HPOErrorConstants:
     VALUE_TYPE_NOT_SUPPORTED = "Unsupported value type!"
     VALUE_MISSING = " cannot be empty!"
     HPO_ALGO_NOT_SUPPORTED = "HPO algorithm not supported!"
+    INVALID_RESULT_STATUS = "Trial result status is invalid!"
 
     MISSING_PARAMETERS = "Missing required parameters!"
     EXPERIMENT_NOT_FOUND = "Experiment not found!"

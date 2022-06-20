@@ -87,13 +87,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         """Serve a GET request."""
         if re.search(api_endpoint, self.path):
             query = parse_qs(urlparse(self.path).query)
-
             if "experiment_name" not in query or "trial_number" not in query:
                 errorMsg = HPOErrorConstants.MISSING_PARAMETERS
                 logger.error(errorMsg)
                 self._set_response(404, errorMsg)
                 return
-
             # validate the existence of experiment name and trial number
             errorMsg = self.validate_experimentName_trialNumber(query["experiment_name"][0], query["trial_number"][0])
             if errorMsg:
@@ -128,7 +126,6 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         elif existingExperiment:
             logger.error(HPOErrorConstants.EXPERIMENT_EXISTS)
             self._set_response(400, HPOErrorConstants.EXPERIMENT_EXISTS)
-
         else:
             search_space_json = json_object["search_space"]
             get_search_create_study(search_space_json, json_object["operation"])
@@ -137,8 +134,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
     def handle_generate_subsequent_operation(self, json_object):
         """Process EXP_TRIAL_GENERATE_SUBSEQUENT operation."""
-        validationStatus = validate_trial_generate_json(json_object)
         experiment_name = json_object["experiment_name"]
+        validationStatus = validate_trial_generate_json(json_object)
         if validationStatus:
             logger.error(validationStatus)
             self._set_response(400, validationStatus)
@@ -158,15 +155,17 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         if validationStatus:
             self._set_response(400, validationStatus)
             return
-
         experimentValidationError = self.validate_experimentName_trialNumber(json_object["experiment_name"],
                                                                              str(json_object["trial_number"]))
-        resultDataValidationError = self.validate_result_data(json_object["result_value_type"],
+        resultDataValidationError = self.validate_result_data(json_object["trial_result"],
+                                                              json_object["result_value_type"],
                                                               json_object["result_value"])
         if experimentValidationError:
             self._set_response(400, experimentValidationError)
+            logger.error(experimentValidationError)
         elif resultDataValidationError:
             self._set_response(400, resultDataValidationError)
+            logger.error(resultDataValidationError)
         else:
             hpo_service.instance.set_result(json_object["experiment_name"], json_object["trial_result"],
                                             json_object["result_value_type"], json_object["result_value"])
@@ -176,30 +175,25 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         errorMsg = ""
         if not hpo_service.instance.containsExperiment(experiment_name):
             errorMsg = HPOErrorConstants.EXPERIMENT_NOT_FOUND
-            logger.error(errorMsg)
-
         elif not trial_number == str(hpo_service.instance.get_trial_number(experiment_name)):
             try:
                 if int(trial_number) < 0:
                     errorMsg = HPOErrorConstants.NEGATIVE_TRIAL
-                    logger.error(errorMsg)
                 else:
                     errorMsg = HPOErrorConstants.TRIAL_EXCEEDED
-                    logger.error(errorMsg)
             except ValueError:
                 errorMsg = HPOErrorConstants.NON_INTEGER_VALUE
-                logger.error(errorMsg)
 
         return errorMsg
 
-    def validate_result_data(self, result_value_type, result_value):
+    def validate_result_data(self, trial_result, result_value_type, result_value):
         errorMsg = ""
-        if result_value_type not in HPOSupportedTypes.VALUE_TYPES_SUPPORTED:
+        if trial_result not in HPOSupportedTypes.TRIAL_RESULT_STATUS:
+            errorMsg = HPOErrorConstants.INVALID_RESULT_STATUS
+        elif result_value_type not in HPOSupportedTypes.VALUE_TYPES_SUPPORTED:
             errorMsg = HPOErrorConstants.VALUE_TYPE_NOT_SUPPORTED
-            logger.error(errorMsg)
         elif not isinstance(result_value, (float, int)):
             errorMsg = HPOErrorConstants.VALUE_TYPE_MISMATCH
-            logger.error(errorMsg)
 
         return errorMsg
 
@@ -213,13 +207,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
 
 def get_search_create_study(search_space_json, operation):
-    # TODO: validate structure of search_space_json
-
     if operation == "EXP_TRIAL_GENERATE_NEW":
         if "parallel_trials" not in search_space_json:
             search_space_json["parallel_trials"] = n_jobs
-        experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, value_type = get_all_tunables(
-            search_space_json)
+        experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, \
+            value_type = get_all_tunables(search_space_json)
         if not parallel_trials:
             parallel_trials = n_jobs
         elif parallel_trials != 1:
@@ -230,9 +222,8 @@ def get_search_create_study(search_space_json, operation):
 
         if hpo_algo_impl in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
             hpo_service.instance.newExperiment(id_, experiment_name, total_trials, parallel_trials, direction,
-                                               hpo_algo_impl, objective_function,
-                                               tunables, value_type)
-            print("Starting Experiment: " + experiment_name)
+                                               hpo_algo_impl, objective_function,tunables, value_type)
+            logger.info("Starting Experiment: " + experiment_name)
             hpo_service.instance.startExperiment(experiment_name)
 
 
