@@ -40,10 +40,11 @@ timeout=-1
 
 # source the helpers script
 . ${SCRIPTS_DIR}/cluster-helpers.sh
+. ${SCRIPTS_DIR}/openshift-helpers.sh
 
 function usage() {
   echo
-  echo "Usage: $0 [-a] [-c [docker|minikube|native]] [-o hpo container image] [-n namespace] [-d configmaps-dir ]"
+  echo "Usage: $0 [-a] [-c [docker|minikube|native|openshift]] [-o hpo container image] [-n namespace] [-d configmaps-dir ]"
   echo "       -s = start(default), -t = terminate"
   echo " -c: cluster type."
   echo " -o: build with specific hpo container image name [Default - kruize/hpo:<version>]"
@@ -55,7 +56,7 @@ function usage() {
 # Check the cluster_type
 function check_cluster_type() {
 	case "${cluster_type}" in
-	docker|minikube|native)
+	docker|minikube|native|openshift)
 		;;
 	*)
 		echo "Error: unsupported cluster type: ${cluster_type}"

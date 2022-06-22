@@ -10,3 +10,30 @@ subjects:
 - kind: ServiceAccount
   name: hpo-sa
   namespace: "{{ HPO_NAMESPACE }}"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+ name: hpo-scc-crb
+roleRef:
+ apiGroup: rbac.authorization.k8s.io
+ kind: ClusterRole
+ name: system:openshift:scc:anyuid
+subjects:
+- kind: ServiceAccount
+  name: hpo-sa
+  namespace: "{{ HPO_NAMESPACE }}"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+ name: hpo-docker-crb
+roleRef:
+ apiGroup: rbac.authorization.k8s.io
+ kind: ClusterRole
+ name: system:build-strategy-docker
+subjects:
+- kind: ServiceAccount
+  name: hpo-sa
+  namespace: "{{ HPO_NAMESPACE }}"
+
