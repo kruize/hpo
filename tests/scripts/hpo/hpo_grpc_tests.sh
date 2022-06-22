@@ -44,10 +44,8 @@ function hpo_grpc_sanity_test() {
 		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
 	fi
 
-	echo "Wait for HPO service to come up"
-	sleep 10
-
-	pwd
+	# Check if HPO services are started
+	check_server_status
 
 	## Loop through the trials
 	for (( i=0 ; i<${N_TRIALS} ; i++ ))
@@ -61,8 +59,6 @@ function hpo_grpc_sanity_test() {
 			verify_grpc_result "Post new experiment" $?
 		fi
 
-		# Get the config from HPO
-		sleep 2
 		echo ""
 		echo "Generate the config for trial ${i}..." | tee -a ${LOG}
 		echo ""
@@ -80,8 +76,6 @@ function hpo_grpc_sanity_test() {
 		python ../src/grpc_client.py result --name "${exp_name}" --trial "${i}" --result SUCCESS --value_type "double" --value "${result_value}"
 		verify_grpc_result "Post new experiment result for trial ${i}" $?
 
-		sleep 5
-
 		# Generate a subsequent trial
 		if [[ ${i} < $((N_TRIALS-1)) ]]; then
 			echo "" | tee -a ${LOG}
@@ -90,6 +84,10 @@ function hpo_grpc_sanity_test() {
 			verify_grpc_result "Post subsequent experiment after trial ${i}" $?
 		fi
 	done
+
+  #Validate removing test
+  python ../src/grpc_client.py stop --name ${exp_name}
+  verify_grpc_result "Stop running experiment ${exp_name}" $?
 
 	# Terminate any running HPO servers
 	echo "Terminating any running HPO servers..." | tee -a ${LOG}
