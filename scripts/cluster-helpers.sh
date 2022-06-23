@@ -200,7 +200,6 @@ function minikube_terminate() {
 function check_running() {
 
 	check_pod=$1
-	hpo_ns="monitoring"
 	kubectl_cmd="kubectl -n ${hpo_ns}"
 
 	echo "Info: Waiting for ${check_pod} to come up..."

@@ -53,7 +53,7 @@ function openshift_deploy() {
 	fi
 
 	# Get the HPO application port in openshift
-	OPENSHIFT_IP=$(openshift ip)
+	OPENSHIFT_IP=$(${kubectl_cmd} get pods -l=app=hpo -o wide -n ${hpo_ns} -o=custom-columns=NODE:.spec.nodeName --no-headers)
 	HPO_PORT=$(${kubectl_cmd} get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 	echo "Info: Access HPO at http://${OPENSHIFT_IP}:${HPO_PORT}"
 	echo
@@ -74,6 +74,11 @@ function openshift_start() {
 }
 
 function openshift_terminate() {
+
+    # If hpo_ns was not set by the user
+	if [ -z "$hpo_ns" ]; then
+		hpo_ns="openshift-tuning"
+	fi
 
 	echo
 	echo -n "###   Removing hpo for openshift"
