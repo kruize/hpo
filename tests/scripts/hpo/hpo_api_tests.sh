@@ -256,6 +256,8 @@ function run_post_tests(){
 			# Post the experiment JSON to HPO /experiment_trials API
 			post_experiment_json "${hpo_post_experiment_json[${exp}]}"
 
+			post_exp_http_code="${http_code}"
+
 			# Post the experiment result to HPO /experiment_trials API
 			post_experiment_result_json "${hpo_post_exp_result_json[$post_test]}"
 			expected_log_msg="${hpo_exp_result_error_messages[$post_test]}"
@@ -265,6 +267,8 @@ function run_post_tests(){
 			# Post the experiment JSON to HPO /experiment_trials API
 			post_experiment_json "${hpo_post_experiment_json[$post_test]}"
 			expected_log_msg="${hpo_error_messages[$post_test]}"
+
+			post_exp_http_code="${http_code}"
 		fi
 
 		if [[ "${post_test}" == valid* ]]; then
@@ -278,7 +282,7 @@ function run_post_tests(){
 		actual_result="${http_code}"
 
 		should_stop_expriment=false
-		if [[ "${actual_result}" -eq "200" ]]; then
+		if [[ "${post_exp_http_code}" -eq "200" ]]; then
 			should_stop_expriment=true
 		fi
 
