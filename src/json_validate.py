@@ -64,8 +64,7 @@ trial_generate_schema = {
                     "step": {"type": "number"},
                     "choices": {"type": "array"}
                 },
-                "slo_class": {"type": "string"},
-                "direction": {"type": "string"},
+                "direction": {"type": "string"}
             },
             "required": ["experiment_name", "experiment_id", "total_trials", "objective_function", "tunables",
                          "direction"]
@@ -87,8 +86,10 @@ def validate_trial_generate_json(trial_generate_json):
         elif trial_generate_json["operation"] == "EXP_TRIAL_GENERATE_SUBSEQUENT":
             validate(instance=trial_generate_json, schema=subs_trial_generate_schema,
                      format_checker=draft7_format_checker)
-        else:
+        elif trial_generate_json["operation"] == "EXP_TRIAL_RESULT":
             validate(instance=trial_generate_json, schema=result_trial_schema, format_checker=draft7_format_checker)
+        else:
+            errorMsg = HPOErrorConstants.INVALID_OPERATION
         return errorMsg
     except jsonschema.exceptions.ValidationError as err:
         return err.message

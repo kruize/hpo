@@ -21,11 +21,22 @@ class HPOSupportedTypes:
     ALGOS_SUPPORTED = ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt")
     TRIAL_RESULT_STATUS = ("success", "failure", "error")
 
+    # Default Values
+    HPO_ALGO = "optuna_tpe"
+    VALUE_TYPE = "double"
+    N_JOBS = 1
+    N_TRIALS = 10
+    SERVER_HOSTNAME = "0.0.0.0"
+    SERVER_PORT = 8085
+    API_ENDPOINT = "/experiment_trials"
+    CONTENT_TYPE = "application/json"
+
 
 class HPOErrorConstants:
     INVALID_OPERATION = "Invalid Operation value"
     INVALID_CONTENT_TYPE = "Invalid content type. Should be application/json"
     NOT_FOUND = "Could not be find requested resource. Please check the URL!"
+    REQUIRED_PROPERTY = " is a required property"
 
     DIRECTION_NOT_SUPPORTED = "Direction not supported!"
     VALUE_TYPE_NOT_SUPPORTED = "Unsupported value type!"
@@ -39,7 +50,9 @@ class HPOErrorConstants:
     NEGATIVE_TRIAL = "Trial number cannot be negative!"
     TRIAL_EXCEEDED = "Requested trial exceeds the completed trial limit!"
     NON_INTEGER_VALUE = "Only Integer value is allowed!"
+    NEGATIVE_VALUE = "result_value cannot be negative!"
     VALUE_TYPE_MISMATCH = "Value and value type do not match."
+    PARALLEL_TRIALS_ERROR = "Parallel Trials value should be '1' only!"
 
 
 class HPOMessages:

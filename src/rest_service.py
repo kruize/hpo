@@ -29,15 +29,8 @@ from utils import HPOErrorConstants, HPOSupportedTypes, HPOMessages
 import hpo_service
 
 logger = get_logger(__name__)
-
-n_trials = 10
-n_jobs = 1
 autotune_object_ids = {}
 search_space_json = []
-
-api_endpoint = "/experiment_trials"
-host_name = "0.0.0.0"
-server_port = 8085
 
 fileDir = os.path.dirname(os.path.realpath('index.html'))
 filename = os.path.join(fileDir, 'index.html')
@@ -61,23 +54,35 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         """Serve a POST request."""
-        if re.search(api_endpoint + "$", self.path):
+        if re.search(HPOSupportedTypes.API_ENDPOINT + "$", self.path):
             content_type, params = cgi.parse_header(self.headers.get('content-type'))
-            if content_type == 'application/json':
+            if content_type == HPOSupportedTypes.CONTENT_TYPE:
                 length = int(self.headers.get('content-length'))
                 str_object = self.rfile.read(length).decode('utf8')
                 json_object = json.loads(str_object)
 
-                if json_object["operation"] == "EXP_TRIAL_GENERATE_NEW":
-                    self.handle_generate_new_operation(json_object)
-                elif json_object["operation"] == "EXP_TRIAL_GENERATE_SUBSEQUENT":
-                    self.handle_generate_subsequent_operation(json_object)
-                elif json_object["operation"] == "EXP_TRIAL_RESULT":
-                    self.handle_result_operation(json_object)
-                elif json_object["operation"] == "EXP_STOP":
-                    self.handle_stop_operation(json_object)
+                # validate JSON Object received
+                if "operation" not in json_object:
+                    validationStatus = "'operation'" + HPOErrorConstants.REQUIRED_PROPERTY
+                    logger.error(validationStatus)
+                    self._set_response(400, validationStatus)
+                    return
+                # further, validate the JSON structure and proceed accordingly
+                validationStatus = validate_trial_generate_json(json_object)
+                if validationStatus:
+                    logger.error(validationStatus)
+                    self._set_response(400, validationStatus)
                 else:
-                    self._set_response(400, HPOErrorConstants.INVALID_OPERATION)
+                    if json_object["operation"] == "EXP_TRIAL_GENERATE_NEW":
+                        self.handle_generate_new_operation(json_object)
+                    elif json_object["operation"] == "EXP_TRIAL_GENERATE_SUBSEQUENT":
+                        self.handle_generate_subsequent_operation(json_object)
+                    elif json_object["operation"] == "EXP_TRIAL_RESULT":
+                        self.handle_result_operation(json_object)
+                    elif json_object["operation"] == "EXP_STOP":
+                        self.handle_stop_operation(json_object)
+                    else:
+                        self._set_response(400, HPOErrorConstants.INVALID_OPERATION)
             else:
                 self._set_response(400, HPOErrorConstants.INVALID_CONTENT_TYPE)
         else:
@@ -85,7 +90,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         """Serve a GET request."""
-        if re.search(api_endpoint, self.path):
+        if re.search(HPOSupportedTypes.API_ENDPOINT, self.path):
             query = parse_qs(urlparse(self.path).query)
             if "experiment_name" not in query or "trial_number" not in query:
                 errorMsg = HPOErrorConstants.MISSING_PARAMETERS
@@ -118,28 +123,23 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     def handle_generate_new_operation(self, json_object):
         """Process EXP_TRIAL_GENERATE_NEW operation."""
         existingExperiment = hpo_service.instance.containsExperiment(json_object["search_space"]["experiment_name"])
-        validationStatus = validate_trial_generate_json(json_object)
-
-        if validationStatus:
-            logger.error(validationStatus)
-            self._set_response(400, validationStatus)
-        elif existingExperiment:
+        if existingExperiment:
             logger.error(HPOErrorConstants.EXPERIMENT_EXISTS)
             self._set_response(400, HPOErrorConstants.EXPERIMENT_EXISTS)
         else:
             search_space_json = json_object["search_space"]
-            get_search_create_study(search_space_json, json_object["operation"])
-            trial_number = hpo_service.instance.get_trial_number(json_object["search_space"]["experiment_name"])
-            self._set_response(200, str(trial_number))
+            search_space = self.setDefaults(search_space_json)
+            if not search_space:
+                self._set_response(400, HPOErrorConstants.PARALLEL_TRIALS_ERROR)
+            else:
+                get_search_create_study(search_space, json_object["operation"])
+                trial_number = hpo_service.instance.get_trial_number(json_object["search_space"]["experiment_name"])
+                self._set_response(200, str(trial_number))
 
     def handle_generate_subsequent_operation(self, json_object):
         """Process EXP_TRIAL_GENERATE_SUBSEQUENT operation."""
         experiment_name = json_object["experiment_name"]
-        validationStatus = validate_trial_generate_json(json_object)
-        if validationStatus:
-            logger.error(validationStatus)
-            self._set_response(400, validationStatus)
-        elif hpo_service.instance.doesNotContainExperiment(experiment_name):
+        if hpo_service.instance.doesNotContainExperiment(experiment_name):
             logger.error(HPOErrorConstants.EXPERIMENT_NOT_FOUND)
             self._set_response(400, HPOErrorConstants.EXPERIMENT_NOT_FOUND)
         else:
@@ -151,10 +151,6 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
     def handle_result_operation(self, json_object):
         """Process EXP_TRIAL_RESULT operation."""
-        validationStatus = validate_trial_generate_json(json_object)
-        if validationStatus:
-            self._set_response(400, validationStatus)
-            return
         experimentValidationError = self.validate_experimentName_trialNumber(json_object["experiment_name"],
                                                                              str(json_object["trial_number"]))
         resultDataValidationError = self.validate_result_data(json_object["trial_result"],
@@ -194,6 +190,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             errorMsg = HPOErrorConstants.VALUE_TYPE_NOT_SUPPORTED
         elif not isinstance(result_value, (float, int)):
             errorMsg = HPOErrorConstants.VALUE_TYPE_MISMATCH
+        elif float(result_value) < 0:
+            errorMsg = HPOErrorConstants.NEGATIVE_VALUE
 
         return errorMsg
 
@@ -205,31 +203,38 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         else:
             self._set_response(404, HPOErrorConstants.EXPERIMENT_NOT_FOUND)
 
+    def setDefaults(self, search_space):
+        if "hpo_algo_impl" not in search_space:
+            search_space["hpo_algo_impl"] = HPOSupportedTypes.HPO_ALGO
+        if "value_type" not in search_space:
+            search_space["value_type"] = HPOSupportedTypes.VALUE_TYPE
+        if "parallel_trials" not in search_space:
+            search_space["parallel_trials"] = HPOSupportedTypes.N_JOBS
+        elif search_space["parallel_trials"] != 1:
+            logger.error(HPOErrorConstants.PARALLEL_TRIALS_ERROR)
+            return
+
+        return search_space
+
 
 def get_search_create_study(search_space_json, operation):
     if operation == "EXP_TRIAL_GENERATE_NEW":
-        if "parallel_trials" not in search_space_json:
-            search_space_json["parallel_trials"] = n_jobs
         experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_, objective_function, tunables, \
             value_type = get_all_tunables(search_space_json)
-        if not parallel_trials:
-            parallel_trials = n_jobs
-        elif parallel_trials != 1:
-            raise Exception("Parallel Trials value should be '1' only!")
 
         logger.info("Total Trials = " + str(total_trials))
         logger.info("Parallel Trials = " + str(parallel_trials))
 
-        if hpo_algo_impl in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
+        if hpo_algo_impl in HPOSupportedTypes.ALGOS_SUPPORTED:
             hpo_service.instance.newExperiment(id_, experiment_name, total_trials, parallel_trials, direction,
-                                               hpo_algo_impl, objective_function,tunables, value_type)
+                                               hpo_algo_impl, objective_function, tunables, value_type)
             logger.info("Starting Experiment: " + experiment_name)
             hpo_service.instance.startExperiment(experiment_name)
 
 
 def main():
-    server = HTTPServer((host_name, server_port), HTTPRequestHandler)
-    logger.info("Access server at http://%s:%s" % ("localhost", server_port))
+    server = HTTPServer((HPOSupportedTypes.SERVER_HOSTNAME, HPOSupportedTypes.SERVER_PORT), HTTPRequestHandler)
+    logger.info("Access server at http://%s:%s" % ("localhost", HPOSupportedTypes.SERVER_PORT))
     server.serve_forever()
 
 
