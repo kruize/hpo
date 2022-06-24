@@ -16,16 +16,30 @@ limitations under the License.
 
 import rest_service, grpc_service
 import threading
+import signal
+from logger import get_logger
+
+shutdown = threading.Event()
+logger = get_logger("hpo-service")
+
+def signal_handler(sig, frame):
+    shutdown.set()
+signal.signal(signal.SIGINT, signal_handler)
 
 def main():
-    restService = threading.Thread(target=rest_service.main)
-    gRPCservice = threading.Thread(target=grpc_service.serve)
 
+    restService = threading.Thread(target=rest_service.main)
+    restService.daemon = True
+    gRPCservice = threading.Thread(target=grpc_service.serve)
+    gRPCservice.daemon = True
+
+    logger.info('Starting HPO service')
     restService.start()
     gRPCservice.start()
 
-    restService.join()
-    gRPCservice.join()
+    shutdown.wait()
+
+    logger.info('Shutting down HPO service')
 
 if __name__ == '__main__':
     main()
