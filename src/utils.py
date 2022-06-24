@@ -53,6 +53,7 @@ class HPOErrorConstants:
     NEGATIVE_VALUE = "result_value cannot be negative!"
     VALUE_TYPE_MISMATCH = "Value and value type do not match."
     PARALLEL_TRIALS_ERROR = "Parallel Trials value should be '1' only!"
+    JSON_STRUCTURE_ERROR = "Invalid JSON structure: "
 
 
 class HPOMessages:

@@ -16,9 +16,9 @@ curl -H 'Content-Type: application/json' http://<URL>:<PORT>/experiment_trials -
 
 Response:
 Status code   Response body
-200                trial_number
-400                -1
-403                -1
+200            trial_number
+400            Corresponding error message for Bad request
+404            Resource not found    
 ```
 
 ## Get a Trial JSON object
@@ -39,6 +39,12 @@ Example Response:
         “tunable_value”: 728
     }
 ]
+
+Response:
+Status code   Response body
+200            trial_configs
+400            Corresponding error message for Bad request
+404            Experiment/Resource not found   
 ```
 ## Send the Result of a Trial to HPOaaS.
 Send the result obtained by running a trial with the previously provided Trial Configuration back to HPOaaS.
@@ -59,9 +65,9 @@ curl -H 'Content-Type: application/json' http://<URL>:<PORT>/experiment_trials -
 
 Response:
 Status code   Response body
-200                1
-400                -1
-403                -1
+200            Result Status
+400            Corresponding error message for Bad request
+404            Experiment/Resource not found 
 ```
 
 ## Continue the Experiment
@@ -79,9 +85,9 @@ curl -H 'Content-Type: application/json' http://<URL>:<PORT>/experiment_trials -
 
 Response:
 Status code   Response body
-200                trial_number
-400                -1
-403                -1
+200            trial_number
+400            Corresponding error message for Bad request
+404            Experiment/Resource not found
 ```
 
 ## Search Space JSON
@@ -129,10 +135,9 @@ curl -H 'Content-Type: application/json' http://<URL>:<PORT>/experiment_trials -
 
 Response:
 Status code   Response body
-200                0
-400                -1
-403                -1
-404                -1
+200            Result Status
+400            Corresponding error message for Bad request
+404            Experiment/Resource not found 
 ```
 
 ##  Health
@@ -144,6 +149,8 @@ Request
 
 `curl -H 'Accept: application/json' http://<URL>:<PORT>/health`
 
-Response
-`OK`
+Response:
+Status code   Response body
+200            OK
+503            Service Unavailable
 ```

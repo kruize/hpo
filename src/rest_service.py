@@ -13,12 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import re
 import cgi
 import json
 import os
+from json import JSONDecodeError
 from urllib.parse import urlparse, parse_qs
 
 from json_validate import validate_trial_generate_json
@@ -59,19 +59,24 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             if content_type == HPOSupportedTypes.CONTENT_TYPE:
                 length = int(self.headers.get('content-length'))
                 str_object = self.rfile.read(length).decode('utf8')
-                json_object = json.loads(str_object)
+                try:
+                    json_object = json.loads(str_object)
+                except JSONDecodeError as jde:
+                    logger.error(jde.msg)
+                    self._set_response(400, HPOErrorConstants.JSON_STRUCTURE_ERROR + jde.msg)
+                    return
 
                 # validate JSON Object received
                 if "operation" not in json_object:
-                    validationStatus = "'operation'" + HPOErrorConstants.REQUIRED_PROPERTY
-                    logger.error(validationStatus)
-                    self._set_response(400, validationStatus)
+                    errorMsg = "'operation'" + HPOErrorConstants.REQUIRED_PROPERTY
+                    logger.error(errorMsg)
+                    self._set_response(400, errorMsg)
                     return
                 # further, validate the JSON structure and proceed accordingly
-                validationStatus = validate_trial_generate_json(json_object)
-                if validationStatus:
-                    logger.error(validationStatus)
-                    self._set_response(400, validationStatus)
+                isInvalid = validate_trial_generate_json(json_object)
+                if isInvalid:
+                    logger.error(isInvalid)
+                    self._set_response(400, isInvalid)
                 else:
                     if json_object["operation"] == "EXP_TRIAL_GENERATE_NEW":
                         self.handle_generate_new_operation(json_object)
@@ -95,12 +100,16 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
             if "experiment_name" not in query or "trial_number" not in query:
                 errorMsg = HPOErrorConstants.MISSING_PARAMETERS
                 logger.error(errorMsg)
-                self._set_response(404, errorMsg)
+                self._set_response(400, errorMsg)
                 return
             # validate the existence of experiment name and trial number
-            errorMsg = self.validate_experimentName_trialNumber(query["experiment_name"][0], query["trial_number"][0])
+            existingExperiment = hpo_service.instance.containsExperiment(query["experiment_name"][0])
+            if not existingExperiment:
+                self._set_response(404, HPOErrorConstants.EXPERIMENT_NOT_FOUND)
+                return
+            errorMsg = self.validate_trialNumber(query["experiment_name"][0], query["trial_number"][0])
             if errorMsg:
-                self._set_response(404, errorMsg)
+                self._set_response(400, errorMsg)
             else:
                 logger.info("Experiment_Name = " + str(
                     hpo_service.instance.getExperiment(query["experiment_name"][0]).experiment_name))
@@ -108,6 +117,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                     hpo_service.instance.getExperiment(query["experiment_name"][0]).trialDetails.trial_number))
                 data = hpo_service.instance.get_trial_json_object(query["experiment_name"][0])
                 self._set_response(200, data)
+        elif self.path == "/health":
+            if self.getHomeScreen():
+                self._set_response(200, 'OK')
+            else:
+                self._set_response(503, 'Service Unavailable')
         elif self.path == "/":
             data = self.getHomeScreen()
             self._set_response(200, data)
@@ -139,9 +153,10 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     def handle_generate_subsequent_operation(self, json_object):
         """Process EXP_TRIAL_GENERATE_SUBSEQUENT operation."""
         experiment_name = json_object["experiment_name"]
-        if hpo_service.instance.doesNotContainExperiment(experiment_name):
-            logger.error(HPOErrorConstants.EXPERIMENT_NOT_FOUND)
-            self._set_response(400, HPOErrorConstants.EXPERIMENT_NOT_FOUND)
+        existingExperiment = hpo_service.instance.containsExperiment(experiment_name)
+        if not existingExperiment:
+            self._set_response(404, HPOErrorConstants.EXPERIMENT_NOT_FOUND)
+            return
         else:
             trial_number = hpo_service.instance.get_trial_number(experiment_name)
             if trial_number == -1:
@@ -151,14 +166,19 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
     def handle_result_operation(self, json_object):
         """Process EXP_TRIAL_RESULT operation."""
-        experimentValidationError = self.validate_experimentName_trialNumber(json_object["experiment_name"],
-                                                                             str(json_object["trial_number"]))
+        existingExperiment = hpo_service.instance.containsExperiment(json_object["experiment_name"])
+        if not existingExperiment:
+            self._set_response(404, HPOErrorConstants.EXPERIMENT_NOT_FOUND)
+            return
+
+        trialValidationError = self.validate_trialNumber(json_object["experiment_name"],
+                                                         str(json_object["trial_number"]))
         resultDataValidationError = self.validate_result_data(json_object["trial_result"],
                                                               json_object["result_value_type"],
                                                               json_object["result_value"])
-        if experimentValidationError:
-            self._set_response(400, experimentValidationError)
-            logger.error(experimentValidationError)
+        if trialValidationError:
+            self._set_response(400, trialValidationError)
+            logger.error(trialValidationError)
         elif resultDataValidationError:
             self._set_response(400, resultDataValidationError)
             logger.error(resultDataValidationError)
@@ -167,11 +187,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
                                             json_object["result_value_type"], json_object["result_value"])
             self._set_response(200, HPOMessages.RESULT_STATUS)
 
-    def validate_experimentName_trialNumber(self, experiment_name, trial_number):
+    def validate_trialNumber(self, experiment_name, trial_number):
         errorMsg = ""
-        if not hpo_service.instance.containsExperiment(experiment_name):
-            errorMsg = HPOErrorConstants.EXPERIMENT_NOT_FOUND
-        elif not trial_number == str(hpo_service.instance.get_trial_number(experiment_name)):
+        if not trial_number == str(hpo_service.instance.get_trial_number(experiment_name)):
             try:
                 if int(trial_number) < 0:
                     errorMsg = HPOErrorConstants.NEGATIVE_TRIAL
@@ -199,8 +217,6 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         """Process EXP_STOP operation."""
         if hpo_service.instance.containsExperiment(json_object["experiment_name"]):
             hpo_service.instance.stopExperiment(json_object["experiment_name"])
-            time.sleep(1)
-            logger.info(HPOMessages.EXPERIMENT_STOP)
             self._set_response(200, HPOMessages.EXPERIMENT_STOP)
         else:
             self._set_response(404, HPOErrorConstants.EXPERIMENT_NOT_FOUND)

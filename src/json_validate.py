@@ -81,7 +81,8 @@ trial_generate_schema = {
                 "direction": {"type": "string"}
             },
             "required": ["experiment_name", "experiment_id", "total_trials", "objective_function", "tunables",
-                         "direction"]
+                         "direction"],
+            "additionalProperties": False
         }
     },
     "required": ["search_space", "operation"],
