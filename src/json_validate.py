@@ -37,6 +37,20 @@ result_trial_schema = {
     "additionalProperties": False
 }
 
+stop_experiment_schema = {
+    "type": "object",
+    "properties": {
+        "experiment_name": {"type": "string"},
+        "operation": {
+            "enum": [
+                "EXP_STOP"
+            ]
+        }
+    },
+    "required": ["experiment_name", "operation"],
+    "additionalProperties": False
+}
+
 trial_generate_schema = {
     "type": "object",
     "properties": {
@@ -88,6 +102,8 @@ def validate_trial_generate_json(trial_generate_json):
                      format_checker=draft7_format_checker)
         elif trial_generate_json["operation"] == "EXP_TRIAL_RESULT":
             validate(instance=trial_generate_json, schema=result_trial_schema, format_checker=draft7_format_checker)
+        elif trial_generate_json["operation"] == "EXP_STOP":
+            validate(instance=trial_generate_json, schema=stop_experiment_schema, format_checker=draft7_format_checker)
         else:
             errorMsg = HPOErrorConstants.INVALID_OPERATION
         return errorMsg

@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
+import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import re
 import cgi
@@ -199,6 +199,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         """Process EXP_STOP operation."""
         if hpo_service.instance.containsExperiment(json_object["experiment_name"]):
             hpo_service.instance.stopExperiment(json_object["experiment_name"])
+            time.sleep(1)
+            logger.info(HPOMessages.EXPERIMENT_STOP)
             self._set_response(200, HPOMessages.EXPERIMENT_STOP)
         else:
             self._set_response(404, HPOErrorConstants.EXPERIMENT_NOT_FOUND)

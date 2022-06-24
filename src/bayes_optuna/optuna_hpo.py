@@ -106,8 +106,8 @@ class HpoExperiment:
         try:
             self.resultsAvailableCond.acquire()
             self.resultsAvailableCond.wait()
-            if self.isRunning == False:
-                raise Exception("Stopping experiment: {}".format(self.experiment_name))
+            if not self.isRunning:
+                logger.warn("Stopping experiment: {}".format(self.experiment_name))
             result_value = self.trialDetails.result_value
             trial_result = self.trialDetails.trial_result
         finally:
