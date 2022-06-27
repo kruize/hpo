@@ -323,11 +323,25 @@ function compare_result() {
 	failed=0
 	__test__=$1
 	expected_result=$2
-	expected_behaviour=$3
-	
+	expected_log_msg=$3
+	test_log=$4
+
+	echo "************* $expected_log_msg"
+	echo "************* $test_log "
+
 	if [[ ! ${actual_result} =~ ${expected_result} ]]; then
 		failed=1
+	else
+		if [[ ! -z ${expected_log_msg} ]]; then
+			if grep -q "${expected_log_msg}" "${test_log}" ; then
+				failed=0
+			else
+				failed=1
+			fi
+		else
+			failed=1
+		fi
 	fi
 
-	display_result "${expected_behaviour}" "${__test__}" "${failed}"
+	display_result "${expected_log_msg}" "${__test__}" "${failed}"
 }

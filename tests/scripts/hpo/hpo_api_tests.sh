@@ -266,6 +266,7 @@ function run_post_tests(){
 			experiment_name=$(echo ${hpo_post_experiment_json[${post_test}]} | jq '.search_space.experiment_name')
 			# Post the experiment JSON to HPO /experiment_trials API
 			post_experiment_json "${hpo_post_experiment_json[$post_test]}"
+
 			expected_log_msg="${hpo_error_messages[$post_test]}"
 
 			post_exp_http_code="${http_code}"
@@ -273,10 +274,11 @@ function run_post_tests(){
 
 		if [[ "${post_test}" == valid* ]]; then
 			expected_result_="200"
-			expected_behaviour="RESPONSE_CODE = 200 OK"
 		else
-			expected_result_="^4[0-9][0-9]"
-			expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
+			expected_result_="400"
+			if [[ "${post_test}" == "generate-subsequent" ]]; then
+				expected_result_="404"
+			fi
 		fi
 
 		actual_result="${http_code}"
@@ -297,23 +299,15 @@ function run_post_tests(){
 
 		echo ""
 		if [[ "${http_code}" -eq "000" ]]; then
-			if [[ ! -z ${expected_log_msg} ]]; then
-				if grep -q "${expected_log_msg}" "${TEST_SERV_LOG}" ; then
-					failed=0 
-				else
-					failed=1
-				fi
-			else
-				failed=1
-			fi
-
+			failed=1
 			((TOTAL_TESTS++))
 			((TESTS++))
 			error_message "${failed}" "${post_test}"
 		else
 			echo "actual_result = $actual_result expected_result = ${expected_result_}"
-			compare_result "${post_test}" "${expected_result_}" "${expected_behaviour}"
+			compare_result "${post_test}" "${expected_result_}" "${expected_log_msg}" "${TEST_SERV_LOG}"
 		fi
+
 		echo ""
 
 		if [ "$should_stop_expriment" == true ]; then
@@ -348,10 +342,11 @@ function post_duplicate_experiments() {
 		post_experiment_json "${hpo_post_experiment_json[$exp]}"
 
 		actual_result="${http_code}"
-		expected_result_="^4[0-9][0-9]"
-		expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
+		expected_result_="400"
+		expected_behaviour="Experiment already exists"
 
-		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}"
+		sleep 10
+		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}" "${TEST_SERV_LOG}"
       		stop_experiment "$experiment_name"
 	else
 		failed=1
@@ -382,9 +377,9 @@ function operation_generate_subsequent() {
 
 	actual_result="${response}"
 	expected_result_=$(($trial_num+1))
-	expected_behaviour="trial_number = '${expected_result_}'"
+	expected_behaviour="Response is ${expected_result_}"
 
-	compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}"
+	compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}" "${LOG_}"
 }
 
 # The test does the following: 
@@ -518,10 +513,16 @@ function get_trial_json_invalid_tests() {
 	IFS=' ' read -r -a get_trial_json_invalid_tests <<<  ${hpo_get_trial_json_tests[$FUNCNAME]}
 	for exp_trial in "${get_trial_json_invalid_tests[@]}"
 	do
+		# Get the length of the service log before the test
+		log_length_before_test=$(cat ${SERV_LOG} | wc -l)
+
 		TESTS_="${TEST_DIR}/${exp_trial}"
 		mkdir -p ${TESTS_}
 		LOG_="${TEST_DIR}/${exp_trial}.log"
 		result="${TESTS_}/${exp_trial}_result.log"
+
+		TEST_SERV_LOG="${TEST_}/service.log"
+		echo "********** TEST_SERV_LOG = $TEST_SERV_LOG"
 
 		echo "************************************* ${exp_trial} Test ****************************************" | tee -a ${LOG_} ${LOG}
 
@@ -535,13 +536,23 @@ function get_trial_json_invalid_tests() {
 
 		run_get_trial_json_test ${exp_trial}
 
+
+		# Extract the lines from the service log after log_length_before_test
+		extract_lines=`expr ${log_length_before_test} + 1`
+		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
+		
+		echo ""
+		echo "log_length_before_test ${log_length_before_test}"
+		echo "extract_lines ${extract_lines}"
+		echo ""
+
 		actual_result="${http_code}"
 
 		expected_result_="^4[0-9][0-9]"
 		expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
 
 		echo "actual_result = $actual_result"
-		compare_result ${exp_trial} ${expected_result_} "${expected_behaviour}"
+		compare_result ${exp_trial} ${expected_result_} "${expected_behaviour}" "${TEST_SERV_LOG}"
 		echo ""
 		
 		stop_experiment "$current_name"
@@ -762,10 +773,10 @@ function post_duplicate_exp_result() {
 		post_experiment_result_json "${hpo_post_exp_result_json[$experiment_result]}"
 
 		actual_result="${http_code}"
-		expected_result_="^4[0-9][0-9]"
-		expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
+		expected_result_="400"
+		expected_behaviour="Requested trial exceeds the completed trial limit"
 
-		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}"
+		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}" "${TEST_SERV_LOG}"
 	else
 		failed=1
 		expected_behaviour="RESPONSE_CODE = 200 OK"
@@ -794,10 +805,10 @@ function post_same_id_different_exp_result() {
 		post_experiment_result_json "${hpo_post_exp_result_json[$experiment_result]}"
 
 		actual_result="${http_code}"
-		expected_result_="^4[0-9][0-9]"
-		expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
-
-		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}"
+		expected_result_="400"
+		expected_behaviour="Requested trial exceeds the completed trial limit"
+		
+		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}" "${TEST_SERV_LOG}"
 	else
 		failed=1
 		expected_behaviour="RESPONSE_CODE = 200 OK"
