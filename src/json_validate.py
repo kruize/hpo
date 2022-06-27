@@ -110,8 +110,8 @@ def validate_trial_generate_json(trial_generate_json):
         return errorMsg
     except jsonschema.exceptions.ValidationError as err:
         # Check if the exception is due to empty or null required parameters and prepare the response accordingly
-        if err.message == "None is not of type 'string'" or "None is not of type 'integer'":
-            errorMsg = "Parameters "+HPOErrorConstants.VALUE_MISSING
+        if err.message == "None is not of type 'string'" or err.message == "None is not of type 'integer'" or err.message == "None is not of type 'number'":
+            errorMsg = "Parameters"+HPOErrorConstants.VALUE_MISSING
             return errorMsg
         else:
             return err.message

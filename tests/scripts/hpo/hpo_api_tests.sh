@@ -776,6 +776,7 @@ function post_duplicate_exp_result() {
 		expected_result_="400"
 		expected_behaviour="Requested trial exceeds the completed trial limit"
 
+		sleep 20
 		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}" "${TEST_SERV_LOG}"
 	else
 		failed=1
