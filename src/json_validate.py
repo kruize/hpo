@@ -105,11 +105,16 @@ def validate_trial_generate_json(trial_generate_json):
             validate(instance=trial_generate_json, schema=result_trial_schema, format_checker=draft7_format_checker)
         elif trial_generate_json["operation"] == "EXP_STOP":
             validate(instance=trial_generate_json, schema=stop_experiment_schema, format_checker=draft7_format_checker)
-        else:
-            errorMsg = HPOErrorConstants.INVALID_OPERATION
+        elif not (str(trial_generate_json["operation"]) and str(trial_generate_json["operation"]).strip()):
+            errorMsg = "Operation"+HPOErrorConstants.VALUE_MISSING
         return errorMsg
     except jsonschema.exceptions.ValidationError as err:
-        return err.message
+        # Check if the exception is due to empty or null required parameters and prepare the response accordingly
+        if err.message == "None is not of type 'string'" or "None is not of type 'integer'":
+            errorMsg = "Parameters "+HPOErrorConstants.VALUE_MISSING
+            return errorMsg
+        else:
+            return err.message
 
 
 def validate_search_space(search_space):
@@ -117,10 +122,6 @@ def validate_search_space(search_space):
 
     # loop through the json to check for empty or null values
     for key in search_space:
-
-        # Check if any of the key is empty or null
-        if not (str(search_space[key]) and str(search_space[key]).strip()):
-            validationErrorMsg = ",".join([validationErrorMsg, str(key)+HPOErrorConstants.VALUE_MISSING])
 
         # Check if the direction is supported
         if str(key) == "direction" and str(search_space[key]) not in HPOSupportedTypes.DIRECTIONS_SUPPORTED:

@@ -40,7 +40,7 @@ class HPOErrorConstants:
 
     DIRECTION_NOT_SUPPORTED = "Direction not supported!"
     VALUE_TYPE_NOT_SUPPORTED = "Unsupported value type!"
-    VALUE_MISSING = " cannot be empty!"
+    VALUE_MISSING = " cannot be empty or null!"
     HPO_ALGO_NOT_SUPPORTED = "HPO algorithm not supported!"
     INVALID_RESULT_STATUS = "Trial result status is invalid!"
 
