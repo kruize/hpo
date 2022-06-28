@@ -326,8 +326,9 @@ function compare_result() {
 	expected_log_msg=$3
 	test_log=$4
 
-	echo "************* $expected_log_msg"
-	echo "************* $test_log "
+	echo "Test = ${__test__}"
+	echo "expected log msg = $expected_log_msg"
+	echo "Test log = $test_log"
 
 	if [[ ! ${actual_result} =~ ${expected_result} ]]; then
 		failed=1

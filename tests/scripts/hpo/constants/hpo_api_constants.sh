@@ -49,6 +49,21 @@ declare -A hpo_get_trial_json_tests
 hpo_get_trial_json_tests=([get_trial_json_invalid_tests]='empty-name no-name null-name only-valid-name invalid-trial-number empty-trial-number no-trial-number null-trial-number only-valid-trial-number'
                              [get_trial_json_valid_tests]='valid-exp-trial valid-exp-trial-generate-subsequent')
 
+
+declare -A hpo_get_trial_msgs
+hpo_get_trial_msgs=(
+[empty-name]="Experiment not found"
+[no-name]="Missing required parameters"
+[null-name]="Experiment not found"
+[only-valid-name]="Missing required parameters"
+[invalid-trial-number]="Missing required parameters"
+[empty-trial-number]="Missing required parameters"
+[no-trial-number]="Missing required parameters"
+[null-trial-number]="Missing required parameters"
+[only-valid-trial-number]="Missing required parameters"
+
+)
+
 # Tests to be carried out for HPO module API to post experiment results 
 run_post_exp_result_tests=("empty-name"
 "no-name"
