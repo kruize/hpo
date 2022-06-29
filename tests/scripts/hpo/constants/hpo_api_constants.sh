@@ -52,9 +52,9 @@ hpo_get_trial_json_tests=([get_trial_json_invalid_tests]='empty-name no-name nul
 
 declare -A hpo_get_trial_msgs
 hpo_get_trial_msgs=(
-[empty-name]="Experiment not found"
+[empty-name]="Parameters cannot be empty or null"
 [no-name]="Missing required parameters"
-[null-name]="Experiment not found"
+[null-name]="Parameters cannot be empty or null"
 [only-valid-name]="Missing required parameters"
 [invalid-trial-number]="Missing required parameters"
 [empty-trial-number]="Missing required parameters"
@@ -125,16 +125,16 @@ declare -A hpo_post_experiment_json=(
 
 declare -A hpo_error_messages
 hpo_error_messages=(
-[empty-id]="experiment_id cannot be empty"
+[empty-id]="Parameters cannot be empty or null"
 [no-id]="'experiment_id' is a required property"
 [null-id]="Parameters cannot be empty or null"
-[empty-name]="experiment_name cannot be empty"
+[empty-name]="Parameters cannot be empty or null"
 [no-name]="'experiment_name' is a required property"
 [null-name]="Parameters cannot be empty or null"
 [invalid-operation]="Invalid Operation value"
-[empty-operation]="Operation cannot be empty or null"
+[empty-operation]="Parameters cannot be empty or null"
 [no-operation]="'operation' is a required property"
-[null-operation]="Operation cannot be empty or null"
+[null-operation]="Parameters cannot be empty or null"
 [additional-field]="Additional properties are not allowed"
 [valid-experiment]="Starting Experiment"
 [generate-subsequent]="Experiment not found"
@@ -171,7 +171,7 @@ declare -A hpo_post_exp_result_json=([empty-name]='{"experiment_name" : " ", "tr
 
 declare -A hpo_exp_result_error_messages
 hpo_exp_result_error_messages=(
-[empty-name]="Experiment not found"
+[empty-name]="Parameters cannot be empty or null"
 [no-name]="'experiment_name' is a required property"
 [null-name]="Parameters cannot be empty or null"
 
@@ -194,11 +194,11 @@ hpo_exp_result_error_messages=(
 [null-result-value]="Parameters cannot be empty or null"
 
 [invalid-operation]="Invalid Operation value"
-[empty-operation]="Invalid Operation value"
+[empty-operation]="Parameters cannot be empty or null"
 [no-operation]="'operation' is a required property"
-[null-operation]="Invalid Operation value"
+[null-operation]="Parameters cannot be empty or null"
 
-[additional-field]="Additional properties are not allowed ('tunable_name' was unexpected)"
+[additional-field]="Additional properties are not allowed"
 [valid-experiment-result]="Starting Experiment"
 
 )

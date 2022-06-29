@@ -35,25 +35,30 @@ class HPOSupportedTypes:
 class HPOErrorConstants:
     INVALID_OPERATION = "Invalid Operation value"
     INVALID_CONTENT_TYPE = "Invalid content type. Should be application/json"
-    NOT_FOUND = "Could not be find requested resource. Please check the URL!"
+    NOT_FOUND = "Could not be find requested resource. Please check the URL"
     REQUIRED_PROPERTY = " is a required property"
 
-    DIRECTION_NOT_SUPPORTED = "Direction not supported!"
-    VALUE_TYPE_NOT_SUPPORTED = "Unsupported value type!"
-    VALUE_MISSING = " cannot be empty or null!"
-    HPO_ALGO_NOT_SUPPORTED = "HPO algorithm not supported!"
-    INVALID_RESULT_STATUS = "Trial result status is invalid!"
+    DIRECTION_NOT_SUPPORTED = "Direction not supported"
+    VALUE_TYPE_NOT_SUPPORTED = "Unsupported value type"
+    VALUE_MISSING = " cannot be empty or null"
+    HPO_ALGO_NOT_SUPPORTED = "HPO algorithm not supported"
+    INVALID_RESULT_STATUS = "Trial result status is invalid"
 
-    MISSING_PARAMETERS = "Missing required parameters!"
-    EXPERIMENT_NOT_FOUND = "Experiment not found!"
-    EXPERIMENT_EXISTS = "Experiment already exists!"
-    NEGATIVE_TRIAL = "Trial number cannot be negative!"
-    TRIAL_EXCEEDED = "Requested trial exceeds the completed trial limit!"
-    NON_INTEGER_VALUE = "Only Integer value is allowed!"
-    NEGATIVE_VALUE = "result_value cannot be negative!"
+    MISSING_PARAMETERS = "Missing required parameters"
+    EXPERIMENT_NOT_FOUND = "Experiment not found"
+    EXPERIMENT_EXISTS = "Experiment already exists"
+    EXPERIMENT_TIMED_OUT = "Starting experiment timed out"
+
+    INVALID_TOTAL_TRIALS = "Total trials should be greater than 0"
+    NEGATIVE_TRIAL = "Trial number cannot be negative"
+    TRIAL_EXCEEDED = "Requested trial exceeds the completed trial limit"
+    NON_INTEGER_VALUE = "Only Integer value is allowed"
+    NEGATIVE_VALUE = "result_value cannot be negative"
     VALUE_TYPE_MISMATCH = "Value and value type do not match."
-    PARALLEL_TRIALS_ERROR = "Parallel Trials value should be '1' only!"
+    PARALLEL_TRIALS_ERROR = "Parallel Trials value should be '1' only"
     JSON_STRUCTURE_ERROR = "Invalid JSON structure: "
+
+    JSON_NULL_VALUES = ("is not of type 'string'", "is not of type 'integer'", "is not of type 'number'")
 
 
 class HPOMessages:
