@@ -145,7 +145,6 @@ def validate_search_space(search_space):
 
         # Check if hpo_algo_impl is supported
         elif str(key) == "hpo_algo_impl" and str(search_space[key]) not in HPOSupportedTypes.ALGOS_SUPPORTED:
-            print("validationErrorMsg: ", validationErrorMsg)
             validationErrorMsg = ",".join([validationErrorMsg, HPOErrorConstants.HPO_ALGO_NOT_SUPPORTED])
 
         # Check if value_type is supported
