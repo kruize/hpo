@@ -328,6 +328,9 @@ function run_post_tests(){
 
 # Do a post on experiment_trials for the same experiment id again with "operation: EXP_TRIAL_GENERATE_NEW" and check if experiments have started from the beginning
 function post_duplicate_experiments() {
+	# Get the length of the service log before the test
+	log_length_before_test=$(cat ${SERV_LOG} | wc -l)
+
 	experiment_name=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_name')
 	post_experiment_json "${hpo_post_experiment_json[$exp]}"
 
@@ -345,7 +348,10 @@ function post_duplicate_experiments() {
 		expected_result_="400"
 		expected_behaviour="Experiment already exists"
 
-		sleep 10
+		# Extract the lines from the service log after log_length_before_test
+		extract_lines=`expr ${log_length_before_test} + 1`
+		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
+
 		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}" "${TEST_SERV_LOG}"
       		stop_experiment "$experiment_name"
 	else
@@ -402,8 +408,6 @@ function other_post_experiment_tests() {
 
 	for operation in "${other_post_experiment_tests[@]}"
 	do
-		# Get the length of the service log before the test
-		log_length_before_test=$(cat ${SERV_LOG} | wc -l)
 
 		TESTS_="${TEST_DIR}/${operation}"
 		mkdir -p ${TESTS_}
@@ -416,10 +420,6 @@ function other_post_experiment_tests() {
 		operation=$(echo ${operation//-/_})
 		${operation}
 		echo ""
-
-		# Extract the lines from the service log after log_length_before_test
-		extract_lines=`expr ${log_length_before_test} + 1`
-		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
 	done
 	
 	# Stop the HPO servers
@@ -773,6 +773,9 @@ function post_experiment_result_json() {
 
 # Post duplicate experiment results to HPO /experiment_trials API and validate the result
 function post_duplicate_exp_result() {
+	# Get the length of the service log before the test
+	log_length_before_test=$(cat ${SERV_LOG} | wc -l)
+
 	# Post a valid experiment to HPO /experiment_trials API.
 	exp="valid-experiment"
 	post_experiment_json "${hpo_post_experiment_json[$exp]}"
@@ -794,7 +797,10 @@ function post_duplicate_exp_result() {
 		expected_result_="400"
 		expected_behaviour="Requested trial exceeds the completed trial limit"
 
-		sleep 20
+		# Extract the lines from the service log after log_length_before_test
+		extract_lines=`expr ${log_length_before_test} + 1`
+		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
+
 		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}" "${TEST_SERV_LOG}"
 	else
 		failed=1
@@ -806,6 +812,9 @@ function post_duplicate_exp_result() {
 
 # Post different experiment results to HPO /experiment_trials API for the same experiment id and validate the result
 function post_same_id_different_exp_result() {
+	# Get the length of the service log before the test
+	log_length_before_test=$(cat ${SERV_LOG} | wc -l)
+
 	# Post a valid experiment to HPO /experiment_trials API.
 	exp="valid-experiment"
 	post_experiment_json "${hpo_post_experiment_json[$exp]}"
@@ -826,6 +835,10 @@ function post_same_id_different_exp_result() {
 		actual_result="${http_code}"
 		expected_result_="400"
 		expected_behaviour="Requested trial exceeds the completed trial limit"
+
+		# Extract the lines from the service log after log_length_before_test
+		extract_lines=`expr ${log_length_before_test} + 1`
+		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
 		
 		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}" "${TEST_SERV_LOG}"
 	else
@@ -855,8 +868,6 @@ function other_exp_result_post_tests() {
 
 	for operation in "${other_exp_result_post_tests[@]}"
 	do
-		# Get the length of the service log before the test
-		log_length_before_test=$(cat ${SERV_LOG} | wc -l)
 
 		TESTS_="${TEST_DIR}/${operation}"
 		mkdir -p ${TESTS_}
@@ -873,10 +884,6 @@ function other_exp_result_post_tests() {
 		operation=$(echo ${operation//-/_})
 		${operation}
 		echo ""
-
-		# Extract the lines from the service log after log_length_before_test
-		extract_lines=`expr ${log_length_before_test} + 1`
-		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
 
       		stop_experiment "$current_name"
 
