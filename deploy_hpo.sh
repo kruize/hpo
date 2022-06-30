@@ -43,14 +43,14 @@ timeout=-1
 . ${SCRIPTS_DIR}/openshift-helpers.sh
 
 function usage() {
-  echo
-  echo "Usage: $0 [-a] [-c [docker|minikube|native|openshift]] [-o hpo container image] [-n namespace] [-d configmaps-dir ]"
-  echo "       -s = start(default), -t = terminate"
-  echo " -c: cluster type."
-  echo " -o: build with specific hpo container image name [Default - kruize/hpo:<version>]"
-  echo " -n: Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
-  echo " -d: Config maps directory [Default - manifests/configmaps]"
-  exit -1
+	echo
+	echo "Usage: $0 [-a] [-c [docker|minikube|native|openshift]] [-o hpo container image] [-n namespace] [-d configmaps-dir ]"
+	echo "       -s = start(default), -t = terminate"
+	echo " -c: cluster type."
+	echo " -o: build with specific hpo container image name [Default - kruize/hpo:<version>]"
+	echo " -n: Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
+	echo " -d: Config maps directory [Default - manifests/configmaps]"
+	exit -1
 }
 
 # Check the cluster_type
@@ -69,16 +69,16 @@ while getopts ac:o:n:st gopts
 do
 	case ${gopts} in
 	a)
-  		non_interactive=1
-  		;;
+		non_interactive=1
+		;;
 	c)
 		cluster_type="${OPTARG}"
 		check_cluster_type
 		;;
-    d)
+	d)
 		HPO_CONFIGMAPS="${OPTARG}"
 		;;
- 	n)
+	n)
 		hpo_ns="${OPTARG}"
 		;;
 	o)
@@ -100,7 +100,7 @@ resolve_container_runtime
 
 # check if user has specified any custom image else use default
 if [ -n "${HPO_CONTAINER_IMAGE}" ]; then
-  echo "Using version: ${HPO_VERSION}"
+	echo "Using version: ${HPO_VERSION}"
 else
 	HPO_CONTAINER_IMAGE=${HPO_REPO}:${HPO_VERSION}
 fi

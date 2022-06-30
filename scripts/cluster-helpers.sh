@@ -18,10 +18,10 @@
 ###############################  v Docker v #################################
 
 function docker_start() {
-	
+
 	echo
 	echo "Deploying with runtime: ${CONTAINER_RUNTIME}"
-	
+
 	echo
 	echo "###   Starting HPO on Docker"
 	echo
@@ -29,7 +29,7 @@ function docker_start() {
 	echo
 
 	# Check if the container with name 'hpo_docker_container' is already running
-	
+
 	check_prereq running ${SERVICE_STATUS_DOCKER}
 
 	${CONTAINER_RUNTIME} run -d --name hpo_docker_container -p 8085:8085 -p 50051:50051 ${HPO_CONTAINER_IMAGE} >/dev/null 2>&1
@@ -126,7 +126,7 @@ function minikube_first() {
 
 	kubectl_cmd="kubectl -n ${hpo_ns}"
 	echo "Info: One time setup - Create a service account to deploy hpo"
-	
+
 	${kubectl_cmd} apply -f ${HPO_SA_MANIFEST}
 	check_err "Error: Failed to create service account and RBAC"
 
@@ -137,7 +137,7 @@ function minikube_first() {
 
 # You can deploy using kubectl
 function minikube_deploy() {
-    echo
+	echo
 	echo "Creating environment variable in minikube cluster using configMap"
 	${kubectl_cmd} apply -f ${HPO_CONFIGMAPS}/${cluster_type}-config.yaml
 
@@ -192,7 +192,6 @@ function minikube_terminate() {
 	rm ${HPO_DEPLOY_MANIFEST}
 	rm ${HPO_RB_MANIFEST}
 	echo
-	 
 }
 
 ###############################  utilities  #################################
@@ -227,15 +226,14 @@ function check_running() {
 			*)
 				sleep 2
 				if [ -z "${pod_stat}" ]; then
-				  echo
-				  echo "Failed to deploy HPO! Reverting changes and Exiting..."
-				  echo
-				  minikube_terminate
-				  exit 1
+					echo
+					echo "Failed to deploy HPO! Reverting changes and Exiting..."
+					echo
+					minikube_terminate
+					exit 1
 				else
 					continue;
 				fi
-
 				;;
 		esac
 	done
@@ -249,8 +247,8 @@ function resolve_container_runtime() {
 	IFS='=' read -r -a dockerDeamonState <<< $(systemctl show --property ActiveState docker)
 	[[ "${dockerDeamonState[1]}" == "inactive" ]] && CONTAINER_RUNTIME="podman"
 	if ! command -v podman &> /dev/null; then
-	    echo "No Container Runtime available: Docker daemon is not running and podman command could not be found"
-	    exit 1
+		echo "No Container Runtime available: Docker daemon is not running and podman command could not be found"
+		exit 1
 	fi
 }
 
