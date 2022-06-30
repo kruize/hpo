@@ -186,7 +186,7 @@ function check_server_status() {
   timeout 300 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://localhost:8085)" != "200" ]]; do sleep 1; done' || false
 
 
-	service_log_msg="Access server at"
+	service_log_msg="Access REST Service at"
 
 	if grep -q "${service_log_msg}" "${TEST_DIR}/service.log" ; then
 		echo "HPO REST API service started successfully..." | tee -a ${LOG_} ${LOG}
