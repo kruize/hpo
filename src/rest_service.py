@@ -252,7 +252,7 @@ def get_search_create_study(search_space_json, operation):
 
 def main():
     server = HTTPServer((HPOSupportedTypes.SERVER_HOSTNAME, HPOSupportedTypes.SERVER_PORT), HTTPRequestHandler)
-    logger.info("Access server at http://%s:%s" % ("localhost", HPOSupportedTypes.SERVER_PORT))
+    logger.info("Access REST Service at http://%s:%s" % ("localhost", HPOSupportedTypes.SERVER_PORT))
     server.serve_forever()
 
 

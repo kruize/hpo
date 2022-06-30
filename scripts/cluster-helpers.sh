@@ -107,19 +107,29 @@ function native_start() {
 	echo "###   Installing HPO as a native App"
 	echo
 
-	echo
-	echo "### Installing dependencies.........."
-	echo
-	python3 -m pip install --user -r requirements.txt >/dev/null 2>&1
+    if [ "$1" = "REST" ]; then
+        req="-r requirements.txt"
+    else
+        req="-r requirements.txt -r grpc_requirements.txt"
+    fi
 
-	echo
-	echo "### Starting the service..."
-	echo
+    echo
+    echo "### Installing dependencies.........."
+    echo
+    python3 -m pip install --user ${req} >/dev/null 2>&1
 
-	# check if service is already running
-	check_prereq running ${SERVICE_STATUS_NATIVE}
+    echo
+    echo "### Starting the service..."
+    echo
 
-	python3 -u src/service.py
+    # check if service is already running
+    check_prereq running ${SERVICE_STATUS_NATIVE}
+
+    if [ "$1" = "REST" ]; then
+        python3 -u src/rest_service.py
+    else
+        python3 -u src/service.py
+    fi
 }
 
 function native_terminate() {
