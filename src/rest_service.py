@@ -258,13 +258,13 @@ def get_search_create_study(search_space_json, operation):
         logger.info("Total Trials = " + str(total_trials))
         logger.info("Parallel Trials = " + str(parallel_trials))
 
-        if hpo_algo_impl in HPOSupportedTypes.ALGOS_SUPPORTED:
-            hpo_service.instance.newExperiment(id_, experiment_name, total_trials, parallel_trials, direction,
-                                               hpo_algo_impl, objective_function, tunables, value_type)
-            logger.info("Starting Experiment: " + experiment_name)
-            response = hpo_service.instance.startExperiment(experiment_name)
-            if response:
-                return response
+        hpo_service.instance.newExperiment(id_, experiment_name, total_trials, parallel_trials, direction,
+                                           hpo_algo_impl, objective_function, tunables, value_type)
+        logger.info("Starting Experiment: " + experiment_name)
+        # check response, it will have error message if the experiment timed out else nothing will be returned
+        response = hpo_service.instance.startExperiment(experiment_name)
+        if response:
+            return response
 
 
 def main():

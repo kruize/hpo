@@ -35,10 +35,6 @@ class HpoService:
 
     def newExperiment(self, id_, experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl,
                       objective_function, tunables, value_type):
-        if self.containsExperiment(experiment_name):
-            logger.error(HPOErrorConstants.EXPERIMENT_EXISTS)
-            return
-
         try:
             self.expStateCond.acquire()
             self.experiments[experiment_name] = optuna_hpo.HpoExperiment(experiment_name, total_trials, parallel_trials,
@@ -70,7 +66,8 @@ class HpoService:
             value = started.wait(10)  # wait with timeout of 10s
         finally:
             started.release()
-
+        # check experiment-start status, it will be timed out if the response is delayed from the implemented algo
+        # for more than 10 seconds .
         if not value:
             logger.error(HPOErrorConstants.EXPERIMENT_TIMED_OUT)
             return HPOErrorConstants.EXPERIMENT_TIMED_OUT

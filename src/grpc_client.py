@@ -184,6 +184,8 @@ def run(func):
                 raise click.ClickException(rpc_error.details())
             elif rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
                 raise click.ClickException(rpc_error.details())
+            elif rpc_error.code() == grpc.StatusCode.ALREADY_EXISTS:
+                raise click.ClickException(rpc_error.details())
             else:
                 raise click.ClickException("Received unknown RPC error: code={" + str(rpc_error.code()) + "} message={" + rpc_error.details() + "}")
         return
