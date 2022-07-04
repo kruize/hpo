@@ -21,12 +21,8 @@ HPO_REPO="kruize/hpo"
 HPO_VERSION=$(grep -a -m 1 "HPO_VERSION" ${ROOT_DIR}/version.py | cut -d= -f2)
 HPO_VERSION=$(sed -e 's/^"//' -e 's/"$//' <<<"$HPO_VERSION")
 
-HPO_SA_MANIFEST="manifests/hpo-operator-sa.yaml"
-HPO_DEPLOY_MANIFEST_TEMPLATE="manifests/hpo-operator-deployment.yaml_template"
-HPO_DEPLOY_MANIFEST="manifests/hpo-operator-deployment.yaml"
-HPO_RB_MANIFEST_TEMPLATE="manifests/hpo-operator-rolebinding.yaml_template"
-HPO_RB_MANIFEST="manifests/hpo-operator-rolebinding.yaml"
-HPO_SA_NAME="hpo-sa"
+HPO_DEPLOY_MANIFEST_TEMPLATE="manifests/hpo-deployment.yaml_template"
+HPO_DEPLOY_MANIFEST="manifests/hpo-deployment.yaml"
 HPO_CONFIGMAPS="manifests/configmaps"
 
 #default values
