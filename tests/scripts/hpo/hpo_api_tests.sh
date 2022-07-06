@@ -585,7 +585,7 @@ function validate_exp_trial() {
 	else
 		echo "$(cat ${result} | jq '.config' | jq  'sort_by(.name)')" > ${result}
 		EXP_JSON="./resources/searchspace_jsons/newExperiment.json"
-		echo "$(jq '[.tuneables[] | {lower_bound: .lower_bound, name: .name, upper_bound: .upper_bound}] | sort_by(.name)' ${EXP_JSON})" > ${expected_json}
+		echo "$(jq '[.tunables[] | {lower_bound: .lower_bound, name: .name, upper_bound: .upper_bound}] | sort_by(.name)' ${EXP_JSON})" > ${expected_json}
 	fi
 
 
