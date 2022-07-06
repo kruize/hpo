@@ -85,9 +85,9 @@ function hpo_grpc_sanity_test() {
 		fi
 	done
 
-  #Validate removing test
-  python ../src/grpc_client.py stop --name ${exp_name}
-  verify_grpc_result "Stop running experiment ${exp_name}" $?
+	# Validate removing test
+	python ../src/grpc_client.py stop --name ${exp_name}
+	verify_grpc_result "Stop running experiment ${exp_name}" $?
 
 	# Terminate any running HPO servers
 	echo "Terminating any running HPO servers..." | tee -a ${LOG}
@@ -109,41 +109,24 @@ function hpo_grpc_sanity_test() {
 	fi
 }
 
-function verify_grpc_result() {
-	test_info=$1
-	exit_code=$2
-
-	if [ ${exit_code} -ne 0 ]; then
-		failed=1
-		echo "$test_info failed!"
-	else
-		if [[ "${test_info}" =~ "Get config" ]]; then
-			validate_exp_trial "grpc"
-			if [[ ${failed} == 1 ]]; then
-				echo "Validating hpo config failed" | tee -a ${LOG}
-			fi
-		fi
-	fi
-}
-
-
-# Multple experiments test for HPO REST service
-function hpo_grpc_multiple_exp_test() {
+# Sanity Test for HPO REST service
+function hpo_sanity_test() {
 	((TOTAL_TESTS++))
 	((TESTS++))
 
-	# Set the no. of experiments
-	NUM_EXPS=5
-
 	# Set the no. of trials
-	N_TRIALS=3
+	N_TRIALS=5
 	failed=0
-	EXP_JSON="./resources/searchspace_jsons/newExperiment.json"
 
 	# Form the url based on cluster type & API
 	form_hpo_api_url "experiment_trials"
 	echo "HPO URL = $hpo_url"  | tee -a ${LOG}
 
+	# Get the experiment id and name from the search space
+	exp_id=$(echo ${hpo_post_experiment_json["valid-experiment"]} | jq '.search_space.experiment_id')
+	exp_name=$(echo ${hpo_post_experiment_json["valid-experiment"]} | jq '.search_space.experiment_name')
+	echo "Experiment id = $exp_id"
+	echo "Experiment name = $exp_name"
 
 	TESTS_=${TEST_DIR}
 	SERV_LOG="${TESTS_}/service.log"
@@ -157,7 +140,8 @@ function hpo_grpc_multiple_exp_test() {
 		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
 	fi
 
-	sleep 10
+	# Check if HPO services are started
+	check_server_status
 
 	expected_http_code="200"
 
@@ -166,79 +150,67 @@ function hpo_grpc_multiple_exp_test() {
 	cat /etc/hosts
 	echo ""
 
-	exp_json=${hpo_post_experiment_json["valid-experiment"]}
-
-	## Start multiple experiments
-	for (( i=1 ; i<=${NUM_EXPS} ; i++ ))
-	do
-		LOG_="${TEST_DIR}/hpo-exp-${i}.log"
-		# Post the experiment
-		echo "Start a new experiment with the search space json..." | tee -a ${LOG}
-
-		# Replace the experiment name
-		cat $EXP_JSON | sed -e 's/petclinic-sample-2-75884c5549-npvgd/petclinic-sample-'${i}'/' > ${TEST_DIR}/petclinic-exp-${i}.json
-
-		echo "Posting a new experiment..."
-		python ../src/grpc_client.py new --file="${TEST_DIR}/petclinic-exp-${i}.json"
-		verify_grpc_result "Post new experiment" $?
-
-		sleep 5
-
-	done
-
 	## Loop through the trials
-	for (( trial_num=0 ; trial_num<${N_TRIALS} ; trial_num++ ))
+	for (( i=0 ; i<${N_TRIALS} ; i++ ))
 	do
+		echo ""
+		echo "*********************************** Trial ${i} *************************************"
+		LOG_="${TEST_DIR}/hpo-trial-${i}.log"
+		if [ ${i} == 0 ]; then
+			# Post the experiment
+			echo "Start a new experiment with the search space json..." | tee -a ${LOG}
+			post_experiment_json "${hpo_post_experiment_json["valid-experiment"]}"
+			verify_result "Post new experiment" "${http_code}" "${expected_http_code}"
+		fi
 
-		for (( i=1 ; i<=${NUM_EXPS} ; i++ ))
-		do
-			exp_name="petclinic-sample-${i}"
-			echo ""
-			echo "*********************************** Experiment ${exp_name} and trial_number ${trial_num} *************************************"
-			LOG_="${TEST_DIR}/hpo-exp-${i}-trial-${trial_num}.log"
+		# Get the config from HPO
+		echo ""
+		echo "Generate the config for trial ${i}..." | tee -a ${LOG}
+		echo ""
 
-			# Get the config from HPO
-			sleep 2
-			echo ""
-			echo "Generate the config for trial experiment ${exp_name} and ${trial_num}..." | tee -a ${LOG}
-			echo ""
-			result="${TEST_DIR}/hpo_config_exp${i}_trial${trial_num}.json"
-			expected_json="${TEST_DIR}/expected_hpo_config_exp${i}.json"
-		
-			get_trial_json_cmd="python ../src/grpc_client.py config --name ${exp_name} --trial ${trial_num}"
-			echo "command to query the experiment_trial API = ${get_trial_json_cmd}" | tee -a ${LOG}
+		curl="curl -H 'Accept: application/json'"
+		url="$hpo_base_url/experiment_trials"
 
-			echo "result = $result  epxected_json = $expected_json"
-			python ../src/grpc_client.py config --name ${exp_name} --trial ${trial_num} > ${result}
-			verify_grpc_result "Get config from hpo for experiment ${exp_name} and trial ${trial_num}" $?
+		get_trial_json=$(${curl} ''${hpo_url}'?experiment_name=petclinic-sample-2-75884c5549-npvgd&trial_number='${i}'' -w '\n%{http_code}' 2>&1)
 
+		get_trial_json_cmd="${curl} ${url}?experiment_name="petclinic-sample-2-75884c5549-npvgd"&trial_number=${i} -w '\n%{http_code}'"
+		echo "command used to query the experiment_trial API = ${get_trial_json_cmd}" | tee -a ${LOG}
 
-			# Post the experiment result to hpo
+		http_code=$(tail -n1 <<< "${get_trial_json}")
+		response=$(echo -e "${get_trial_json}" | tail -2 | head -1)
+		response=$(echo ${response} | cut -c 4-)
+
+		result="${TEST_DIR}/hpo_config_${i}.json"
+		expected_json="${TEST_DIR}/expected_hpo_config_${i}.json"
+
+		echo "${response}" > ${result}
+		cat $result
+		verify_result "Get config from hpo trial ${i}" "${http_code}" "${expected_http_code}"
+
+		# Post the experiment result to hpo
+		echo "" | tee -a ${LOG}
+		echo "Post the experiment result for trial ${i}..." | tee -a ${LOG}
+		trial_result="success"
+		result_value="98.7"
+		exp_result_json='{"experiment_name":'${exp_name}',"trial_number":'${i}',"trial_result":"'${trial_result}'","result_value_type":"double","result_value":'${result_value}',"operation":"EXP_TRIAL_RESULT"}'
+		post_experiment_result_json ${exp_result_json}
+		verify_result "Post experiment result for trial ${i}" "${http_code}" "${expected_http_code}"
+
+		# Generate a subsequent trial
+		if [[ ${i} < $((N_TRIALS-1)) ]]; then
 			echo "" | tee -a ${LOG}
-			echo "Post the experiment result for trial ${trial_num}..." | tee -a ${LOG}
-			result_value="198.7"
-
-			if [[ ${trial_num} == 1 ]]; then
-				echo "Posting a FAILURE result..."
-				python ../src/grpc_client.py result --name "${exp_name}" --trial "${trial_num}" --result FAILURE --value_type "double" --value "${result_value}"
-			else
-				python ../src/grpc_client.py result --name "${exp_name}" --trial "${trial_num}" --result SUCCESS --value_type "double" --value "${result_value}"
-			fi
-
-			verify_grpc_result "Post new experiment result for experiment ${exp_name} and trial ${trial_num}" $?
-	
-			sleep 5
-
-			# Generate a subsequent trial
-			if [[ ${trial_num} < $((N_TRIALS-1)) ]]; then
-				echo "" | tee -a ${LOG}
-				echo "Generate subsequent config for experiment ${exp_name} after trial ${trial_num} ..." | tee -a ${LOG}
-				python ../src/grpc_client.py next --name ${exp_name}
-				verify_grpc_result "Post subsequent for experiment ${exp_name} after trial ${trial_num}" $?
-			fi
-		done
+			echo "Generate subsequent config after trial ${i} ..." | tee -a ${LOG}
+			subsequent_trial='{"experiment_name":'${exp_name}',"operation":"EXP_TRIAL_GENERATE_SUBSEQUENT"}'
+			post_experiment_json ${subsequent_trial}
+			verify_result "Post subsequent experiment after trial ${i}" "${http_code}" "${expected_http_code}"
+		fi
 	done
 
+	# Validate removing test
+	stop_experiment='{"experiment_name":'${exp_name}',"operation":"EXP_STOP"}'
+	post_experiment_json ${stop_experiment}
+	verify_result "Stop running experiment ${exp_name}" "${http_code}" "200"
+	
 	# Store the docker logs
 	if [ ${cluster_type} == "docker" ]; then
 		docker logs hpo_docker_container > ${TEST_DIR}/hpo_container.log 2>&1
@@ -264,3 +236,4 @@ function hpo_grpc_multiple_exp_test() {
 		echo "Test failed" | tee -a ${LOG}
 	fi
 }
+

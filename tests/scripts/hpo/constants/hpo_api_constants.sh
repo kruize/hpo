@@ -125,6 +125,9 @@ declare -A hpo_post_experiment_json=(
 
 declare -A hpo_error_messages
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 923ef1f (Split the tests based on functionality instead of  service)
 hpo_error_messages=(
 [empty-id]="Parameters cannot be empty or null"
 [no-id]="'experiment_id' is a required property"
@@ -141,6 +144,7 @@ hpo_error_messages=(
 [generate-subsequent]="Experiment not found"
 [invalid-searchspace]="Direction not supported"
 )
+<<<<<<< HEAD
 =======
 hpo_error_messages=([empty-id]="KeyError: ' '"
 [no-id]="KeyError: 'experiment_id'"
@@ -150,6 +154,8 @@ hpo_error_messages=([empty-id]="KeyError: ' '"
 [null-name]="KeyError: None"
 [no-operation]="KeyError: 'operation'")
 >>>>>>> 2e1c695 (Rebased the changes again and removed invalid id test as it is no longer relevant)
+=======
+>>>>>>> 923ef1f (Split the tests based on functionality instead of  service)
 
 
 declare -A hpo_post_exp_result_json=([empty-name]='{"experiment_name" : " ", "trial_number": 0, "trial_result": "success", "result_value_type": "double", "result_value": 98.78, "operation" : "EXP_TRIAL_RESULT"}'

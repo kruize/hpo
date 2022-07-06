@@ -23,8 +23,11 @@ SCRIPTS_DIR="${CURRENT_DIR}/hpo"
 
 # Source the common functions scripts
 . ${SCRIPTS_DIR}/constants/hpo_api_constants.sh
-. ${SCRIPTS_DIR}/hpo_rest_tests.sh
-. ${SCRIPTS_DIR}/hpo_grpc_tests.sh
+. ${SCRIPTS_DIR}/hpo_post_experiment_tests.sh
+. ${SCRIPTS_DIR}/hpo_get_config_tests.sh
+. ${SCRIPTS_DIR}/hpo_post_exp_result_tests.sh
+. ${SCRIPTS_DIR}/hpo_multiple_exp_tests.sh
+. ${SCRIPTS_DIR}/hpo_sanity_tests.sh
 
 export hpo_base_url=http://localhost:8085
 

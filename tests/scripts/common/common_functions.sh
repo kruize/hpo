@@ -346,3 +346,206 @@ function compare_result() {
 
 	display_result "${expected_log_msg}" "${__test__}" "${failed}"
 }
+
+
+# Validate the trial json returned by RM-HPO GET operation
+function validate_exp_trial() {
+	service=$1
+	tunable_count=0
+	# Sort the actual json based on tunable name
+	echo ""
+
+	if [ "${service}" == "rest" ]; then
+		echo "$(cat ${result} | jq  'sort_by(.tunable_name)')" > ${result}
+		# Sort the json based on tunable name
+		SEARCH_SPACE_JSON="/tmp/search_space.json"
+		echo "${hpo_post_experiment_json["valid-experiment"]}" > ${SEARCH_SPACE_JSON}
+		cat ${SEARCH_SPACE_JSON}
+		echo "$(jq '[.search_space.tunables[] | {lower_bound: .lower_bound, name: .name, upper_bound: .upper_bound}] | sort_by(.name)' ${SEARCH_SPACE_JSON})" > ${expected_json}
+	else
+		echo "$(cat ${result} | jq '.config' | jq  'sort_by(.name)')" > ${result}
+		EXP_JSON="./resources/searchspace_jsons/newExperiment.json"
+		echo "$(jq '[.tuneables[] | {lower_bound: .lower_bound, name: .name, upper_bound: .upper_bound}] | sort_by(.name)' ${EXP_JSON})" > ${expected_json}
+	fi
+
+
+	echo "Actual tunables json"
+	cat ${result}
+	echo ""
+
+	echo "Expected tunables json"
+	cat ${expected_json}
+
+	expected_tunables_len=$(cat ${expected_json} | jq '. | length')
+	actual_tunables_len=$(cat ${result}  | jq '. | length')
+
+	echo "___________________________________ Validate experiment trial __________________________________________" | tee -a ${LOG_} ${LOG}
+	echo "" | tee -a ${LOG_} ${LOG}
+	echo "expected tunables length = ${expected_tunables_len} actual tunables length = ${actual_tunables_len}"
+	if [ "${expected_tunables_len}" -ne "${actual_tunables_len}" ]; then
+		failed=1
+		echo "Error - Number of expected and actual tunables should be same" | tee -a ${LOG_} ${LOG}
+
+		echo "" | tee -a ${LOG_} ${LOG}
+		echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" | tee -a ${LOG_} ${LOG}
+	else
+		echo "" | tee -a ${LOG_} ${LOG}
+		echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" | tee -a ${LOG_} ${LOG}
+
+		while [ "${tunable_count}" -lt "${expected_tunables_len}" ]
+		do
+			upperbound=$(cat ${expected_json} | jq '.['${tunable_count}'].upper_bound')
+			lowerbound=$(cat ${expected_json} | jq '.['${tunable_count}'].lower_bound')
+			tunable_name=$(cat ${expected_json} | jq '.['${tunable_count}'].name')
+			if [ "${service}" == "rest" ]; then
+				actual_tunable_name=$(cat ${result} | jq '.['${tunable_count}'].tunable_name')
+				actual_tunable_value=$(cat ${result} | jq '.['${tunable_count}'].tunable_value')
+			else
+				actual_tunable_name=$(cat ${result} | jq '.['${tunable_count}'].name')
+				actual_tunable_value=$(cat ${result} | jq '.['${tunable_count}'].value')
+			fi
+
+			# validate the tunable name
+			echo "" | tee -a ${LOG_} ${LOG}
+			echo "Validating the tunable name ${actual_tunable_name}..." | tee -a ${LOG_} ${LOG}
+			if [ "${actual_tunable_name}" != "${tunable_name}" ]; then
+				failed=1
+				echo "Error - Actual Tunable name should match with the tunable name returned by dependency analyzer" | tee -a ${LOG_} ${LOG}
+			fi
+			echo "" | tee -a ${LOG_} ${LOG}
+
+			echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" | tee -a ${LOG_} ${LOG}
+			echo "" | tee -a ${LOG_} ${LOG}
+
+			# validate the tunable value
+			echo "Validating the tunable value for ${actual_tunable_name}..." | tee -a ${LOG_} ${LOG}
+
+			if [[ $(bc <<< "${actual_tunable_value} >= ${lowerbound} && ${actual_tunable_value} <= ${upperbound}") == 0 ]]; then
+				failed=1
+				echo "Error - Actual Tunable value should be within the given range" | tee -a ${LOG_} ${LOG}
+			fi
+			echo "" | tee -a ${LOG_} ${LOG}
+			echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" | tee -a ${LOG_} ${LOG}
+			((tunable_count++))
+		done
+	fi
+	echo ""
+}
+
+# Check if the servers have started
+function check_server_status() {
+  echo "Wait for HPO service to come up"
+  #if service does not start within 5 minutes (300s) fail the test
+  timeout 300 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://localhost:8085)" != "200" ]]; do sleep 1; done' || false
+
+
+	service_log_msg="Access server at"
+
+	if grep -q "${service_log_msg}" "${TEST_DIR}/service.log" ; then
+		echo "HPO REST API service started successfully..." | tee -a ${LOG_} ${LOG}
+	else
+		echo "Error Starting the HPO REST API service..." | tee -a ${LOG_} ${LOG}
+		echo "See ${TEST_DIR}/service.log for more details" | tee -a ${LOG_} ${LOG}
+		cat "${TEST_DIR}/service.log"
+		exit 1
+	fi
+
+	grpc_service_log_msg="Starting gRPC server at"
+	if grep -q "${grpc_service_log_msg}" "${TEST_DIR}/service.log" ; then
+		echo "HPO GRPC API service started successfully..." | tee -a ${LOG_} ${LOG}
+	else
+		echo "Error Starting the HPO GRPC API service..." | tee -a ${LOG_} ${LOG}
+		echo "See TEST_DIR{TEST_DIR}/service.log for more details" | tee -a ${LOG_} ${LOG}
+		cat "${TESTS_}/service.log"
+		exit 1
+	fi
+}
+
+# Post a JSON object to HPO(Hyper Parameter Optimization) module
+# input: JSON object
+# output: Create the Curl command with given JSON and get the result
+function stop_experiment() {
+	exp_name=$1
+	echo ""
+	echo "******************************************"
+	echo "stop experiment = ${exp_name}"
+	echo "******************************************"
+
+	form_hpo_api_url "experiment_trials"
+
+	remove_experiment='{"experiment_name":'${exp_name}',"operation":"EXP_STOP"}'
+
+	post_cmd=$(curl -s -H 'Content-Type: application/json' ${hpo_url}  -d "${remove_experiment}"  -w '\n%{http_code}' 2>&1)
+
+	stop_experiment_cmd="curl -s -H 'Content-Type: application/json' ${hpo_url} -d '${remove_experiment}'  -w '\n%{http_code}'"
+
+	echo "" | tee -a ${LOG_} ${LOG}
+	echo "Curl command used to stop the experiment = ${stop_experiment_cmd}" | tee -a ${LOG_} ${LOG}
+	echo "" | tee -a ${LOG_} ${LOG}
+
+	echo "${post_cmd}" >> ${LOG_} ${LOG}
+
+	http_code=$(tail -n1 <<< "${post_cmd}")
+	response=$(echo -e "${post_cmd}" | tail -2 | head -1)
+
+	echo "Response is ${response}" >> ${LOG_} ${LOG}
+	echo "http_code is $http_code Response is ${response}"
+}
+
+function form_hpo_api_url {
+	API=$1
+	# Form the URL command based on the cluster type
+	case $cluster_type in
+		native|docker) 
+			PORT="8085"
+			SERVER_IP="localhost"
+			URL="http://${SERVER_IP}"
+			;;
+		*);;
+	esac
+
+	# Add conditions later for other cluster types
+	if [[ ${cluster_type} == "native" || ${cluster_type} == "docker" ]]; then
+		hpo_url="${URL}:${PORT}/${API}"
+	fi
+}
+
+function verify_result() {
+	test_info=$1
+	http_code=$2
+	expected_http_code=$3
+
+	if [[ "${http_code}" -eq "000" ]]; then
+		failed=1
+	else
+		if [[ ${http_code} -ne ${expected_http_code} ]]; then
+			failed=1
+			echo "${test_info} failed - http_code is not as expected, http_code = ${http_code} expected code = ${expected_http_code}" | tee -a ${LOG}
+		else
+			if [[ "${test_info}" =~ "Get config" ]]; then
+				validate_exp_trial "rest"
+				if [[ ${failed} == 1 ]]; then
+					echo "Validating hpo config failed" | tee -a ${LOG}
+				fi
+			fi
+		fi
+	fi
+}
+
+function verify_grpc_result() {
+	test_info=$1
+	exit_code=$2
+
+	if [ ${exit_code} -ne 0 ]; then
+		failed=1
+		echo "$test_info failed!"
+	else
+		if [[ "${test_info}" =~ "Get config" ]]; then
+			validate_exp_trial "grpc"
+			if [[ ${failed} == 1 ]]; then
+				echo "Validating hpo config failed" | tee -a ${LOG}
+			fi
+		fi
+	fi
+}
+
