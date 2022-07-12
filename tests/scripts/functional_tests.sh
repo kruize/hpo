@@ -89,9 +89,9 @@ function execute_hpo_testsuites() {
 # Perform the specific testsuite if specified 
 if [ ! -z "${testmodule}" ]; then
 	case "${testmodule}" in
-           hpo)
-		# Execute tests for Hyperparameter Optimization (HPO) Module 
-                execute_hpo_testsuites
+		hpo)
+		# Execute tests for Hyperparameter Optimization (HPO) Module
+			execute_hpo_testsuites
 		;;
 	esac
 elif [ ! -z "${testsuite}" ]; then
@@ -117,4 +117,3 @@ if [ "${TOTAL_TESTS_FAILED}" -ne "0" ]; then
 else
 	exit 0
 fi
-

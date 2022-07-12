@@ -181,9 +181,9 @@ function stop_experiment() {
 
 # Check if the servers have started
 function check_server_status() {
-  echo "Wait for HPO service to come up"
-  #if service does not start within 5 minutes (300s) fail the test
-  timeout 300 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://localhost:8085)" != "200" ]]; do sleep 1; done' || false
+	echo "Wait for HPO service to come up"
+	#if service does not start within 5 minutes (300s) fail the test
+	timeout 300 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://localhost:8085)" != "200" ]]; do sleep 1; done' || false
 
 
 	service_log_msg="Access REST Service at"
@@ -214,7 +214,7 @@ function check_server_status() {
 # input: Test name
 function run_post_tests(){
 	hpo_test_name=$1
-	
+
 	if [ "${hpo_test_name}" == "hpo_post_experiment" ]; then
 		exp_tests=("${run_post_experiment_tests[@]}")
 	else
@@ -228,7 +228,7 @@ function run_post_tests(){
 	else
 		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
 	fi
-	
+
 	# Check if HPO services are started
 	check_server_status
 
@@ -246,7 +246,7 @@ function run_post_tests(){
 		echo "************************************* ${post_test} Test ****************************************" | tee -a ${LOG_} ${LOG}
 		echo "" | tee -a ${LOG_} ${LOG}
 
-		exp="${post_test}"	
+		exp="${post_test}"
 
 		experiment_name=""
 		if [ "${hpo_test_name}" == "hpo_post_exp_result" ]; then
@@ -289,7 +289,7 @@ function run_post_tests(){
 		# Extract the lines from the service log after log_length_before_test
 		extract_lines=`expr ${log_length_before_test} + 1`
 		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
-		
+
 		echo ""
 		echo "log_length_before_test ${log_length_before_test}"
 		echo "extract_lines ${extract_lines}"
@@ -299,7 +299,7 @@ function run_post_tests(){
 		if [[ "${http_code}" -eq "000" ]]; then
 			if [[ ! -z ${expected_log_msg} ]]; then
 				if grep -q "${expected_log_msg}" "${TEST_SERV_LOG}" ; then
-					failed=0 
+					failed=0
 				else
 					failed=1
 				fi
@@ -321,9 +321,9 @@ function run_post_tests(){
 		fi
 
 		echo "" | tee -a ${LOG_} ${LOG}
-		
+
 	done
-	
+
 	# Stop the HPO servers
 	echo "Terminating any running HPO servers..." | tee -a ${LOG}
 	terminate_hpo ${cluster_type}
@@ -352,7 +352,7 @@ function post_duplicate_experiments() {
 		expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
 
 		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}"
-      		stop_experiment "$experiment_name"
+		stop_experiment "$experiment_name"
 	else
 		failed=1
 		expected_behaviour="RESPONSE_CODE = 200 OK"
@@ -387,7 +387,7 @@ function operation_generate_subsequent() {
 	compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}"
 }
 
-# The test does the following: 
+# The test does the following:
 # * Post the same experiment again with operation set to "EXP_TRIAL_GENERATE_NEW" and validate the result.
 # * Post the same experiment again with the operation set to "EXP_TRIAL_GENERATE_SUBSEQUENT" after we post the result for the previous trial, and check if subsequent trial number is generated
 # input: Test name
@@ -401,7 +401,7 @@ function other_post_experiment_tests() {
 	else
 		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
 	fi
-	
+
 	# Check if HPO services are started
 	check_server_status
 
@@ -426,12 +426,12 @@ function other_post_experiment_tests() {
 		extract_lines=`expr ${log_length_before_test} + 1`
 		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
 	done
-	
+
 	# Stop the HPO servers
 	echo "Terminating any running HPO servers..." | tee -a ${LOG}
 	terminate_hpo ${cluster_type}
 	echo "Terminating any running HPO servers...Done" | tee -a ${LOG}
-	
+
 	# Sleep for few seconds to reduce the ambiguity
 	sleep 5
 
@@ -499,7 +499,7 @@ function run_get_trial_json_test() {
 
 
 # validate obtaining trial json from RM-HPO /experiment_trials API for invalid queries
-# input: test name 
+# input: test name
 function get_trial_json_invalid_tests() {
 	__test_name__=$1
 
@@ -511,7 +511,7 @@ function get_trial_json_invalid_tests() {
 	else
 		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
 	fi
-	
+
 	# Check if HPO services are started
 	check_server_status
 
@@ -543,15 +543,15 @@ function get_trial_json_invalid_tests() {
 		echo "actual_result = $actual_result"
 		compare_result ${exp_trial} ${expected_result_} "${expected_behaviour}"
 		echo ""
-		
+
 		stop_experiment "$current_name"
 	done
-	
+
 	# Stop the HPO servers
 	echo "Terminating any running HPO servers..." | tee -a ${LOG_} ${LOG}
 	terminate_hpo ${cluster_type} | tee -a ${LOG_} ${LOG}
 	echo "Terminating any running HPO servers...Done" | tee -a ${LOG_} ${LOG}
-	
+
 	# Sleep for few seconds to reduce the ambiguity
 	sleep 5
 	echo "*********************************************************************************************************" | tee -a ${LOG_} ${LOG}
@@ -653,7 +653,7 @@ function get_trial_json_valid_tests() {
 	else
 		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
 	fi
-	
+
 	# Check if HPO services are started
 	check_server_status
 
@@ -708,7 +708,7 @@ function get_trial_json_valid_tests() {
 	echo "Terminating any running HPO servers..." | tee -a ${LOG_} ${LOG}
 	terminate_hpo ${cluster_type} | tee -a ${LOG_} ${LOG}
 	echo "Terminating any running HPO servers...Done" | tee -a ${LOG_} ${LOG}
-	
+
 	# Sleep for few seconds to reduce the ambiguity
 	sleep 5
 }
@@ -819,7 +819,7 @@ function other_exp_result_post_tests() {
 	else
 		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
 	fi
-	
+
 	# Check if HPO services are started
 	check_server_status
 
@@ -848,16 +848,16 @@ function other_exp_result_post_tests() {
 		extract_lines=`expr ${log_length_before_test} + 1`
 		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
 
-      		stop_experiment "$current_name"
+		stop_experiment "$current_name"
 
 		echo "*********************************************************************************************************" | tee -a ${LOG_} ${LOG}
 	done
-	
+
 	# Stop the HPO servers
 	echo "Terminating any running HPO servers..." | tee -a ${LOG}
 	terminate_hpo ${cluster_type}
 	echo "Terminating any running HPO servers...Done" | tee -a ${LOG}
-	
+
 	# Sleep for few seconds to reduce the ambiguity
 	sleep 5
 }
@@ -873,7 +873,7 @@ function hpo_get_trial_json(){
 	for test in "${!hpo_get_trial_json_tests[@]}"
 	do
 		${test} "${FUNCNAME}"
-	done 
+	done
 }
 
 # Tests for HPO /experiment_trials API POST experiment results
@@ -944,15 +944,15 @@ function hpo_grpc_sanity_test() {
 		# Generate a subsequent trial
 		if [[ ${i} < $((N_TRIALS-1)) ]]; then
 			echo "" | tee -a ${LOG}
-		        echo "Generate subsequent config after trial ${i} ..." | tee -a ${LOG}
+			echo "Generate subsequent config after trial ${i} ..." | tee -a ${LOG}
 			python ../src/grpc_client.py next --name ${exp_name}
 			verify_grpc_result "Post subsequent experiment after trial ${i}" $?
 		fi
 	done
 
-  #Validate removing test
-  python ../src/grpc_client.py stop --name ${exp_name}
-  verify_grpc_result "Stop running experiment ${exp_name}" $?
+	#Validate removing test
+	python ../src/grpc_client.py stop --name ${exp_name}
+	verify_grpc_result "Stop running experiment ${exp_name}" $?
 
 	# Terminate any running HPO servers
 	echo "Terminating any running HPO servers..." | tee -a ${LOG}

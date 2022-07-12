@@ -36,7 +36,7 @@ service_type="both"
 function usage() {
 	echo
 	echo "Usage: $0 [-c [docker|minikube|native]] [-o hpo container image]"
-    echo " -s = start(default), -t = terminate"
+	echo " -s = start(default), -t = terminate"
 	echo " -c: cluster type."
 	echo " -o: build with specific hpo container image name [Default - kruize/hpo:<version>]"
 	echo " -b: install both REST and the gRPC service"
@@ -72,12 +72,12 @@ do
 	t)
 		setup=0
 		;;
-    b)
-        service_type="both"
-        ;;
-    r)
-        service_type="REST"
-        ;;
+	b)
+		service_type="both"
+		;;
+	r)
+		service_type="REST"
+		;;
 	[?])
 		usage
 	esac
@@ -85,17 +85,17 @@ done
 
 resolve_container_runtime
 
-# Get Service Status 
+# Get Service Status
 SERVICE_STATUS_NATIVE=$(ps -u | grep service.py | grep -v grep)
 SERVICE_STATUS_DOCKER=$(${CONTAINER_RUNTIME} ps | grep hpo_docker_container)
 
 # Call the proper setup function based on the cluster_type
 if [ ${setup} == 1 ]; then
-    if [ ${cluster_type} = "native" ]; then
-       ${cluster_type}_start ${service_type}
-    else
-         ${cluster_type}_start
-    fi
+	if [ ${cluster_type} = "native" ]; then
+		${cluster_type}_start ${service_type}
+	else
+		${cluster_type}_start
+	fi
 else
-    ${cluster_type}_terminate
+	${cluster_type}_terminate
 fi
