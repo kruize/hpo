@@ -97,10 +97,15 @@ function get_trial_json_invalid_tests() {
 	IFS=' ' read -r -a get_trial_json_invalid_tests <<<  ${hpo_get_trial_json_tests[$FUNCNAME]}
 	for exp_trial in "${get_trial_json_invalid_tests[@]}"
 	do
+		# Get the length of the service log before the test
+		log_length_before_test=$(cat ${SERV_LOG} | wc -l)
+
 		TESTS_="${TEST_DIR}/${exp_trial}"
 		mkdir -p ${TESTS_}
 		LOG_="${TEST_DIR}/${exp_trial}.log"
 		result="${TESTS_}/${exp_trial}_result.log"
+
+		TEST_SERV_LOG="${TESTS_}/service.log"
 
 		echo "************************************* ${exp_trial} Test ****************************************" | tee -a ${LOG_} ${LOG}
 
@@ -114,13 +119,23 @@ function get_trial_json_invalid_tests() {
 
 		run_get_trial_json_test ${exp_trial}
 
+		# Extract the lines from the service log after log_length_before_test
+		extract_lines=`expr ${log_length_before_test} + 1`
+		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
+		
+		echo ""
+		echo "log_length_before_test ${log_length_before_test}"
+		echo "extract_lines ${extract_lines}"
+		echo ""
+
 		actual_result="${http_code}"
 
-		expected_result_="^4[0-9][0-9]"
-		expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
+		expected_result_="400"
+
+		expected_log_msg="${hpo_get_trial_msgs[$exp_trial]}"
 
 		echo "actual_result = $actual_result"
-		compare_result ${exp_trial} ${expected_result_} "${expected_behaviour}"
+		compare_result ${exp_trial} ${expected_result_} "${expected_log_msg}" "${TEST_SERV_LOG}"
 		echo ""
 		
 		stop_experiment "$current_name"
@@ -153,15 +168,19 @@ function get_trial_json_valid_tests() {
 	check_server_status
 
 	IFS=' ' read -r -a get_trial_json_valid_tests <<<  ${hpo_get_trial_json_tests[$FUNCNAME]}
-	for exp_trial in "${get_trial_json_valid_tests[@]}"
+	for experiment_trial in "${get_trial_json_valid_tests[@]}"
 	do
 		TESTS_="${TEST_DIR}/${FUNCNAME}"
 		mkdir -p ${TESTS_}
 		LOG_="${TEST_DIR}/${FUNCNAME}.log"
-		result="${TESTS_}/${exp_trial}_result.log"
-		expected_json="${TESTS_}/${exp_trial}_expected_json.json"
+		result="${TESTS_}/${experiment_trial}_result.log"
+		expected_json="${TESTS_}/${experiment_trial}_expected_json.json"
+		TEST_SERV_LOG="${TESTS_}/${experiment_trial}_service.log"
 
-		echo "************************************* ${exp_trial} Test ****************************************" | tee -a ${LOG_} ${LOG}
+		echo "************************************* ${experiment_trial} Test ****************************************" | tee -a ${LOG_} ${LOG}
+
+		# Get the length of the service log before the test
+		log_length_before_test=$(cat ${SERV_LOG} | wc -l)
 
 		# Get the experiment id from search space JSON
 		exp="valid-experiment"
@@ -169,7 +188,7 @@ function get_trial_json_valid_tests() {
 		current_name=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_name')
 
 		# Post a valid experiment to RM-HPO /experiment_trials API.
-		if [ "${exp_trial}" == "valid-exp-trial" ]; then
+		if [ "${experiment_trial}" == "valid-exp-trial" ]; then
 			post_experiment_json "${hpo_post_experiment_json[$exp]}"
 			trial_num="${response}"
 		else
@@ -180,17 +199,30 @@ function get_trial_json_valid_tests() {
 		# Query the RM-HPO /experiment_trials API for valid experiment id and trial number and get the result.
 		run_get_trial_json_test "valid-exp-trial" "${trial_num}"
 
+		# Extract the lines from the service log after log_length_before_test
+		extract_lines=`expr ${log_length_before_test} + 1`
+		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
+		
+		echo ""
+		echo "log_length_before_test ${log_length_before_test}"
+		echo "extract_lines ${extract_lines}"
+		echo ""
+
 		actual_result="${http_code}"
 
 		expected_result_="200"
-		expected_behaviour="RESPONSE_CODE = 200 OK"
+		expected_behaviour="Trial_Number = 0"
+	
+		if [[ "${experiment_trial}" == "valid-exp-trial-generate-subsequent" ]]; then
+			expected_behaviour="Trial_Number = 1"
+		fi
 
-		compare_result ${exp_trial} ${expected_result_} "${expected_behaviour}"
+		compare_result ${experiment_trial} ${expected_result_} "${expected_behaviour}" "${TEST_SERV_LOG}"
 
 		if [[ "${failed}" -eq 0 ]]; then
 			validate_exp_trial "rest"
 			if [[ ${failed} -eq 1 ]]; then
-				FAILED_CASES+=(${exp_trial})
+				FAILED_CASES+=(${experiment_trial})
 			fi
 		fi
 
