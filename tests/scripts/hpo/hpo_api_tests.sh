@@ -266,6 +266,7 @@ function run_post_tests(){
 			experiment_name=$(echo ${hpo_post_experiment_json[${post_test}]} | jq '.search_space.experiment_name')
 			# Post the experiment JSON to HPO /experiment_trials API
 			post_experiment_json "${hpo_post_experiment_json[$post_test]}"
+
 			expected_log_msg="${hpo_error_messages[$post_test]}"
 
 			post_exp_http_code="${http_code}"
@@ -273,10 +274,11 @@ function run_post_tests(){
 
 		if [[ "${post_test}" == valid* ]]; then
 			expected_result_="200"
-			expected_behaviour="RESPONSE_CODE = 200 OK"
 		else
-			expected_result_="^4[0-9][0-9]"
-			expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
+			expected_result_="400"
+			if [[ "${post_test}" == "generate-subsequent" ]]; then
+				expected_result_="404"
+			fi
 		fi
 
 		actual_result="${http_code}"
@@ -297,23 +299,15 @@ function run_post_tests(){
 
 		echo ""
 		if [[ "${http_code}" -eq "000" ]]; then
-			if [[ ! -z ${expected_log_msg} ]]; then
-				if grep -q "${expected_log_msg}" "${TEST_SERV_LOG}" ; then
-					failed=0 
-				else
-					failed=1
-				fi
-			else
-				failed=1
-			fi
-
+			failed=1
 			((TOTAL_TESTS++))
 			((TESTS++))
 			error_message "${failed}" "${post_test}"
 		else
 			echo "actual_result = $actual_result expected_result = ${expected_result_}"
-			compare_result "${post_test}" "${expected_result_}" "${expected_behaviour}"
+			compare_result "${post_test}" "${expected_result_}" "${expected_log_msg}" "${TEST_SERV_LOG}"
 		fi
+
 		echo ""
 
 		if [ "$should_stop_expriment" == true ]; then
@@ -334,6 +328,9 @@ function run_post_tests(){
 
 # Do a post on experiment_trials for the same experiment id again with "operation: EXP_TRIAL_GENERATE_NEW" and check if experiments have started from the beginning
 function post_duplicate_experiments() {
+	# Get the length of the service log before the test
+	log_length_before_test=$(cat ${SERV_LOG} | wc -l)
+
 	experiment_name=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_name')
 	post_experiment_json "${hpo_post_experiment_json[$exp]}"
 
@@ -348,10 +345,14 @@ function post_duplicate_experiments() {
 		post_experiment_json "${hpo_post_experiment_json[$exp]}"
 
 		actual_result="${http_code}"
-		expected_result_="^4[0-9][0-9]"
-		expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
+		expected_result_="400"
+		expected_behaviour="Experiment already exists"
 
-		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}"
+		# Extract the lines from the service log after log_length_before_test
+		extract_lines=`expr ${log_length_before_test} + 1`
+		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
+
+		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}" "${TEST_SERV_LOG}"
       		stop_experiment "$experiment_name"
 	else
 		failed=1
@@ -382,9 +383,9 @@ function operation_generate_subsequent() {
 
 	actual_result="${response}"
 	expected_result_=$(($trial_num+1))
-	expected_behaviour="trial_number = '${expected_result_}'"
+	expected_behaviour="Response is ${expected_result_}"
 
-	compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}"
+	compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}" "${LOG_}"
 }
 
 # The test does the following: 
@@ -407,8 +408,6 @@ function other_post_experiment_tests() {
 
 	for operation in "${other_post_experiment_tests[@]}"
 	do
-		# Get the length of the service log before the test
-		log_length_before_test=$(cat ${SERV_LOG} | wc -l)
 
 		TESTS_="${TEST_DIR}/${operation}"
 		mkdir -p ${TESTS_}
@@ -421,10 +420,6 @@ function other_post_experiment_tests() {
 		operation=$(echo ${operation//-/_})
 		${operation}
 		echo ""
-
-		# Extract the lines from the service log after log_length_before_test
-		extract_lines=`expr ${log_length_before_test} + 1`
-		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
 	done
 	
 	# Stop the HPO servers
@@ -518,10 +513,15 @@ function get_trial_json_invalid_tests() {
 	IFS=' ' read -r -a get_trial_json_invalid_tests <<<  ${hpo_get_trial_json_tests[$FUNCNAME]}
 	for exp_trial in "${get_trial_json_invalid_tests[@]}"
 	do
+		# Get the length of the service log before the test
+		log_length_before_test=$(cat ${SERV_LOG} | wc -l)
+
 		TESTS_="${TEST_DIR}/${exp_trial}"
 		mkdir -p ${TESTS_}
 		LOG_="${TEST_DIR}/${exp_trial}.log"
 		result="${TESTS_}/${exp_trial}_result.log"
+
+		TEST_SERV_LOG="${TESTS_}/service.log"
 
 		echo "************************************* ${exp_trial} Test ****************************************" | tee -a ${LOG_} ${LOG}
 
@@ -535,13 +535,24 @@ function get_trial_json_invalid_tests() {
 
 		run_get_trial_json_test ${exp_trial}
 
+
+		# Extract the lines from the service log after log_length_before_test
+		extract_lines=`expr ${log_length_before_test} + 1`
+		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
+		
+		echo ""
+		echo "log_length_before_test ${log_length_before_test}"
+		echo "extract_lines ${extract_lines}"
+		echo ""
+
 		actual_result="${http_code}"
 
-		expected_result_="^4[0-9][0-9]"
-		expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
+		expected_result_="400"
+
+		expected_log_msg="${hpo_get_trial_msgs[$exp_trial]}"
 
 		echo "actual_result = $actual_result"
-		compare_result ${exp_trial} ${expected_result_} "${expected_behaviour}"
+		compare_result ${exp_trial} ${expected_result_} "${expected_log_msg}" "${TEST_SERV_LOG}"
 		echo ""
 		
 		stop_experiment "$current_name"
@@ -658,15 +669,19 @@ function get_trial_json_valid_tests() {
 	check_server_status
 
 	IFS=' ' read -r -a get_trial_json_valid_tests <<<  ${hpo_get_trial_json_tests[$FUNCNAME]}
-	for exp_trial in "${get_trial_json_valid_tests[@]}"
+	for experiment_trial in "${get_trial_json_valid_tests[@]}"
 	do
 		TESTS_="${TEST_DIR}/${FUNCNAME}"
 		mkdir -p ${TESTS_}
 		LOG_="${TEST_DIR}/${FUNCNAME}.log"
-		result="${TESTS_}/${exp_trial}_result.log"
-		expected_json="${TESTS_}/${exp_trial}_expected_json.json"
+		result="${TESTS_}/${experiment_trial}_result.log"
+		expected_json="${TESTS_}/${experiment_trial}_expected_json.json"
+		TEST_SERV_LOG="${TESTS_}/${experiment_trial}_service.log"
 
-		echo "************************************* ${exp_trial} Test ****************************************" | tee -a ${LOG_} ${LOG}
+		echo "************************************* ${experiment_trial} Test ****************************************" | tee -a ${LOG_} ${LOG}
+
+		# Get the length of the service log before the test
+		log_length_before_test=$(cat ${SERV_LOG} | wc -l)
 
 		# Get the experiment id from search space JSON
 		exp="valid-experiment"
@@ -674,7 +689,7 @@ function get_trial_json_valid_tests() {
 		current_name=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_name')
 
 		# Post a valid experiment to RM-HPO /experiment_trials API.
-		if [ "${exp_trial}" == "valid-exp-trial" ]; then
+		if [ "${experiment_trial}" == "valid-exp-trial" ]; then
 			post_experiment_json "${hpo_post_experiment_json[$exp]}"
 			trial_num="${response}"
 		else
@@ -685,17 +700,31 @@ function get_trial_json_valid_tests() {
 		# Query the RM-HPO /experiment_trials API for valid experiment id and trial number and get the result.
 		run_get_trial_json_test "valid-exp-trial" "${trial_num}"
 
+
+		# Extract the lines from the service log after log_length_before_test
+		extract_lines=`expr ${log_length_before_test} + 1`
+		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
+		
+		echo ""
+		echo "log_length_before_test ${log_length_before_test}"
+		echo "extract_lines ${extract_lines}"
+		echo ""
+
 		actual_result="${http_code}"
 
 		expected_result_="200"
-		expected_behaviour="RESPONSE_CODE = 200 OK"
+		expected_behaviour="Trial_Number = 0"
+	
+		if [[ "${experiment_trial}" == "valid-exp-trial-generate-subsequent" ]]; then
+			expected_behaviour="Trial_Number = 1"
+		fi
 
-		compare_result ${exp_trial} ${expected_result_} "${expected_behaviour}"
+		compare_result ${experiment_trial} ${expected_result_} "${expected_behaviour}" "${TEST_SERV_LOG}"
 
 		if [[ "${failed}" -eq 0 ]]; then
 			validate_exp_trial "rest"
 			if [[ ${failed} -eq 1 ]]; then
-				FAILED_CASES+=(${exp_trial})
+				FAILED_CASES+=(${experiment_trial})
 			fi
 		fi
 
@@ -744,6 +773,9 @@ function post_experiment_result_json() {
 
 # Post duplicate experiment results to HPO /experiment_trials API and validate the result
 function post_duplicate_exp_result() {
+	# Get the length of the service log before the test
+	log_length_before_test=$(cat ${SERV_LOG} | wc -l)
+
 	# Post a valid experiment to HPO /experiment_trials API.
 	exp="valid-experiment"
 	post_experiment_json "${hpo_post_experiment_json[$exp]}"
@@ -762,10 +794,14 @@ function post_duplicate_exp_result() {
 		post_experiment_result_json "${hpo_post_exp_result_json[$experiment_result]}"
 
 		actual_result="${http_code}"
-		expected_result_="^4[0-9][0-9]"
-		expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
+		expected_result_="400"
+		expected_behaviour="Requested trial exceeds the completed trial limit"
 
-		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}"
+		# Extract the lines from the service log after log_length_before_test
+		extract_lines=`expr ${log_length_before_test} + 1`
+		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
+
+		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}" "${TEST_SERV_LOG}"
 	else
 		failed=1
 		expected_behaviour="RESPONSE_CODE = 200 OK"
@@ -776,6 +812,9 @@ function post_duplicate_exp_result() {
 
 # Post different experiment results to HPO /experiment_trials API for the same experiment id and validate the result
 function post_same_id_different_exp_result() {
+	# Get the length of the service log before the test
+	log_length_before_test=$(cat ${SERV_LOG} | wc -l)
+
 	# Post a valid experiment to HPO /experiment_trials API.
 	exp="valid-experiment"
 	post_experiment_json "${hpo_post_experiment_json[$exp]}"
@@ -794,10 +833,14 @@ function post_same_id_different_exp_result() {
 		post_experiment_result_json "${hpo_post_exp_result_json[$experiment_result]}"
 
 		actual_result="${http_code}"
-		expected_result_="^4[0-9][0-9]"
-		expected_behaviour="RESPONSE_CODE = 4XX BAD REQUEST"
+		expected_result_="400"
+		expected_behaviour="Requested trial exceeds the completed trial limit"
 
-		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}"
+		# Extract the lines from the service log after log_length_before_test
+		extract_lines=`expr ${log_length_before_test} + 1`
+		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
+		
+		compare_result "${FUNCNAME}" "${expected_result_}" "${expected_behaviour}" "${TEST_SERV_LOG}"
 	else
 		failed=1
 		expected_behaviour="RESPONSE_CODE = 200 OK"
@@ -825,8 +868,6 @@ function other_exp_result_post_tests() {
 
 	for operation in "${other_exp_result_post_tests[@]}"
 	do
-		# Get the length of the service log before the test
-		log_length_before_test=$(cat ${SERV_LOG} | wc -l)
 
 		TESTS_="${TEST_DIR}/${operation}"
 		mkdir -p ${TESTS_}
@@ -843,10 +884,6 @@ function other_exp_result_post_tests() {
 		operation=$(echo ${operation//-/_})
 		${operation}
 		echo ""
-
-		# Extract the lines from the service log after log_length_before_test
-		extract_lines=`expr ${log_length_before_test} + 1`
-		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
 
       		stop_experiment "$current_name"
 
