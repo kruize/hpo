@@ -69,6 +69,11 @@ trial_generate_schema = {
                 "value_type": {"type": "string"},
                 "hpo_algo_impl": {"type": "string"},
                 "objective_function": {"type": "string"},
+                "function_variables": {
+                    "type": "array",
+                    "value_type": {"type": "string"},
+                    "name": {"type": "string"}
+                },
                 "tunables": {
                     "type": "array",
                     "value_type": {"type": "string"},
