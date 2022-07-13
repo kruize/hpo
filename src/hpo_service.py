@@ -18,7 +18,10 @@ import threading
 import json
 from bayes_optuna import optuna_hpo
 from exceptions import ExperimentNotFoundError
+from logger import get_logger
+from utils import HPOErrorConstants, HPOSupportedTypes, HPOMessages
 
+logger = get_logger(__name__)
 
 class HpoService:
     """
@@ -32,10 +35,6 @@ class HpoService:
 
     def newExperiment(self, id_, experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl,
                       objective_function, tunables, value_type):
-        if self.containsExperiment(experiment_name):
-            print("Experiment already exists")
-            return
-
         try:
             self.expStateCond.acquire()
             self.experiments[experiment_name] = optuna_hpo.HpoExperiment(experiment_name, total_trials, parallel_trials,
@@ -67,9 +66,11 @@ class HpoService:
             value = started.wait(10)  # wait with timeout of 10s
         finally:
             started.release()
-
+        # check experiment-start status, it will be timed out if the response is delayed from the implemented algo
+        # for more than 10 seconds .
         if not value:
-            print("Starting experiment timed  out!")
+            logger.error(HPOErrorConstants.EXPERIMENT_TIMED_OUT)
+            return HPOErrorConstants.EXPERIMENT_TIMED_OUT
 
     def containsExperiment(self, name):
         result = False
@@ -96,7 +97,7 @@ class HpoService:
 
     def getExperiment(self, name) -> optuna_hpo.HpoExperiment:
         if self.doesNotContainExperiment(name):
-            print("Experiment " + name + " does not exist")
+            logger.error(HPOErrorConstants.EXPERIMENT_NOT_FOUND)
             raise ExperimentNotFoundError
         try:
             self.expStateCond.acquire()

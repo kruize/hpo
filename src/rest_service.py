@@ -93,40 +93,38 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 		else:
 			self._set_response(404, HPOErrorConstants.NOT_FOUND)
 
-	def do_GET(self):
-		"""Serve a GET request."""
-		if re.search(HPOSupportedTypes.API_ENDPOINT, self.path):
-			query = parse_qs(urlparse(self.path).query)
-			if "experiment_name" not in query or "trial_number" not in query:
-				errorMsg = HPOErrorConstants.MISSING_PARAMETERS
-				logger.error(errorMsg)
-				self._set_response(400, errorMsg)
-				return
-			# validate the existence of experiment name and trial number
-			existingExperiment = hpo_service.instance.containsExperiment(query["experiment_name"][0])
-			if not existingExperiment:
-				self._set_response(404, HPOErrorConstants.EXPERIMENT_NOT_FOUND)
-				return
-			errorMsg = self.validate_trialNumber(query["experiment_name"][0], query["trial_number"][0])
-			if errorMsg:
-				self._set_response(400, errorMsg)
-			else:
-				logger.info("Experiment_Name = " + str(
-					hpo_service.instance.getExperiment(query["experiment_name"][0]).experiment_name))
-				logger.info("Trial_Number = " + str(
-					hpo_service.instance.getExperiment(query["experiment_name"][0]).trialDetails.trial_number))
-				data = hpo_service.instance.get_trial_json_object(query["experiment_name"][0])
-				self._set_response(200, data)
-		elif self.path == "/health":
-			if self.getHomeScreen():
-				self._set_response(200, 'OK')
-			else:
-				self._set_response(503, 'Service Unavailable')
-		elif self.path == "/":
-			data = self.getHomeScreen()
-			self._set_response(200, data)
-		else:
-			self._set_response(404, HPOErrorConstants.NOT_FOUND)
+    def do_GET(self):
+        """Serve a GET request."""
+        if re.search(HPOSupportedTypes.API_ENDPOINT, self.path):
+            query = parse_qs(urlparse(self.path).query)
+            if "experiment_name" not in query or "trial_number" not in query:
+                error_msg = HPOErrorConstants.MISSING_PARAMETERS
+                logger.error(error_msg)
+                self._set_response(400, error_msg)
+                return
+            if self.validate_experiment_name(query["experiment_name"][0]):
+                return
+
+            error_msg = self.validate_trialNumber(query["experiment_name"][0], query["trial_number"][0])
+            if error_msg:
+                self._set_response(400, error_msg)
+            else:
+                logger.info("Experiment_Name = " + str(
+                    hpo_service.instance.getExperiment(query["experiment_name"][0]).experiment_name))
+                logger.info("Trial_Number = " + str(
+                    hpo_service.instance.getExperiment(query["experiment_name"][0]).trialDetails.trial_number))
+                data = hpo_service.instance.get_trial_json_object(query["experiment_name"][0])
+                self._set_response(200, data)
+        elif self.path == "/health":
+            if self.getHomeScreen():
+                self._set_response(200, 'OK')
+            else:
+                self._set_response(503, 'Service Unavailable')
+        elif self.path == "/":
+            data = self.getHomeScreen()
+            self._set_response(200, data)
+        else:
+            self._set_response(404, HPOErrorConstants.NOT_FOUND)
 
 	def getHomeScreen(self):
 		fin = open(welcome_page)
@@ -134,42 +132,45 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 		fin.close()
 		return content
 
-	def handle_generate_new_operation(self, json_object):
-		"""Process EXP_TRIAL_GENERATE_NEW operation."""
-		existingExperiment = hpo_service.instance.containsExperiment(json_object["search_space"]["experiment_name"])
-		if existingExperiment:
-			logger.error(HPOErrorConstants.EXPERIMENT_EXISTS)
-			self._set_response(400, HPOErrorConstants.EXPERIMENT_EXISTS)
-		else:
-			search_space_json = json_object["search_space"]
-			search_space = self.setDefaults(search_space_json)
-			if not search_space:
-				self._set_response(400, HPOErrorConstants.PARALLEL_TRIALS_ERROR)
-			else:
-				get_search_create_study(search_space, json_object["operation"])
-				trial_number = hpo_service.instance.get_trial_number(json_object["search_space"]["experiment_name"])
-				self._set_response(200, str(trial_number))
+    def handle_generate_new_operation(self, json_object):
+        """Process EXP_TRIAL_GENERATE_NEW operation."""
+        existingExperiment = hpo_service.instance.containsExperiment(json_object["search_space"]["experiment_name"])
+        if existingExperiment:
+            logger.error(HPOErrorConstants.EXPERIMENT_EXISTS)
+            self._set_response(400, HPOErrorConstants.EXPERIMENT_EXISTS)
+        else:
+            search_space_json = json_object["search_space"]
+            search_space = self.setDefaults(search_space_json)
+            if not search_space:
+                self._set_response(400, HPOErrorConstants.PARALLEL_TRIALS_ERROR)
+            else:
+                response = get_search_create_study(search_space, json_object["operation"])
+                if response:
+                    self._set_response(400, response)
+                    return
+                trial_number = hpo_service.instance.get_trial_number(json_object["search_space"]["experiment_name"])
+                self._set_response(200, str(trial_number))
 
-	def handle_generate_subsequent_operation(self, json_object):
-		"""Process EXP_TRIAL_GENERATE_SUBSEQUENT operation."""
-		experiment_name = json_object["experiment_name"]
-		existingExperiment = hpo_service.instance.containsExperiment(experiment_name)
-		if not existingExperiment:
-			self._set_response(404, HPOErrorConstants.EXPERIMENT_NOT_FOUND)
-			return
-		else:
-			trial_number = hpo_service.instance.get_trial_number(experiment_name)
-			if trial_number == -1:
-				self._set_response(400, HPOMessages.TRIAL_COMPLETION_STATUS + experiment_name)
-			else:
-				self._set_response(200, str(trial_number))
+    def handle_generate_subsequent_operation(self, json_object):
+        """Process EXP_TRIAL_GENERATE_SUBSEQUENT operation."""
+        experiment_name = json_object["experiment_name"]
+        existingExperiment = hpo_service.instance.containsExperiment(experiment_name)
+        if not existingExperiment:
+            logger.error(HPOErrorConstants.EXPERIMENT_NOT_FOUND)
+            self._set_response(404, HPOErrorConstants.EXPERIMENT_NOT_FOUND)
+            return
+        else:
+            trial_number = hpo_service.instance.get_trial_number(experiment_name)
+            if trial_number == -1:
+                logger.error(HPOMessages.TRIAL_COMPLETION_STATUS + experiment_name)
+                self._set_response(400, HPOMessages.TRIAL_COMPLETION_STATUS + experiment_name)
+            else:
+                self._set_response(200, str(trial_number))
 
-	def handle_result_operation(self, json_object):
-		"""Process EXP_TRIAL_RESULT operation."""
-		existingExperiment = hpo_service.instance.containsExperiment(json_object["experiment_name"])
-		if not existingExperiment:
-			self._set_response(404, HPOErrorConstants.EXPERIMENT_NOT_FOUND)
-			return
+    def handle_result_operation(self, json_object):
+        """Process EXP_TRIAL_RESULT operation."""
+        if self.validate_experiment_name(json_object["experiment_name"]):
+            return
 
 		trialValidationError = self.validate_trialNumber(json_object["experiment_name"],
 														 str(json_object["trial_number"]))
@@ -187,16 +188,30 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 											json_object["result_value_type"], json_object["result_value"])
 			self._set_response(200, HPOMessages.RESULT_STATUS)
 
-	def validate_trialNumber(self, experiment_name, trial_number):
-		errorMsg = ""
-		if not trial_number == str(hpo_service.instance.get_trial_number(experiment_name)):
-			try:
-				if int(trial_number) < 0:
-					errorMsg = HPOErrorConstants.NEGATIVE_TRIAL
-				else:
-					errorMsg = HPOErrorConstants.TRIAL_EXCEEDED
-			except ValueError:
-				errorMsg = HPOErrorConstants.NON_INTEGER_VALUE
+    def validate_experiment_name(self, experiment_name):
+        error_msg = ""
+        if not experiment_name or experiment_name.isspace() or experiment_name == "null":
+            error_msg = "Parameters" + HPOErrorConstants.VALUE_MISSING
+            self._set_response(400, error_msg)
+            logger.error(error_msg)
+        # validate the existence of experiment name and trial number
+        elif not hpo_service.instance.containsExperiment(experiment_name):
+            error_msg = HPOErrorConstants.EXPERIMENT_NOT_FOUND
+            self._set_response(404, error_msg)
+            logger.error(error_msg)
+
+        return error_msg
+
+    def validate_trialNumber(self, experiment_name, trial_number):
+        errorMsg = ""
+        if not trial_number == str(hpo_service.instance.get_trial_number(experiment_name)):
+            try:
+                if int(trial_number) < 0:
+                    errorMsg = HPOErrorConstants.NEGATIVE_TRIAL
+                else:
+                    errorMsg = HPOErrorConstants.TRIAL_EXCEEDED
+            except ValueError:
+                errorMsg = HPOErrorConstants.NON_INTEGER_VALUE
 
 		return errorMsg
 
@@ -243,11 +258,13 @@ def get_search_create_study(search_space_json, operation):
 		logger.info("Total Trials = " + str(total_trials))
 		logger.info("Parallel Trials = " + str(parallel_trials))
 
-		if hpo_algo_impl in HPOSupportedTypes.ALGOS_SUPPORTED:
-			hpo_service.instance.newExperiment(id_, experiment_name, total_trials, parallel_trials, direction,
-											   hpo_algo_impl, objective_function, tunables, value_type)
-			logger.info("Starting Experiment: " + experiment_name)
-			hpo_service.instance.startExperiment(experiment_name)
+        hpo_service.instance.newExperiment(id_, experiment_name, total_trials, parallel_trials, direction,
+                                           hpo_algo_impl, objective_function, tunables, value_type)
+        logger.info("Starting Experiment: " + experiment_name)
+        # check response, it will have error message if the experiment timed out else nothing will be returned
+        response = hpo_service.instance.startExperiment(experiment_name)
+        if response:
+            return response
 
 
 def main():
