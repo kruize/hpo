@@ -20,8 +20,8 @@ function resolve_container_runtime() {
 	IFS='=' read -r -a dockerDeamonState <<< $(systemctl show --property ActiveState docker)
 	[[ "${dockerDeamonState[1]}" == "inactive" ]] && CONTAINER_RUNTIME="podman"
 	if ! command -v podman &> /dev/null; then
-	    echo "No Container Runtime available: Docker daemon is not running and podman command could not be found"
-	    exit 1
+		echo "No Container Runtime available: Docker daemon is not running and podman command could not be found"
+		exit 1
 	fi
 }
 
@@ -36,14 +36,14 @@ function check_err() {
 
 # Check if service is already running
 function check_prereq() {
-	
+
 	if [ "$1" = "running" ]; then
 		if [ -n "$2" ]; then
 			echo "Error: Service is already Running."
 			echo
 			exit -1
 		fi
-	else 
+	else
 		if [ -z "$2" ]; then
 			echo "Error: Service is already Stopped."
 			echo
@@ -55,10 +55,10 @@ function check_prereq() {
 ###############################  v Docker v #################################
 
 function docker_start() {
-	
+
 	echo
 	echo "Deploying with runtime: ${CONTAINER_RUNTIME}"
-	
+
 	echo
 	echo "###   Starting HPO on Docker"
 	echo
@@ -66,7 +66,7 @@ function docker_start() {
 	echo
 
 	# Check if the container with name 'hpo_docker_container' is already running
-	
+
 	check_prereq running ${SERVICE_STATUS_DOCKER}
 
 	${CONTAINER_RUNTIME} run -d --name hpo_docker_container -p 8085:8085 -p 50051:50051 ${HPO_CONTAINER_IMAGE} >/dev/null 2>&1
@@ -119,7 +119,7 @@ function native_start() {
 	# check if service is already running
 	check_prereq running ${SERVICE_STATUS_NATIVE}
 
-	python3 -u src/service.py
+	python3 -u src/service.py -log=${LOG_LEVEL}
 }
 
 function native_terminate() {

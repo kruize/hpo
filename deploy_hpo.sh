@@ -28,16 +28,18 @@ HPO_CONTAINER_IMAGE=${HPO_REPO}:${HPO_VERSION}
 setup=1
 cluster_type="native"
 CONTAINER_RUNTIME="docker"
+LOG_LEVEL="info"
 
 # source the helpers script
 . ${SCRIPTS_DIR}/cluster-helpers.sh
 
 function usage() {
 	echo
-	echo "Usage: $0 [-c [docker|minikube|native]] [-o hpo container image]"
-	echo "       -s = start(default), -t = terminate"
-	echo " -c: cluster type."
-	echo " -o: build with specific hpo container image name [Default - kruize/hpo:<version>]"
+	echo "Usage: $0 [-c [docker|minikube|native]] [-o hpo container image] [-l [info|debug|warning|error|critical]]"
+    echo "  -s = start(default), -t = terminate"
+	echo "  -c: cluster type."
+	echo "  -o: build with specific hpo container image name [Default - kruize/hpo:<version>]"
+	echo "  -l: set specific logging level [Default - info]"
 	exit -1
 }
 
@@ -51,9 +53,20 @@ function check_cluster_type() {
 		exit -1
 	esac
 }
+# Check if the cluster_type is one of icp or openshift
+function check_log_level() {
+	case "${LOG_LEVEL}" in
+	info|debug|warning|error|critical)
+		;;
+	*)
+		echo "Error: unsupported logging type: ${LOG_LEVEL}"
+		usage
+		exit -1
+	esac
+}
 
 # Iterate through the commandline options
-while getopts c:o:st gopts
+while getopts c:o:stl: gopts
 do
 	case ${gopts} in
 	c)
@@ -69,6 +82,10 @@ do
 	t)
 		setup=0
 		;;
+	l)
+		LOG_LEVEL="${OPTARG}"
+		check_log_level
+		;;
 	[?])
 		usage
 	esac
@@ -76,7 +93,7 @@ done
 
 resolve_container_runtime
 
-# Get Service Status 
+# Get Service Status
 SERVICE_STATUS_NATIVE=$(ps -u | grep service.py | grep -v grep)
 SERVICE_STATUS_DOCKER=$(${CONTAINER_RUNTIME} ps | grep hpo_docker_container)
 
