@@ -101,7 +101,7 @@ Here is an example Search Space JSON
   "objective_function": "transaction_response_time",
   "value_type": "double",
   "direction": "minimize",
-  "tuneables": [
+  "tunables": [
     {
       "value_type": "double",
       "lower_bound": 150,

@@ -149,9 +149,9 @@ def recommended(name):
     click.echo("\t Direction: {}".format(recommendedConfig.direction))
     click.echo("\t Objective Function: {}".format(recommendedConfig.optimal_value.objective_function))
     click.echo("\t Optimal Value: {}".format(recommendedConfig.optimal_value.value))
-    click.echo("\t Tuneables: ")
-    for tuneable in recommendedConfig.tunables:
-        click.echo("\t\t {}: {}".format(tuneable.name, tuneable.value))
+    click.echo("\t Tunables: ")
+    for tunable in recommendedConfig.tunables:
+        click.echo("\t\t {}: {}".format(tunable.name, tunable.value))
 
 def run(func):
     # NOTE(gRPC Python Team): .close() is possible on a channel and should be
@@ -183,6 +183,8 @@ def run(func):
             elif rpc_error.code() == grpc.StatusCode.NOT_FOUND:
                 raise click.ClickException(rpc_error.details())
             elif rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
+                raise click.ClickException(rpc_error.details())
+            elif rpc_error.code() == grpc.StatusCode.ALREADY_EXISTS:
                 raise click.ClickException(rpc_error.details())
             else:
                 raise click.ClickException("Received unknown RPC error: code={" + str(rpc_error.code()) + "} message={" + rpc_error.details() + "}")
