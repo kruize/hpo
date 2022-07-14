@@ -124,7 +124,7 @@ function deploy_hpo() {
 		echo "Namespace = $namespace"
 		log=$3
 		hpo_pod=$(kubectl get pod -n ${namespace} | grep hpo | cut -d " " -f1)
-		kubectl -n ${namespace} logs ${hpo_pod} > "${log}" 2>&1
+		kubectl -n ${namespace} logs -f ${hpo_pod} > "${log}" & 2>&1
 	fi
 
 	popd > /dev/null

@@ -62,9 +62,9 @@ function check_cluster_type() {
 		usage
 	fi
 	case "${cluster_type}" in
-	native|docker|minikube|openshift)
+		native|docker|minikube|openshift)
 		;;
-	*)
+		*)
 		echo "Error: Cluster type **${cluster_type}** is not supported  "
 		usage
 	esac
