@@ -90,6 +90,16 @@ function deploy_hpo() {
 		cmd="./deploy_hpo.sh -c ${cluster_type} > ${log} 2>&1 &"
 		echo "Command to deploy hpo - ${cmd}"
 		./deploy_hpo.sh -c ${cluster_type} > ${log} 2>&1 &
+	elif [ ${cluster_type} == "minikube" ]; then
+                namespace="monitoring"
+                cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}"
+                echo "Command to deploy hpo - ${cmd}"
+                ./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}
+        elif [ ${cluster_type} == "openshift" ]; then
+                namespace="openshift-tuning"
+                cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}"
+                echo "Command to deploy hpo - ${cmd}"
+                ./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}
 	else 
 		cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE}"
 		echo "Command to deploy hpo - ${cmd}"
@@ -104,9 +114,17 @@ function deploy_hpo() {
 	fi
 
 	if [ ${cluster_type} == "docker" ]; then
-  	sleep 2
+  		sleep 2
+		echo "Capturing HPO service log into $3"
 		log=$3
 		docker logs hpo_docker_container > "${log}" 2>&1
+	elif [[ ${cluster_type} == "minikube" || ${cluster_type} == "openshift" ]]; then
+		sleep 2
+		echo "Capturing HPO service log into $3"
+		echo "Namespace = $namespace"
+		log=$3
+		hpo_pod=$(kubectl get pod -n ${namespace} | grep hpo | cut -d " " -f1)
+		kubectl -n ${namespace} logs ${hpo_pod} > "${log}" 2>&1
 	fi
 
 	popd > /dev/null
@@ -495,19 +513,27 @@ function stop_experiment() {
 function form_hpo_api_url {
 	API=$1
 	# Form the URL command based on the cluster type
+
+	echo "***************** namespace = $namespace ****************"
 	case $cluster_type in
 		native|docker) 
 			PORT="8085"
 			SERVER_IP="localhost"
-			URL="http://${SERVER_IP}"
 			;;
+		minikube)
+			SERVER_IP=$(minikube ip)
+			PORT=$(kubectl -n monitoring get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+			;;
+		 openshift)
+                        hpo_ns="openshift-tuning"
+                        SERVER_IP=$(oc -n ${hpo_ns} get pods -l=app=hpo -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
+                        PORT=$(oc get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+                        ;;
 		*);;
 	esac
 
-	# Add conditions later for other cluster types
-	if [[ ${cluster_type} == "native" || ${cluster_type} == "docker" ]]; then
-		hpo_url="${URL}:${PORT}/${API}"
-	fi
+	hpo_url="http://${SERVER_IP}:${PORT}/${API}"
+        echo "HPO_URL = $hpo_url"
 }
 
 function verify_result() {

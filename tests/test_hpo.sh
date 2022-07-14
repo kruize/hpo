@@ -31,7 +31,7 @@ HPO_CONTAINER_IMAGE="kruize/hpo:test"
 # usage of the test script
 function usage() { 
 	echo ""
-	echo "Usage: $0 -c [native|docker|minikube] [-o hpo container image] [--tctype=functional] [--testsuite=Group of tests that you want to perform] [--testcase=Particular test case that you want to check] [--resultsdir=results directory]"
+	echo "Usage: $0 -c [native|docker|minikube|openshift] [-o hpo container image] [--tctype=functional] [--testsuite=Group of tests that you want to perform] [--testcase=Particular test case that you want to check] [--resultsdir=results directory]"
 	echo ""
 	echo "Example: $0 -c native --testsuite=hpo_api_tests --testcase=hpo_post_experiment --resultsdir=/home/results"
 	echo "Example: $0 -c docker -o kruize/hpo:0.0.1 --testsuite=hpo_api_tests --resultsdir=/home/results"
@@ -62,7 +62,7 @@ function check_cluster_type() {
 		usage
 	fi
 	case "${cluster_type}" in
-	native|docker|minikube)
+	native|docker|minikube|openshift)
 		;;
 	*)
 		echo "Error: Cluster type **${cluster_type}** is not supported  "
