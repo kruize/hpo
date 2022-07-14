@@ -2,6 +2,3 @@ optuna
 requests
 scikit-optimize
 jsonschema
-grpcio
-click
-protobuf

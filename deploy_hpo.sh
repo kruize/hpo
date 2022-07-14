@@ -37,6 +37,7 @@ non_interactive=0
 hpo_ns=""
 # docker: loop timeout is turned off by default
 timeout=-1
+service_type="both"
 
 # source the helpers script
 . ${SCRIPTS_DIR}/cluster-helpers.sh
@@ -50,6 +51,8 @@ function usage() {
 	echo " -o: build with specific hpo container image name [Default - kruize/hpo:<version>]"
 	echo " -n: Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
 	echo " -d: Config maps directory [Default - manifests/configmaps]"
+	echo " -b: install both REST and the gRPC service"
+	echo " -r: install REST only"
 	exit -1
 }
 
@@ -65,7 +68,7 @@ function check_cluster_type() {
 }
 
 # Iterate through the commandline options
-while getopts ac:o:n:st gopts
+while getopts ac:d:o:n:strb gopts
 do
 	case ${gopts} in
 	a)
@@ -90,6 +93,12 @@ do
 	t)
 		setup=0
 		;;
+	b)
+		service_type="both"
+		;;
+	r)
+		service_type="REST"
+		;;
 	[?])
 		usage
 	esac
@@ -98,6 +107,7 @@ done
 # check container runtime
 resolve_container_runtime
 
+# Get Service Status
 # check if user has specified any custom image else use default
 if [ -n "${HPO_CONTAINER_IMAGE}" ]; then
 	echo "Using version: ${HPO_VERSION}"
@@ -111,7 +121,11 @@ SERVICE_STATUS_DOCKER=$(${CONTAINER_RUNTIME} ps | grep hpo_docker_container)
 
 # Call the proper setup function based on the cluster_type
 if [ ${setup} == 1 ]; then
-	${cluster_type}_start
+	if [ ${cluster_type} = "native" ]; then
+		${cluster_type}_start ${service_type}
+	else
+		${cluster_type}_start
+	fi
 else
 	${cluster_type}_terminate
 fi
