@@ -68,7 +68,7 @@ function check_cluster_type() {
 }
 
 # Iterate through the commandline options
-while getopts ac:o:n:strb gopts
+while getopts ac:d:o:n:strb gopts
 do
 	case ${gopts} in
 	a)
