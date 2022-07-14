@@ -94,7 +94,7 @@ function other_post_experiment_tests() {
 	fi
 	
 	# Check if HPO services are started
-	check_server_status
+	check_server_status "${SERV_LOG}"
 
 	for operation in "${other_post_experiment_tests[@]}"
 	do

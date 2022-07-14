@@ -139,7 +139,7 @@ function other_exp_result_post_tests() {
 	fi
 	
 	# Check if HPO services are started
-	check_server_status
+	check_server_status "${SERV_LOG}"
 
 	for operation in "${other_exp_result_post_tests[@]}"
 	do

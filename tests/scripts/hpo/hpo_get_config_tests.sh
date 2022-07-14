@@ -92,7 +92,7 @@ function get_trial_json_invalid_tests() {
 	fi
 	
 	# Check if HPO services are started
-	check_server_status
+	check_server_status "${SERV_LOG}"
 
 	IFS=' ' read -r -a get_trial_json_invalid_tests <<<  ${hpo_get_trial_json_tests[$FUNCNAME]}
 	for exp_trial in "${get_trial_json_invalid_tests[@]}"
@@ -165,7 +165,7 @@ function get_trial_json_valid_tests() {
 	fi
 	
 	# Check if HPO services are started
-	check_server_status
+	check_server_status "${SERV_LOG}"
 
 	IFS=' ' read -r -a get_trial_json_valid_tests <<<  ${hpo_get_trial_json_tests[$FUNCNAME]}
 	for experiment_trial in "${get_trial_json_valid_tests[@]}"

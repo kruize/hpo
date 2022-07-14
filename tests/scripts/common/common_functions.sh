@@ -452,29 +452,38 @@ function validate_exp_trial() {
 
 # Check if the servers have started
 function check_server_status() {
-  echo "Wait for HPO service to come up"
-  #if service does not start within 5 minutes (300s) fail the test
-  timeout 300 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://localhost:8085)" != "200" ]]; do sleep 1; done' || false
+	log=$1
 
+	echo "Wait for HPO service to come up"
+        form_hpo_api_url "experiment_trials"
+	echo "Server - $SERVER_IP PORT - $PORT"
+
+	#if service does not start within 5 minutes (300s) fail the test
+	timeout 30 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://${SERVER_IP}:${PORT})" != "200" ]]; do sleep 1; done' || false
+
+	if [ -z "${log}" ]; then
+		echo "Service log - $log not found!"
+		exit 1
+	fi
 
 	service_log_msg="Access server at"
 
-	if grep -q "${service_log_msg}" "${TEST_DIR}/service.log" ; then
+	if grep -q "${service_log_msg}" "${log}" ; then
 		echo "HPO REST API service started successfully..." | tee -a ${LOG_} ${LOG}
 	else
 		echo "Error Starting the HPO REST API service..." | tee -a ${LOG_} ${LOG}
-		echo "See ${TEST_DIR}/service.log for more details" | tee -a ${LOG_} ${LOG}
-		cat "${TEST_DIR}/service.log"
+		echo "See ${log} for more details" | tee -a ${LOG_} ${LOG}
+		cat "${log}"
 		exit 1
 	fi
 
 	grpc_service_log_msg="Starting gRPC server at"
-	if grep -q "${grpc_service_log_msg}" "${TEST_DIR}/service.log" ; then
+	if grep -q "${grpc_service_log_msg}" "${log}" ; then
 		echo "HPO GRPC API service started successfully..." | tee -a ${LOG_} ${LOG}
 	else
 		echo "Error Starting the HPO GRPC API service..." | tee -a ${LOG_} ${LOG}
-		echo "See TEST_DIR{TEST_DIR}/service.log for more details" | tee -a ${LOG_} ${LOG}
-		cat "${TESTS_}/service.log"
+		echo "See ${log} for more details" | tee -a ${LOG_} ${LOG}
+		cat "${log}"
 		exit 1
 	fi
 }
@@ -597,7 +606,7 @@ function run_post_tests(){
 	fi
 	
 	# Check if HPO services are started
-	check_server_status
+	check_server_status "${SERV_LOG}"
 
 	for post_test in "${exp_tests[@]}"
 	do
