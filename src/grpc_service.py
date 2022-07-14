@@ -64,11 +64,12 @@ class HpoService(hpo_pb2_grpc.HpoServiceServicer):
             context.set_details('Could not find experiment: %s' % request.experiment_name)
             return
 
+
     def NewExperiment(self, request, context):
         if request.hpo_algo_impl in ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt"):
-            tuneables = []
-            for tuneable in request.tuneables:
-                tuneables.append(json.loads(MessageToJson(tuneable, preserving_proto_field_name=True)))
+            tunables = []
+            for tunable in request.tunables:
+                tunables.append(json.loads(MessageToJson(tunable, preserving_proto_field_name=True)))
 
             # check if the experiment already exists and return error accordingly
             if hpo_service.instance.containsExperiment(request.experiment_name):
@@ -79,7 +80,7 @@ class HpoService(hpo_pb2_grpc.HpoServiceServicer):
                                                request.total_trials, request.parallel_trials,
                                                request.direction, request.hpo_algo_impl,
                                                request.objective_function,
-                                               tuneables, request.value_type)
+                                               tunables, request.value_type)
             hpo_service.instance.startExperiment(request.experiment_name)
             experiment: HpoExperiment = hpo_service.instance.getExperiment(request.experiment_name)
             newExperimentReply: NewExperimentsReply = NewExperimentsReply()

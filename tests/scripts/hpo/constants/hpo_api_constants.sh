@@ -141,7 +141,6 @@ hpo_error_messages=(
 [invalid-searchspace]="Direction not supported"
 )
 
-
 declare -A hpo_post_exp_result_json=([empty-name]='{"experiment_name" : " ", "trial_number": 0, "trial_result": "success", "result_value_type": "double", "result_value": 98.78, "operation" : "EXP_TRIAL_RESULT"}'
 	[no-name]='{"trial_number": 0, "trial_result": "success", "result_value_type": "double", "result_value": 98.78, "operation" : "EXP_TRIAL_RESULT"}'
 	[null-name]='{"experiment_name" : null, "trial_number": 0, "trial_result": "success", "result_value_type": "double", "result_value": 98.78, "operation" : "EXP_TRIAL_RESULT"}'

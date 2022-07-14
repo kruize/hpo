@@ -346,3 +346,356 @@ function compare_result() {
 
 	display_result "${expected_log_msg}" "${__test__}" "${failed}"
 }
+
+
+# Validate the trial json returned by RM-HPO GET operation
+function validate_exp_trial() {
+	service=$1
+	tunable_count=0
+	# Sort the actual json based on tunable name
+	echo ""
+
+	if [ "${service}" == "rest" ]; then
+		echo "$(cat ${result} | jq  'sort_by(.tunable_name)')" > ${result}
+		# Sort the json based on tunable name
+		SEARCH_SPACE_JSON="/tmp/search_space.json"
+		echo "${hpo_post_experiment_json["valid-experiment"]}" > ${SEARCH_SPACE_JSON}
+		cat ${SEARCH_SPACE_JSON}
+		echo "$(jq '[.search_space.tunables[] | {lower_bound: .lower_bound, name: .name, upper_bound: .upper_bound}] | sort_by(.name)' ${SEARCH_SPACE_JSON})" > ${expected_json}
+	else
+		echo "$(cat ${result} | jq '.config' | jq  'sort_by(.name)')" > ${result}
+		EXP_JSON="./resources/searchspace_jsons/newExperiment.json"
+		echo "$(jq '[.tunables[] | {lower_bound: .lower_bound, name: .name, upper_bound: .upper_bound}] | sort_by(.name)' ${EXP_JSON})" > ${expected_json}
+	fi
+
+
+	echo "Actual tunables json"
+	cat ${result}
+	echo ""
+
+	echo "Expected tunables json"
+	cat ${expected_json}
+
+	expected_tunables_len=$(cat ${expected_json} | jq '. | length')
+	actual_tunables_len=$(cat ${result}  | jq '. | length')
+
+	echo "___________________________________ Validate experiment trial __________________________________________" | tee -a ${LOG_} ${LOG}
+	echo "" | tee -a ${LOG_} ${LOG}
+	echo "expected tunables length = ${expected_tunables_len} actual tunables length = ${actual_tunables_len}"
+	if [ "${expected_tunables_len}" -ne "${actual_tunables_len}" ]; then
+		failed=1
+		echo "Error - Number of expected and actual tunables should be same" | tee -a ${LOG_} ${LOG}
+
+		echo "" | tee -a ${LOG_} ${LOG}
+		echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" | tee -a ${LOG_} ${LOG}
+	else
+		echo "" | tee -a ${LOG_} ${LOG}
+		echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" | tee -a ${LOG_} ${LOG}
+
+		while [ "${tunable_count}" -lt "${expected_tunables_len}" ]
+		do
+			upperbound=$(cat ${expected_json} | jq '.['${tunable_count}'].upper_bound')
+			lowerbound=$(cat ${expected_json} | jq '.['${tunable_count}'].lower_bound')
+			tunable_name=$(cat ${expected_json} | jq '.['${tunable_count}'].name')
+			if [ "${service}" == "rest" ]; then
+				actual_tunable_name=$(cat ${result} | jq '.['${tunable_count}'].tunable_name')
+				actual_tunable_value=$(cat ${result} | jq '.['${tunable_count}'].tunable_value')
+			else
+				actual_tunable_name=$(cat ${result} | jq '.['${tunable_count}'].name')
+				actual_tunable_value=$(cat ${result} | jq '.['${tunable_count}'].value')
+			fi
+
+			# validate the tunable name
+			echo "" | tee -a ${LOG_} ${LOG}
+			echo "Validating the tunable name ${actual_tunable_name}..." | tee -a ${LOG_} ${LOG}
+			if [ "${actual_tunable_name}" != "${tunable_name}" ]; then
+				failed=1
+				echo "Error - Actual Tunable name should match with the tunable name returned by dependency analyzer" | tee -a ${LOG_} ${LOG}
+			fi
+			echo "" | tee -a ${LOG_} ${LOG}
+
+			echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" | tee -a ${LOG_} ${LOG}
+			echo "" | tee -a ${LOG_} ${LOG}
+
+			# validate the tunable value
+			echo "Validating the tunable value for ${actual_tunable_name}..." | tee -a ${LOG_} ${LOG}
+
+			if [[ $(bc <<< "${actual_tunable_value} >= ${lowerbound} && ${actual_tunable_value} <= ${upperbound}") == 0 ]]; then
+				failed=1
+				echo "Error - Actual Tunable value should be within the given range" | tee -a ${LOG_} ${LOG}
+			fi
+			echo "" | tee -a ${LOG_} ${LOG}
+			echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" | tee -a ${LOG_} ${LOG}
+			((tunable_count++))
+		done
+	fi
+	echo ""
+}
+
+# Check if the servers have started
+function check_server_status() {
+  echo "Wait for HPO service to come up"
+  #if service does not start within 5 minutes (300s) fail the test
+  timeout 300 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://localhost:8085)" != "200" ]]; do sleep 1; done' || false
+
+
+	service_log_msg="Access server at"
+
+	if grep -q "${service_log_msg}" "${TEST_DIR}/service.log" ; then
+		echo "HPO REST API service started successfully..." | tee -a ${LOG_} ${LOG}
+	else
+		echo "Error Starting the HPO REST API service..." | tee -a ${LOG_} ${LOG}
+		echo "See ${TEST_DIR}/service.log for more details" | tee -a ${LOG_} ${LOG}
+		cat "${TEST_DIR}/service.log"
+		exit 1
+	fi
+
+	grpc_service_log_msg="Starting gRPC server at"
+	if grep -q "${grpc_service_log_msg}" "${TEST_DIR}/service.log" ; then
+		echo "HPO GRPC API service started successfully..." | tee -a ${LOG_} ${LOG}
+	else
+		echo "Error Starting the HPO GRPC API service..." | tee -a ${LOG_} ${LOG}
+		echo "See TEST_DIR{TEST_DIR}/service.log for more details" | tee -a ${LOG_} ${LOG}
+		cat "${TESTS_}/service.log"
+		exit 1
+	fi
+}
+
+# Post a JSON object to HPO(Hyper Parameter Optimization) module
+# input: JSON object
+# output: Create the Curl command with given JSON and get the result
+function stop_experiment() {
+	exp_name=$1
+	echo ""
+	echo "******************************************"
+	echo "stop experiment = ${exp_name}"
+	echo "******************************************"
+
+	form_hpo_api_url "experiment_trials"
+
+	remove_experiment='{"experiment_name":'${exp_name}',"operation":"EXP_STOP"}'
+
+	post_cmd=$(curl -s -H 'Content-Type: application/json' ${hpo_url}  -d "${remove_experiment}"  -w '\n%{http_code}' 2>&1)
+
+	stop_experiment_cmd="curl -s -H 'Content-Type: application/json' ${hpo_url} -d '${remove_experiment}'  -w '\n%{http_code}'"
+
+	echo "" | tee -a ${LOG_} ${LOG}
+	echo "Curl command used to stop the experiment = ${stop_experiment_cmd}" | tee -a ${LOG_} ${LOG}
+	echo "" | tee -a ${LOG_} ${LOG}
+
+	echo "${post_cmd}" >> ${LOG_} ${LOG}
+
+	http_code=$(tail -n1 <<< "${post_cmd}")
+	response=$(echo -e "${post_cmd}" | tail -2 | head -1)
+
+	echo "Response is ${response}" >> ${LOG_} ${LOG}
+	echo "http_code is $http_code Response is ${response}"
+}
+
+function form_hpo_api_url {
+	API=$1
+	# Form the URL command based on the cluster type
+	case $cluster_type in
+		native|docker) 
+			PORT="8085"
+			SERVER_IP="localhost"
+			URL="http://${SERVER_IP}"
+			;;
+		*);;
+	esac
+
+	# Add conditions later for other cluster types
+	if [[ ${cluster_type} == "native" || ${cluster_type} == "docker" ]]; then
+		hpo_url="${URL}:${PORT}/${API}"
+	fi
+}
+
+function verify_result() {
+	test_info=$1
+	http_code=$2
+	expected_http_code=$3
+
+	if [[ "${http_code}" -eq "000" ]]; then
+		failed=1
+	else
+		if [[ ${http_code} -ne ${expected_http_code} ]]; then
+			failed=1
+			echo "${test_info} failed - http_code is not as expected, http_code = ${http_code} expected code = ${expected_http_code}" | tee -a ${LOG}
+		else
+			if [[ "${test_info}" =~ "Get config" ]]; then
+				validate_exp_trial "rest"
+				if [[ ${failed} == 1 ]]; then
+					echo "Validating hpo config failed" | tee -a ${LOG}
+				fi
+			fi
+		fi
+	fi
+}
+
+function verify_grpc_result() {
+	test_info=$1
+	exit_code=$2
+
+	if [ ${exit_code} -ne 0 ]; then
+		failed=1
+		echo "$test_info failed!"
+	else
+		if [[ "${test_info}" =~ "Get config" ]]; then
+			validate_exp_trial "grpc"
+			if [[ ${failed} == 1 ]]; then
+				echo "Validating hpo config failed" | tee -a ${LOG}
+			fi
+		fi
+	fi
+}
+
+# The test does the following:
+# In case of hpo_post_experiment test, Post valid and invalid experiments to HPO /experiment_trials API and validate the reslut
+# In case of hpo_post_exp_result test, Post valid and invalid experiments results to HPO /experiment_trials API and validate the result
+# input: Test name
+function run_post_tests(){
+	hpo_test_name=$1
+	
+	if [ "${hpo_test_name}" == "hpo_post_experiment" ]; then
+		exp_tests=("${run_post_experiment_tests[@]}")
+	else
+		exp_tests=("${run_post_exp_result_tests[@]}")
+	fi
+
+	SERV_LOG="${TEST_DIR}/service.log"
+	# Deploy hpo
+	if [ ${cluster_type} == "native" ]; then
+		deploy_hpo ${cluster_type} ${SERV_LOG}
+	else
+		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
+	fi
+	
+	# Check if HPO services are started
+	check_server_status
+
+	for post_test in "${exp_tests[@]}"
+	do
+
+		# Get the length of the service log before the test
+		log_length_before_test=$(cat ${SERV_LOG} | wc -l)
+
+		TESTS_="${TEST_DIR}/${post_test}"
+		mkdir -p ${TESTS_}
+		LOG_="${TEST_DIR}/${post_test}.log"
+		TEST_SERV_LOG="${TESTS_}/service.log"
+
+		echo "************************************* ${post_test} Test ****************************************" | tee -a ${LOG_} ${LOG}
+		echo "" | tee -a ${LOG_} ${LOG}
+
+		exp="${post_test}"	
+
+		experiment_name=""
+		if [ "${hpo_test_name}" == "hpo_post_exp_result" ]; then
+			exp="valid-experiment"
+			# Get the experiment id from search space JSON
+			experiment_name=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_name')
+			# Post the experiment JSON to HPO /experiment_trials API
+			post_experiment_json "${hpo_post_experiment_json[${exp}]}"
+
+			post_exp_http_code="${http_code}"
+
+			# Post the experiment result to HPO /experiment_trials API
+			post_experiment_result_json "${hpo_post_exp_result_json[$post_test]}"
+			expected_log_msg="${hpo_exp_result_error_messages[$post_test]}"
+		else
+			# Get the experiment id from search space JSON
+			experiment_name=$(echo ${hpo_post_experiment_json[${post_test}]} | jq '.search_space.experiment_name')
+			# Post the experiment JSON to HPO /experiment_trials API
+			post_experiment_json "${hpo_post_experiment_json[$post_test]}"
+
+			expected_log_msg="${hpo_error_messages[$post_test]}"
+
+			post_exp_http_code="${http_code}"
+		fi
+
+		if [[ "${post_test}" == valid* ]]; then
+			expected_result_="200"
+		else
+			expected_result_="400"
+			if [[ "${post_test}" == "generate-subsequent" ]]; then
+				expected_result_="404"
+			fi
+		fi
+
+		actual_result="${http_code}"
+
+		should_stop_expriment=false
+		if [[ "${post_exp_http_code}" -eq "200" ]]; then
+			should_stop_expriment=true
+		fi
+
+		# Extract the lines from the service log after log_length_before_test
+		extract_lines=`expr ${log_length_before_test} + 1`
+		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
+		
+		echo ""
+		echo "log_length_before_test ${log_length_before_test}"
+		echo "extract_lines ${extract_lines}"
+		echo ""
+
+		echo ""
+		if [[ "${http_code}" -eq "000" ]]; then
+			failed=1
+			((TOTAL_TESTS++))
+			((TESTS++))
+			error_message "${failed}" "${post_test}"
+		else
+			echo "actual_result = $actual_result expected_result = ${expected_result_}"
+			compare_result "${post_test}" "${expected_result_}" "${expected_log_msg}" "${TEST_SERV_LOG}"
+		fi
+
+		echo ""
+
+		if [ "$should_stop_expriment" == true ]; then
+			stop_experiment "$experiment_name"
+		fi
+
+		echo "" | tee -a ${LOG_} ${LOG}
+		
+	done
+	
+	# Stop the HPO servers
+	echo "Terminating any running HPO servers..." | tee -a ${LOG}
+	terminate_hpo ${cluster_type}
+	echo "Terminating any running HPO servers...Done" | tee -a ${LOG}
+
+	echo "*********************************************************************************************************" | tee -a ${LOG_} ${LOG}
+}
+
+# Post a JSON object to HPO(Hyper Parameter Optimization) module
+# input: JSON object
+# output: Create the Curl command with given JSON and get the result
+function post_experiment_json() {
+	json_array_=$1
+	echo ""
+	echo "******************************************"
+	echo "json array = ${json_array_}"
+	echo "******************************************"
+
+	form_hpo_api_url "experiment_trials"
+
+	post_cmd=$(curl -s -H 'Content-Type: application/json' ${hpo_url}  -d "${json_array_}"  -w '\n%{http_code}' 2>&1)
+
+	# Example curl command: curl -v -s -H 'Content-Type: application/json' http://localhost:8085/experiment_trials -d '{"operation":"EXP_TRIAL_GENERATE_NEW","search_space":{"experiment_name":"petclinic-sample-2-75884c5549-npvgd","experiment_id":"a123","value_type":"double","hpo_algo_impl":"optuna_tpe","objective_function":"transaction_response_time","tunables":[{"value_type":"double","lower_bound":150,"name":"memoryRequest","upper_bound":300,"step":1},{"value_type":"double","lower_bound":1,"name":"cpuRequest","upper_bound":3,"step":0.01}],"slo_class":"response_time","direction":"minimize"}}' 
+
+	post_experiment_cmd="curl -s -H 'Content-Type: application/json' ${hpo_url} -d '${json_array_}'  -w '\n%{http_code}'"
+
+	echo "" | tee -a ${LOG_} ${LOG}
+	echo "Curl command used to post the experiment = ${post_experiment_cmd}" | tee -a ${LOG_} ${LOG}
+	echo "" | tee -a ${LOG_} ${LOG}
+
+	echo "${post_cmd}" >> ${LOG_} ${LOG}
+
+
+	http_code=$(tail -n1 <<< "${post_cmd}")
+	response=$(echo -e "${post_cmd}" | tail -2 | head -1)
+
+	echo "Response is ${response}" >> ${LOG_} ${LOG}
+	echo "http_code is $http_code Response is ${response}"
+}
+

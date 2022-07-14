@@ -107,7 +107,7 @@ message ExperimentDetails {
   string hpo_algo_impl = 5;
   string experiment_id = 6;
   string objective_function= 7;
-  repeated Tunable tuneables = 8;
+  repeated Tunable tunables = 8;
   string value_type= 9;
   string slo_class = 10;
   bool started = 11;
