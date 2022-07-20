@@ -83,6 +83,24 @@ function get_mem_usage()
 	done
 }
 
+## Collect Disk Usage
+function get_fs_usage()
+{
+	URL=$1
+	TOKEN=$2
+	RESULTS_DIR=$3
+	ITER=$4
+	APP_NAME=$5
+	# Delete the old json file if any
+	rm -rf ${RESULTS_DIR}/fsusage-${ITER}.json
+	while true
+	do
+		# Processing curl output "timestamp value" using jq tool.
+		curl --silent -G -kH "Authorization: Bearer ${TOKEN}" --data-urlencode 'query=sum(container_fs_usage_bytes) by (pod)' ${URL} | jq '[ .data.result[] | [ .value[0], .metric.namespace, .metric.pod, .value[1]|tostring] | join(";") ]' | grep "${APP_NAME}" >> ${RESULTS_DIR}/fsusage-${ITER}.json
+		# err_exit "Error: could not get file system usage details of the pod" >>setup.log
+	done
+}
+
 ## Collect network bytes received
 function get_receive_bandwidth()
 {
@@ -96,7 +114,7 @@ function get_receive_bandwidth()
 	while true
 	do
 		# Processing curl output "timestamp value" using jq tool.
-		curl --silent -G -kH "Authorization: Bearer ${TOKEN}" --data-urlencode 'query=sum(rate(container_network_receive_bytes_total[1m])) by (pod)' ${URL} | jq '[ .data.result[] | [ .value[0], .metric.namespace, .metric.pod, .value[1]|tostring] | join(";") ]' | grep "${APP_NAME}" >> ${RESULTS_DIR}/receive_bandwidth-${ITER}.json
+		curl --silent -G -kH "Authorization: Bearer ${TOKEN}" --data-urlencode 'query=sum(rate(container_network_receive_bytes_total[30s])) by (pod)' ${URL} | jq '[ .data.result[] | [ .value[0], .metric.namespace, .metric.pod, .value[1]|tostring] | join(";") ]' | grep "${APP_NAME}" >> ${RESULTS_DIR}/receive_bandwidth-${ITER}.json
 		#err_exit "Error: could not get bandwidth details of the pod" >>setup.log
 	done
 }
@@ -114,7 +132,7 @@ function get_transmit_bandwidth()
 	while true
 	do
 		# Processing curl output "timestamp value" using jq tool.
-		curl --silent -G -kH "Authorization: Bearer ${TOKEN}" --data-urlencode 'query=sum(rate(container_network_transmit_bytes_total[1m])) by (pod)' ${URL} | jq '[ .data.result[] | [ .value[0], .metric.namespace, .metric.pod, .value[1]|tostring] | join(";") ]' | grep "${APP_NAME}" >> ${RESULTS_DIR}/transmit_bandwidth-${ITER}.json
+		curl --silent -G -kH "Authorization: Bearer ${TOKEN}" --data-urlencode 'query=sum(rate(container_network_transmit_bytes_total[30s])) by (pod)' ${URL} | jq '[ .data.result[] | [ .value[0], .metric.namespace, .metric.pod, .value[1]|tostring] | join(";") ]' | grep "${APP_NAME}" >> ${RESULTS_DIR}/transmit_bandwidth-${ITER}.json
 		#err_exit "Error: could not get bandwidth details of the pod" >>setup.log
 	done
 }
@@ -497,7 +515,7 @@ elif [[ ${CLUSTER_TYPE} == "minikube" ]]; then
 	TOKEN=TOKEN
 fi
 
-export -f err_exit get_cpu get_mem_rss get_mem_usage get_receive_bandwidth get_transmit_bandwidth
+export -f err_exit get_cpu get_mem_rss get_mem_usage get_receive_bandwidth get_transmit_bandwidth get_fs_usage
 export -f get_app_timer_sum get_app_timer_count get_app_timer_secondspercount get_app_timer_max get_server_errors get_server_requests_sum get_server_requests_count get_server_requests_max 
 export -f get_app_timer_method_sum get_app_timer_method_count get_app_timer_method_max get_server_requests_method_sum get_server_requests_method_count get_server_requests_method_max
 
@@ -505,8 +523,10 @@ echo "Collecting metric data" >> ${RESULTS_DIR}/setup.log
 timeout ${TIMEOUT} bash -c  "get_cpu ${URL} ${TOKEN} ${RESULTS_DIR} ${ITER} ${APP_NAME}" &
 timeout ${TIMEOUT} bash -c  "get_mem_rss ${URL} ${TOKEN} ${RESULTS_DIR} ${ITER} ${APP_NAME}" &
 timeout ${TIMEOUT} bash -c  "get_mem_usage ${URL} ${TOKEN} ${RESULTS_DIR} ${ITER} ${APP_NAME}" &
+timeout ${TIMEOUT} bash -c  "get_fs_usage ${URL} ${TOKEN} ${RESULTS_DIR} ${ITER} ${APP_NAME}" &
 timeout ${TIMEOUT} bash -c  "get_receive_bandwidth ${URL} ${TOKEN} ${RESULTS_DIR} ${ITER} ${APP_NAME}" &
 timeout ${TIMEOUT} bash -c  "get_transmit_bandwidth ${URL} ${TOKEN} ${RESULTS_DIR} ${ITER} ${APP_NAME}" &
+
 #timeout ${TIMEOUT} bash -c  "get_app_timer_sum ${URL} ${TOKEN} ${RESULTS_DIR} ${ITER} ${APP_NAME}" &
 #timeout ${TIMEOUT} bash -c  "get_app_timer_count ${URL} ${TOKEN} ${RESULTS_DIR} ${ITER} ${APP_NAME}" &
 #timeout ${TIMEOUT} bash -c  "get_app_timer_secondspercount ${URL} ${TOKEN} ${RESULTS_DIR} ${ITER} ${APP_NAME}" &

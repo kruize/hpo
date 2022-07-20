@@ -19,9 +19,9 @@
 
 
 function hpo_scale_tests() {
-	num_experiments=(1 10 100)
-	N_TRIALS=2
-	ITERATIONS=2
+	num_experiments=(1)
+	N_TRIALS=5
+	ITERATIONS=3
 
 	for NUM_EXPS in ${num_experiments[@]}
 	do
@@ -47,8 +47,8 @@ function run_experiments() {
 	RESULTS_=$3
 	ITERATIONS=$4
 
-	TRIAL_DURATION=15
-	BUFFER=100
+	TRIAL_DURATION=10
+	BUFFER=5
 
 	DURATION=`expr $NUM_EXPS \* $TRIAL_DURATION \* $N_TRIALS + $BUFFER`
 	#DURATION=300
@@ -84,10 +84,6 @@ function run_experiments() {
 
 		# Check if HPO services are started
 		check_server_status "${SERV_LOG}"
-
-		# Warm up runs
-		#TYPE="warmup"
-		#run_iteration ${NUM_EXPS} ${N_TRIALS} ${DURATION} ${WARMUP_CYCLES} ${TYPE} ${RESULTS_I}
 
 		# Measurement runs
 		TYPE="measure"
@@ -210,9 +206,6 @@ function hpo_grpc_multiple_exp_test() {
 		echo "Posting a new experiment..."
 		python ../src/grpc_client.py new --file="${TEST_DIR}/petclinic-exp-${i}.json"
 		verify_grpc_result "Post new experiment" $?
-
-		sleep 5
-
 	done
 
 	## Loop through the trials
@@ -256,7 +249,7 @@ function hpo_grpc_multiple_exp_test() {
 
 			verify_grpc_result "Post new experiment result for experiment ${exp_name} and trial ${trial_num}" $?
 	
-			sleep 200
+			sleep 2
 
 			# Generate a subsequent trial
 			if [[ ${trial_num} < $((N_TRIALS-1)) ]]; then
@@ -335,9 +328,6 @@ function hpo_run_experiments() {
 		json=$(echo $exp_json | sed -e 's/petclinic-sample-2-75884c5549-npvgd/petclinic-sample-'${i}'/')
 		post_experiment_json "$json"
 		verify_result "Post new experiment" "${http_code}" "${expected_http_code}"
-
-		sleep 5
-
 	done
 
 	## Loop through the trials
@@ -377,7 +367,7 @@ function hpo_run_experiments() {
 			verify_result "Get config from hpo for experiment ${exp_name} and trial ${trial_num}" "${http_code}" "${expected_http_code}"
 
 			# Added a sleep to mimic experiment run
-			sleep 10 
+			sleep 3 
 
 			# Post the experiment result to hpo
 			echo "" | tee -a ${LOG}
@@ -408,7 +398,5 @@ function hpo_run_experiments() {
 		post_experiment_json ${stop_experiment}
 		verify_result "Stop running experiment ${exp_name}" "${http_code}" "200"
 	done
-
-	sleep 10
 
 }
