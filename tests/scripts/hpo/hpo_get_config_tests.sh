@@ -23,7 +23,8 @@ function run_get_trial_json_test() {
 	exp_trial=$1
 	trial_num=$2
 	curl="curl -H 'Accept: application/json'"
-	url="$hpo_base_url/experiment_trials"
+	url="http://${SERVER_IP}:${PORT}/experiment_trials"
+	echo "url = $url"
 	case "${exp_trial}" in
 		empty-name)
 			get_trial_json=$(${curl} ''${url}'?experiment_name=%20&trial_number=0' -w '\n%{http_code}' 2>&1)
@@ -92,7 +93,7 @@ function get_trial_json_invalid_tests() {
 	fi
 	
 	# Check if HPO services are started
-	check_server_status
+	check_server_status "${SERV_LOG}"
 
 	IFS=' ' read -r -a get_trial_json_invalid_tests <<<  ${hpo_get_trial_json_tests[$FUNCNAME]}
 	for exp_trial in "${get_trial_json_invalid_tests[@]}"
@@ -165,7 +166,7 @@ function get_trial_json_valid_tests() {
 	fi
 	
 	# Check if HPO services are started
-	check_server_status
+	check_server_status "${SERV_LOG}"
 
 	IFS=' ' read -r -a get_trial_json_valid_tests <<<  ${hpo_get_trial_json_tests[$FUNCNAME]}
 	for experiment_trial in "${get_trial_json_valid_tests[@]}"

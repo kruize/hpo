@@ -45,7 +45,7 @@ function hpo_grpc_sanity_test() {
 	fi
 
 	# Check if HPO services are started
-	check_server_status
+	check_server_status "${SERV_LOG}"
 
 	## Loop through the trials
 	for (( i=0 ; i<${N_TRIALS} ; i++ ))
@@ -141,7 +141,7 @@ function hpo_sanity_test() {
 	fi
 
 	# Check if HPO services are started
-	check_server_status
+	check_server_status "${SERV_LOG}"
 
 	expected_http_code="200"
 
