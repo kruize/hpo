@@ -26,6 +26,10 @@ import grpc
 from gRPC import hpo_pb2_grpc, hpo_pb2
 from google.protobuf.json_format import MessageToJson, ParseError
 from google.protobuf.json_format import Parse, ParseDict
+import json_validate
+from logger import get_logger
+
+logger = get_logger(__name__)
 
 default_host_name="localhost"
 default_server_port = 50051
@@ -77,6 +81,11 @@ def new(file):
         data = json.load(json_file)
         try:
             message: hpo_pb2.ExperimentDetails = ParseDict(data, hpo_pb2.ExperimentDetails())
+            # further validate the JSON structure and proceed accordingly
+            isInvalid = json_validate.validate_search_space(data)
+            if isInvalid:
+                logger.error(isInvalid)
+                return
         except ParseError as pErr :
             raise click.ClickException("Unable to parse: " + file)
     click.echo(" Adding new experiment: {}".format(message.experiment_name))
