@@ -174,8 +174,15 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
         trialValidationError = self.validate_trialNumber(json_object["experiment_name"],
                                                          str(json_object["trial_number"]))
-        resultDataValidationError = self.validate_result_data(json_object["trial_result"],
-                                                              json_object["result_value_type"],
+
+        experiment = hpo_service.instance.getExperiment(json_object["experiment_name"])
+        trial_result = json_object["trial_result"]
+
+        # check if algorithm is one of Optuna's and change the failure value accordingly
+        if experiment.hpo_algo_impl in HPOSupportedTypes.OPTUNA_ALGOS and trial_result == "failure":
+            trial_result = "prune"
+
+        resultDataValidationError = self.validate_result_data(trial_result, json_object["result_value_type"],
                                                               json_object["result_value"])
         if trialValidationError:
             self._set_response(400, trialValidationError)
