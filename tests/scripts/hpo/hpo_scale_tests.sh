@@ -17,12 +17,40 @@
 #
 ##### Script for validating HPO (Hyper Parameter Optimization) with multiple experiments #####
 
+# Get the absolute path of current directory
+CURRENT_DIR="$(dirname "$(realpath "$0")")"
+SCRIPTS_DIR="${CURRENT_DIR}/hpo"
+
+# Source the common functions scripts
+. ${SCRIPTS_DIR}/constants/hpo_api_constants.sh
+. ${SCRIPTS_DIR}/hpo_post_exp_result_tests.sh
+
+failed=0
 
 function hpo_scale_tests() {
-	num_experiments=(1 10 100)
+	start_time=$(get_date)
+
+	# create the result directory for given testsuite
+	echo ""
+	TEST_DIR="${RESULTS_DIR}/hpo_scale_tests"
+	mkdir -p ${TEST_DIR}
+
+	# Stop the HPO servers
+	echo "Terminating any running HPO servers..."
+	terminate_hpo ${cluster_type} > /dev/null
+	echo "Terminating any running HPO servers...Done"
+
+	num_experiments=(1)
 	N_TRIALS=5
 	ITERATIONS=3
+	LOG="${TEST_DIR}/hpo_scale_tests.log"
 
+	echo ""
+	echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~" | tee -a ${LOG}
+	echo "                    Running HPO Scale Tests " | tee -a ${LOG}
+	echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"| tee -a ${LOG}
+
+	echo "failed = $failed"
 	for NUM_EXPS in ${num_experiments[@]}
 	do
 		SCALE_TEST_RES_DIR="${TEST_DIR}/${NUM_EXPS}x-result"
@@ -35,12 +63,27 @@ function hpo_scale_tests() {
 	done
 
 	echo "Results of experiments"
-	#echo "INSTANCES ,  CPU_USAGE , MEM_USAGE , FS_USAGE , NW_RECEIVE_BANDWIDTH_USAGE, NW_TRANSMIT_BANDWIDTH_USAGE, CPU_MIN , CPU_MAX , MEM_MIN , MEM_MAX , FS_MIN , FS_MAX NW_RECEIVE_BANDWIDTH_MIN , NW_RECEIVE_BANDWIDTH_MAX , NW_TRANSMIT_BANDWIDTH_MIN , NW_TRANSMIT_BANDWIDTH_MAX" > ${TESTS_DIR}/res_usage_output.csv
+	echo "INSTANCES ,  CPU_USAGE , MEM_USAGE(MB) , FS_USAGE(B) , NW_RECEIVE_BANDWIDTH_USAGE, NW_TRANSMIT_BANDWIDTH_USAGE, CPU_MIN , CPU_MAX , MEM_MIN , MEM_MAX , FS_MIN , FS_MAX NW_RECEIVE_BANDWIDTH_MIN , NW_RECEIVE_BANDWIDTH_MAX , NW_TRANSMIT_BANDWIDTH_MIN , NW_TRANSMIT_BANDWIDTH_MAX" > "${TEST_DIR}/res_usage_output.csv"
 	for NUM_EXPS in ${num_experiments[@]}
 	do
 		cat "${TEST_DIR}/${NUM_EXPS}x-result/Metrics-prom.log"
-		#paste "${TEST_DIR}/${NUM_EXPS}x-result/Metrics-prom.log" >> "${TEST_DIR}/res_usage_output.csv"
+		paste "${TEST_DIR}/${NUM_EXPS}x-result/Metrics-prom.log" >> "${TEST_DIR}/res_usage_output.csv"
 	done
+
+	end_time=$(get_date)
+	elapsed_time=$(time_diff "${start_time}" "${end_time}")
+
+	# print the testsuite summary
+	echo ""
+	echo "HPO Scale tests took ${elapsed_time} seconds to complete"
+	echo "failed = $failed"
+	if [ "${failed}" == "0" ]; then
+		echo "Check ${TEST_DIR}/res_usage_output.csv for resource usage details!"
+	else
+		echo "Test failed - Check result logs for errors!"
+	        echo "RESULTS DIR - ${TEST_DIR}"	
+	fi
+	echo ""
 }
 
 function run_experiments() {
@@ -140,7 +183,7 @@ function run_iteration() {
 		echo "*************************************************" | tee -a ${LOG}
 		echo ""
 
-	#	echo "Invoking get metrics cmd - ${SCRIPTS_DIR}/getmetrics-promql.sh ${TYPE}-${run} ${DURATION} ${RES_DIR} ${BENCHMARK_SERVER} ${APP_NAME} ${cluster_type} &"
+		echo "Invoking get metrics cmd - ${SCRIPTS_DIR}/getmetrics-promql.sh ${TYPE}-${run} ${DURATION} ${RES_DIR} ${BENCHMARK_SERVER} ${APP_NAME} ${cluster_type} &"
 		${SCRIPTS_DIR}/getmetrics-promql.sh ${TYPE}-${run} ${DURATION} ${RES_DIR} ${BENCHMARK_SERVER} ${APP_NAME} ${cluster_type} &
 
 		hpo_run_experiments "${NUM_EXPS}" "${N_TRIALS}" "${RES_DIR}"
@@ -156,6 +199,7 @@ function run_iteration() {
 
 # Run Multiple experiments test for HPO REST service
 function hpo_run_experiments() {
+	echo "In hpo_run_experiments failed = $failed"
 
 	# Set the no. of experiments
 	NUM_EXPS=$1
@@ -168,14 +212,6 @@ function hpo_run_experiments() {
 	mkdir -p "${EXP_RES_DIR}"
 
 	failed=0
-
-	((TOTAL_TESTS++))
-	((TESTS++))
-
-	# Form the url based on cluster type & API
-	form_hpo_api_url "experiment_trials"
-	echo "HPO URL = $hpo_url"  | tee -a ${LOG}
-
 
 	echo "RESULTSDIR - ${EXP_RES_DIR}" | tee -a ${LOG}
 	echo "" | tee -a ${LOG}
@@ -264,5 +300,7 @@ function hpo_run_experiments() {
 		post_experiment_json ${stop_experiment}
 		verify_result "Stop running experiment ${exp_name}" "${http_code}" "200"
 	done
+
+	echo "In hpo_run_experiments failed = $failed"
 
 }

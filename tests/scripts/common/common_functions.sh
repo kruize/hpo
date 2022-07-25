@@ -33,7 +33,7 @@ TESTS=0
 
 TEST_MODULE_ARRAY=("hpo")
 
-TEST_SUITE_ARRAY=("hpo_api_tests")
+TEST_SUITE_ARRAY=("hpo_api_tests" "hpo_scale_tests")
 
 total_time=0
 matched=0
