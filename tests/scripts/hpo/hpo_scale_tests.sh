@@ -19,7 +19,7 @@
 
 
 function hpo_scale_tests() {
-	num_experiments=(1)
+	num_experiments=(1 10 100)
 	N_TRIALS=5
 	ITERATIONS=3
 
@@ -35,9 +35,11 @@ function hpo_scale_tests() {
 	done
 
 	echo "Results of experiments"
+	#echo "INSTANCES ,  CPU_USAGE , MEM_USAGE , FS_USAGE , NW_RECEIVE_BANDWIDTH_USAGE, NW_TRANSMIT_BANDWIDTH_USAGE, CPU_MIN , CPU_MAX , MEM_MIN , MEM_MAX , FS_MIN , FS_MAX NW_RECEIVE_BANDWIDTH_MIN , NW_RECEIVE_BANDWIDTH_MAX , NW_TRANSMIT_BANDWIDTH_MIN , NW_TRANSMIT_BANDWIDTH_MAX" > ${TESTS_DIR}/res_usage_output.csv
 	for NUM_EXPS in ${num_experiments[@]}
 	do
 		cat "${TEST_DIR}/${NUM_EXPS}x-result/Metrics-prom.log"
+		#paste "${TEST_DIR}/${NUM_EXPS}x-result/Metrics-prom.log" >> "${TEST_DIR}/res_usage_output.csv"
 	done
 }
 
@@ -64,7 +66,7 @@ function run_experiments() {
 		
 		echo "*************************************************" | tee -a ${LOG}
 		echo "Starting Iteration $iter" | tee -a ${LOG}
-		echo "*************************************************" | tee -a {LOG}
+		echo "*************************************************" | tee -a ${LOG}
 		echo ""
 
 		# Deploy HPO 
@@ -74,7 +76,6 @@ function run_experiments() {
 
 		echo "RESULTSDIR - ${RESULTS_I}" | tee -a ${LOG}
 		echo "" | tee -a ${LOG}
-
 		# Deploy hpo
 		if [ ${cluster_type} == "native" ]; then
 			deploy_hpo ${cluster_type} ${SERV_LOG}
@@ -122,169 +123,35 @@ function run_iteration() {
 
 	# Start the metrics collection script
 	if [ ${cluster_type} == "openshift" ]; then
+	 	BENCHMARK_SERVER=$(oc whoami --show-server  | awk -F[/:] '{print $4}' | sed -e 's/api.//')
 	 	BENCHMARK_SERVER="testautotune.lab.pnq2.cee.redhat.com"
+	 	BENCHMARK_SERVER="hpoaas2.lab.pnq2.cee.redhat.com"
 	else
-	 	#BENCHMARK_SERVER="${SERVER_IP}"
-	 	BENCHMARK_SERVER="localhost"
+	 	BENCHMARK_SERVER="${SERVER_IP}"
 	fi
 
-	APP_NAME="hpo"
+	echo "BENCHMARK_SERVER = ${BENCHMARK_SERVER} pod = $hpo_pod"
+	APP_NAME="${hpo_pod}"
 	# Run experiments
 	for (( run=0; run<${CYCLES}; run++ ))
 	do
 		echo "*************************************************" | tee -a ${LOG}
 		echo "Starting $TYPE-$run " | tee -a ${LOG}
-		echo "*************************************************" | tee -a {LOG}
+		echo "*************************************************" | tee -a ${LOG}
 		echo ""
 
+	#	echo "Invoking get metrics cmd - ${SCRIPTS_DIR}/getmetrics-promql.sh ${TYPE}-${run} ${DURATION} ${RES_DIR} ${BENCHMARK_SERVER} ${APP_NAME} ${cluster_type} &"
 		${SCRIPTS_DIR}/getmetrics-promql.sh ${TYPE}-${run} ${DURATION} ${RES_DIR} ${BENCHMARK_SERVER} ${APP_NAME} ${cluster_type} &
 
 		hpo_run_experiments "${NUM_EXPS}" "${N_TRIALS}" "${RES_DIR}"
 
 		echo "*************************************************" | tee -a ${LOG}
 		echo "Completed $TYPE-$run " | tee -a ${LOG}
-		echo "*************************************************" | tee -a {LOG}
+		echo "*************************************************" | tee -a ${LOG}
 		echo ""
 	done
 
 
-}
-
-# Multple experiments test for HPO REST service
-function hpo_grpc_multiple_exp_test() {
-	# Set the no. of experiments
-	NUM_EXPS=$1
-
-	# Set the no. of trials
-	N_TRIALS=$2
-
-	((TOTAL_TESTS++))
-	((TESTS++))
-
-	failed=0
-	EXP_JSON="./resources/searchspace_jsons/newExperiment.json"
-
-	# Form the url based on cluster type & API
-	form_hpo_api_url "experiment_trials"
-	echo "HPO URL = $hpo_url"  | tee -a ${LOG}
-
-
-	TESTS_=${TEST_DIR}
-	SERV_LOG="${TESTS_}/service.log"
-	echo "RESULTSDIR - ${TEST_DIR}" | tee -a ${LOG}
-	echo "" | tee -a ${LOG}
-
-	# Deploy hpo
-	if [ ${cluster_type} == "native" ]; then
-		deploy_hpo ${cluster_type} ${SERV_LOG}
-	else
-		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
-	fi
-
-	# Check if HPO services are started
-	check_server_status "${SERV_LOG}"
-
-	expected_http_code="200"
-
-	hostname=$(hostname)
-	echo "hostname = $hostname "
-	cat /etc/hosts
-	echo ""
-
-	exp_json=${hpo_post_experiment_json["valid-experiment"]}
-
-	## Start multiple experiments
-	for (( i=1 ; i<=${NUM_EXPS} ; i++ ))
-	do
-		LOG_="${TEST_DIR}/hpo-exp-${i}.log"
-		# Post the experiment
-		echo "Start a new experiment with the search space json..." | tee -a ${LOG}
-
-		# Replace the experiment name
-		cat $EXP_JSON | sed -e 's/petclinic-sample-2-75884c5549-npvgd/petclinic-sample-'${i}'/' > ${TEST_DIR}/petclinic-exp-${i}.json
-
-		echo "Posting a new experiment..."
-		python ../src/grpc_client.py new --file="${TEST_DIR}/petclinic-exp-${i}.json"
-		verify_grpc_result "Post new experiment" $?
-	done
-
-	## Loop through the trials
-	for (( trial_num=0 ; trial_num<${N_TRIALS} ; trial_num++ ))
-	do
-
-		for (( i=1 ; i<=${NUM_EXPS} ; i++ ))
-		do
-			exp_name="petclinic-sample-${i}"
-			echo ""
-			echo "*********************************** Experiment ${exp_name} and trial_number ${trial_num} *************************************"
-			LOG_="${TEST_DIR}/hpo-exp-${i}-trial-${trial_num}.log"
-
-			# Get the config from HPO
-			sleep 2
-			echo ""
-			echo "Generate the config for trial experiment ${exp_name} and ${trial_num}..." | tee -a ${LOG}
-			echo ""
-			result="${TEST_DIR}/hpo_config_exp${i}_trial${trial_num}.json"
-			expected_json="${TEST_DIR}/expected_hpo_config_exp${i}.json"
-		
-			get_trial_json_cmd="python ../src/grpc_client.py config --name ${exp_name} --trial ${trial_num}"
-			echo "command to query the experiment_trial API = ${get_trial_json_cmd}" | tee -a ${LOG}
-
-			echo "result = $result  epxected_json = $expected_json"
-			python ../src/grpc_client.py config --name ${exp_name} --trial ${trial_num} > ${result}
-			verify_grpc_result "Get config from hpo for experiment ${exp_name} and trial ${trial_num}" $?
-
-
-			# Post the experiment result to hpo
-			echo "" | tee -a ${LOG}
-			echo "Post the experiment result for trial ${trial_num}..." | tee -a ${LOG}
-			result_value="198.7"
-
-			if [[ ${trial_num} == 1 ]]; then
-				echo "Posting a FAILURE result..."
-				python ../src/grpc_client.py result --name "${exp_name}" --trial "${trial_num}" --result FAILURE --value_type "double" --value "${result_value}"
-			else
-				python ../src/grpc_client.py result --name "${exp_name}" --trial "${trial_num}" --result SUCCESS --value_type "double" --value "${result_value}"
-			fi
-
-			verify_grpc_result "Post new experiment result for experiment ${exp_name} and trial ${trial_num}" $?
-	
-			sleep 2
-
-			# Generate a subsequent trial
-			if [[ ${trial_num} < $((N_TRIALS-1)) ]]; then
-				echo "" | tee -a ${LOG}
-				echo "Generate subsequent config for experiment ${exp_name} after trial ${trial_num} ..." | tee -a ${LOG}
-				python ../src/grpc_client.py next --name ${exp_name}
-				verify_grpc_result "Post subsequent for experiment ${exp_name} after trial ${trial_num}" $?
-			fi
-		done
-	done
-
-	# Store the docker logs
-	if [ ${cluster_type} == "docker" ]; then
-		docker logs hpo_docker_container > ${TEST_DIR}/hpo_container.log 2>&1
-	fi
-
-	# Terminate any running HPO servers
-	echo "Terminating any running HPO servers..." | tee -a ${LOG}
-	terminate_hpo ${cluster_type}
-	echo "Terminating any running HPO servers...Done" | tee -a ${LOG}
-	sleep 2
-
-	# check for failed cases
-	echo "failed = $failed"
-	if [[ ${failed} == 0 ]]; then
-		((TESTS_PASSED++))
-		((TOTAL_TESTS_PASSED++))
-		echo "Test Passed" | tee -a ${LOG}
-	else
-		((TESTS_FAILED++))
-		((TOTAL_TESTS_FAILED++))
-		FAILED_CASES+=(${testcase})
-		echo "Check the logs for error messages : ${TEST_DIR}"| tee -a ${LOG}
-		echo "Test failed" | tee -a ${LOG}
-	fi
 }
 
 # Run Multiple experiments test for HPO REST service
@@ -348,11 +215,10 @@ function hpo_run_experiments() {
 			echo ""
 
 			curl="curl -H 'Accept: application/json'"
-			url="http://localhost:8085/experiment_trials"
 
 			get_trial_json=$(${curl} ''${hpo_url}'?experiment_name='${exp_name}'&trial_number='${trial_num}'' -w '\n%{http_code}' 2>&1)
 
-			get_trial_json_cmd="${curl} ${url}?experiment_name="${exp_name}"&trial_number=${trial_num} -w '\n%{http_code}'"
+			get_trial_json_cmd="${curl} ${hpo_url}?experiment_name="${exp_name}"&trial_number=${trial_num} -w '\n%{http_code}'"
 			echo "command used to query the experiment_trial API = ${get_trial_json_cmd}" | tee -a ${LOG}
 
 			http_code=$(tail -n1 <<< "${get_trial_json}")

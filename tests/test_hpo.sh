@@ -33,7 +33,7 @@ HPO_CONTAINER_IMAGE="kruize/hpo:test"
 # usage of the test script
 function usage() { 
 	echo ""
-	echo "Usage: $0 -c [native|docker|minikube|openshift] [-o hpo container image] [--tctype=functional] [--testsuite=Group of tests that you want to perform] [--testcase=Particular test case that you want to check] [--resultsdir=results directory] [-s|-t]"
+	echo "Usage: $0 -c [native|docker|minikube|openshift] [-o hpo container image] [--tctype=functional] [--testsuite=Group of tests that you want to perform] [--testcase=Particular test case that you want to check] [--resultsdir=results directory] [-s|-t] -n [namespace]"
 	echo ""
 	echo "Example: $0 -c native --testsuite=hpo_api_tests --testcase=hpo_post_experiment --resultsdir=/home/results"
 	echo "Example: $0 -c docker -o kruize/hpo:0.0.1 --testsuite=hpo_api_tests --resultsdir=/home/results"
@@ -107,7 +107,7 @@ function check_testcase_type() {
 }
 
 # Iterate through the commandline options
-while getopts c:t:s:o:-: gopts
+while getopts c:t:s:o:n:-: gopts
 do
 	case ${gopts} in
 	-)
@@ -138,6 +138,9 @@ do
 	o)
 		HPO_CONTAINER_IMAGE="${OPTARG}"
 		;;
+	n)
+		namespace="${OPTARG}"
+		;;
 	s)
 		setup=1
 		;;
@@ -160,10 +163,26 @@ if [ ! -z "${testcase}" ]; then
 	fi
 fi
 
+if [ -z "${namespace}" ]; then
+	case $cluster_type in
+		native|docker)
+			namespace=""
+                        ;;
+		minikube)
+			namespace="monitoring"
+                        ;;
+		openshift)
+			namespace="openshift-tuning"
+                        ;;
+		*);;
+	esac
+
+fi
+
 if [ "${setup}" -ne "0" ]; then
 	# Call the proper setup function based on the cluster_type
 	echo -n "############# Performing ${tctype} test for hpo #############"
-	${SCRIPTS_DIR}/${tctype}_tests.sh --cluster_type=${cluster_type} -o ${HPO_CONTAINER_IMAGE} --tctype=${tctype} --testsuite=${testsuite} --testcase=${testcase} --resultsdir=${resultsdir}
+	${SCRIPTS_DIR}/${tctype}_tests.sh --cluster_type=${cluster_type} -o ${HPO_CONTAINER_IMAGE} --tctype=${tctype} --testsuite=${testsuite} --testcase=${testcase} --resultsdir=${resultsdir} -n ${namespace}
 	TEST_RESULT=$?
 	echo "########################################################################"
 	echo ""
