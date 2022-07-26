@@ -40,7 +40,7 @@ function hpo_scale_tests() {
 	terminate_hpo ${cluster_type} > /dev/null
 	echo "Terminating any running HPO servers...Done"
 
-	num_experiments=(1)
+	num_experiments=(1 10 100)
 	N_TRIALS=5
 	ITERATIONS=3
 	LOG="${TEST_DIR}/hpo_scale_tests.log"
