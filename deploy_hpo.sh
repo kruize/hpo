@@ -29,6 +29,7 @@ HPO_RB_MANIFEST="manifests/hpo-rolebinding.yaml"
 HPO_SA_NAME="hpo-sa"
 HPO_CONFIGMAPS="manifests/configmaps"
 
+
 #default values
 setup=1
 cluster_type="native"
@@ -50,8 +51,15 @@ function usage() {
 	echo " -o: build with specific hpo container image name [Default - kruize/hpo:<version>]"
 	echo " -n: Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
 	echo " -d: Config maps directory [Default - manifests/configmaps]"
+	echo " Environment Variables to be set: REG_EMAIL, REG_UNAME, REG_PASS"
 	exit -1
 }
+# check if registry credentials are set as Environment Variables
+if [ -z $REG_UNAME ] || [ -z $REG_PASS ] || [ -z $REG_EMAIL ]; then
+    echo "You need to set the environment variables first for Kubernetes secret creation"
+    usage
+    exit -1
+fi
 
 # Check the cluster_type
 function check_cluster_type() {

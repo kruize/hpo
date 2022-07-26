@@ -536,7 +536,7 @@ function form_hpo_api_url {
 		 openshift)
                         hpo_ns="openshift-tuning"
                         SERVER_IP=$(oc -n ${hpo_ns} get pods -l=app=hpo -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
-                        PORT=$(oc get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+                        PORT=$(oc get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort -n ${hpo_ns})
                         ;;
 		*);;
 	esac

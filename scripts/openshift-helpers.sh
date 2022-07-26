@@ -31,6 +31,12 @@ function openshift_first() {
 	sed -e "s|{{ HPO_NAMESPACE }}|${hpo_ns}|" ${HPO_RB_MANIFEST_TEMPLATE} > ${HPO_RB_MANIFEST}
 	${kubectl_cmd} apply -f ${HPO_RB_MANIFEST}
 	check_err "Error: Failed to create role binding"
+
+    # create a kube secret each time app is deployed
+    kubectl create secret docker-registry hpodockersecret --docker-server=docker.io --docker-username=$REG_UNAME \
+     --docker-password=$REG_PASS --docker-email=$REG_EMAIL -n ${hpo_ns}
+    # link the secret to the service account
+    oc secrets link hpo-sa hpodockersecret --for=pull -n ${hpo_ns}
 }
 
 # You can deploy using kubectl
