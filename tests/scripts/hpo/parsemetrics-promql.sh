@@ -232,7 +232,7 @@ function parseResults() {
 
 #	echo "INSTANCES ,  CPU_USAGE , MEM_USAGE , FS_USAGE , NW_RECEIVE_USAGE, NWTRANSMIT_USAGE, CPU_MIN , CPU_MAX , MEM_MIN , MEM_MAX , FS_MIN , FS_MAX NW_RECEIVE_MIN , NW_RECEIVE_MAX , NW_TRANSMIT_MIN , NW_TRANSMIT_MAX" > ${RESULTS_DIR_J}/Metrics-prom.log
 
-	echo "${SCALE} , ${total_cpu_avg} , ${total_mem_avg} , ${total_fsusage_avg} , ${total_receive_bandwidth_avg} , ${total_transmit_bandwidth_avg} , ${total_cpu_min} , ${total_cpu_max} , ${total_mem_min} , ${total_mem_max} ${total_fsusage_min} , ${total_fsusage_max} , ${total_receive_bandwidth_min} , ${total_receive_bandwidth_max} , ${total_transmit_bandwidth_min} , ${total_transmit_bandwidth_max}" >> ${RESULTS_DIR_J}/Metrics-prom.log
+	echo "${SCALE} , ${total_cpu_avg} , ${total_mem_avg} , ${total_fsusage_avg} , ${total_receive_bandwidth_avg} , ${total_transmit_bandwidth_avg} , ${total_cpu_min} , ${total_cpu_max} , ${total_mem_min} , ${total_mem_max} , ${total_fsusage_min} , ${total_fsusage_max} , ${total_receive_bandwidth_min} , ${total_receive_bandwidth_max} , ${total_transmit_bandwidth_min} , ${total_transmit_bandwidth_max}" >> ${RESULTS_DIR_J}/Metrics-prom.log
 
         echo "${SCALE} ,  ${total_mem_avg} , ${total_memusage_avg} " >> ${RESULTS_DIR_J}/Metrics-mem-prom.log
         echo "${SCALE} ,  ${total_cpu_avg} " >> ${RESULTS_DIR_J}/Metrics-cpu-prom.log

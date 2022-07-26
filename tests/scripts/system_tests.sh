@@ -89,7 +89,7 @@ function execute_system_testsuites() {
 # Perform the specific testsuite if specified 
 if [ -z "${testsuite}" ]; then
 	echo ""
-	echo "Usage: ./test_hpo.sh -c [cluster_type] -o [HPO Container image] --testsuite=hpo_scale_tests"
+	echo "Usage: ./test_hpo.sh -c [cluster_type] -o [HPO Container image] --tctype=system --testsuite=hpo_scale_tests"
 	echo "testsuite should be specified: --testsuite=hpo_scale_tests"
 	echo ""
 	exit 1
