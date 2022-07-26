@@ -33,7 +33,7 @@ TESTS=0
 
 TEST_MODULE_ARRAY=("hpo")
 
-TEST_SUITE_ARRAY=("hpo_api_tests")
+TEST_SUITE_ARRAY=("hpo_api_tests" "hpo_scale_tests")
 
 total_time=0
 matched=0
@@ -74,6 +74,16 @@ function time_diff() {
 	echo $diffsec
 }
 
+# Check if the prometheus is already deployed , if not invoke the script to deploy prometheus on minikube
+function setup_prometheus() {
+	kubectl_cmd="kubectl"
+	prometheus_pod_running=$(${kubectl_cmd} get pods --all-namespaces | grep "prometheus-k8s-1")
+	if [ "${prometheus_pod_running}" == "" ]; then
+		echo "Running prometheus script..."
+		./scripts/prometheus_on_minikube.sh -as
+	fi
+}
+
 # Deploy hpo
 # input: cluster type, hpo container image
 # output: Deploy hpo based on the parameter passed
@@ -82,6 +92,13 @@ function deploy_hpo() {
 	HPO_CONTAINER_IMAGE=$2
 
 	pushd ${HPO_REPO} > /dev/null
+
+	# Check if the cluster_type is minikube., if so deploy prometheus
+	if [ "${cluster_type}" == "minikube" ]; then
+		SETUP_LOG="${TEST_DIR}/prometheus-setup.log"
+		echo "Installing Prometheus on minikube"
+		setup_prometheus >> ${SETUP_LOG} 2>&1
+	fi
 	
 	if [ ${cluster_type} == "native" ]; then
 		echo
@@ -91,12 +108,10 @@ function deploy_hpo() {
 		echo "Command to deploy hpo - ${cmd}"
 		./deploy_hpo.sh -c ${cluster_type} > ${log} 2>&1 &
 	elif [ ${cluster_type} == "minikube" ]; then
-                namespace="monitoring"
                 cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}"
                 echo "Command to deploy hpo - ${cmd}"
                 ./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}
         elif [ ${cluster_type} == "openshift" ]; then
-                namespace="openshift-tuning"
                 cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}"
                 echo "Command to deploy hpo - ${cmd}"
                 ./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}
@@ -137,9 +152,9 @@ function terminate_hpo() {
 
 	pushd ${HPO_REPO} > /dev/null
 		echo  "Terminating hpo..."
-		cmd="./deploy_hpo.sh -c ${cluster_type} -t"
+		cmd="./deploy_hpo.sh -c ${cluster_type} -t -n ${namespace}"
 		echo "CMD = ${cmd}"
-		./deploy_hpo.sh -c ${cluster_type} -t
+		./deploy_hpo.sh -c ${cluster_type} -t -n ${namespace}
 	popd > /dev/null
 	echo "done"
 }
@@ -523,7 +538,6 @@ function form_hpo_api_url {
 	API=$1
 	# Form the URL command based on the cluster type
 
-	echo "***************** namespace = $namespace ****************"
 	case $cluster_type in
 		native|docker) 
 			PORT="8085"
@@ -531,11 +545,10 @@ function form_hpo_api_url {
 			;;
 		minikube)
 			SERVER_IP=$(minikube ip)
-			PORT=$(kubectl -n monitoring get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+			PORT=$(kubectl -n ${namespace} get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 			;;
 		 openshift)
-                        hpo_ns="openshift-tuning"
-                        SERVER_IP=$(oc -n ${hpo_ns} get pods -l=app=hpo -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
+                        SERVER_IP=$(oc -n ${namespace} get pods -l=app=hpo -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
                         PORT=$(oc get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
                         ;;
 		*);;

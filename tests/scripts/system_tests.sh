@@ -24,7 +24,7 @@ SCRIPTS_DIR="${CURRENT_DIR}"
 . ${SCRIPTS_DIR}/common/common_functions.sh
 
 # Source the test suite scripts
-. ${SCRIPTS_DIR}/hpo/hpo_api_tests.sh
+. ${SCRIPTS_DIR}/hpo/hpo_scale_tests.sh
 
 # Iterate through the commandline options
 while getopts o:n:-: gopts
@@ -63,9 +63,9 @@ done
 
 # Set the root for result directory 
 if [ -z "${resultsdir}" ]; then
-	RESULTS_ROOT_DIR="${PWD}/hpo_test_results"
+	RESULTS_ROOT_DIR="${PWD}/hpo_system_test_results"
 else
-	RESULTS_ROOT_DIR="${resultsdir}/hpo_test_results"
+	RESULTS_ROOT_DIR="${resultsdir}/hpo_system_test_results"
 fi
 mkdir -p ${RESULTS_ROOT_DIR}
 
@@ -75,49 +75,31 @@ mkdir -p "${RESULTS_DIR}"
 
 SETUP_LOG="${RESULTS_DIR}/setup.log"
 
-# Set of functional tests to be performed 
-# input: Result directory to store the functional test results
-# output: Perform the set of functional tests
-function functional_test() {
-	execute_hpo_testsuites
+function system_tests() {
+	execute_system_testsuites
 }
 
 # Execute all tests for HPO (Hyperparameter Optimization) module
-function execute_hpo_testsuites() {
+function execute_system_testsuites() {
 	testcase=""
-	# perform the HPO API tests
-	hpo_api_tests > >(tee "${RESULTS_DIR}/hpo_api_tests.log") 2>&1
+	# perform the HPO scale tests
+	hpo_scale_tests > >(tee "${RESULTS_DIR}/hpo_scale_tests.log") 2>&1
 }
 
 # Perform the specific testsuite if specified 
-if [ ! -z "${testmodule}" ]; then
-	case "${testmodule}" in
-           hpo)
-		# Execute tests for Hyperparameter Optimization (HPO) Module 
-                execute_hpo_testsuites
-		;;
-	esac
-elif [ ! -z "${testsuite}" ]; then
-	if [ "${testsuite}" == "sanity" ]; then
-		sanity=1
-		functional_test 
-	else
-		${testsuite} > >(tee "${RESULTS_DIR}/${testsuite}.log") 2>&1
-	fi
-elif [[ -z "${testcase}" && -z "${testsuite}" && -z "${testmodule}" ]]; then
-	functional_test
-fi
-
-echo ""
-echo "*********************************************************************************"
-echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Overall summary of the tests ~~~~~~~~~~~~~~~~~~~~~~~"
-overallsummary  ${FAILED_TEST_SUITE} 
-echo ""
-echo "*********************************************************************************"
-
-if [ "${TOTAL_TESTS_FAILED}" -ne "0" ]; then
+if [ -z "${testsuite}" ]; then
+	echo ""
+	echo "Usage: ./test_hpo.sh -c [cluster_type] -o [HPO Container image] --tctype=system --testsuite=hpo_scale_tests"
+	echo "testsuite should be specified: --testsuite=hpo_scale_tests"
+	echo ""
 	exit 1
 else
-	exit 0
+	${testsuite} > >(tee "${RESULTS_DIR}/${testsuite}.log") 2>&1
 fi
+
+echo ""
+echo "*********************************************************************************"
+echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Test Completed  ~~~~~~~~~~~~~~~~~~~~~~~"
+echo "*********************************************************************************"
+
 

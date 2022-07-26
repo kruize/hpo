@@ -32,6 +32,12 @@ HPO functional tests to validate the functionality of Hyper parameter optimizati
   	8. Post duplicate experiment results to HPO /experiment_trials API and validate the result
   	9. Post different experiment results to HPO /experiment_trials API for the same experiment id and validate the result
 
+## System tests description
+
+### Scale tests
+
+  This test captures HPO resource usage (cpu, memory, filesystem usage, network - receive / transmit bandwidth) of HPO instance by scaling the experiments. It captures the resource usage for 1x, 10x, 100x experiments running with a single instance of HPO for 5 trials and 3 iterations and computes the average, min and max values.
+
 ## Supported Clusters
 - Native
 
@@ -51,7 +57,7 @@ git clone https://github.com/kruize/hpo.git
 Use the below command to test:
 
 ```
-<HPO_REPO>/tests/test_hpo.sh -c native [--tctype=functional] [--testsuite=Group of tests that you want to perform] [--testcase=Particular test case that you want to test] [--resultsdir=results directory]
+<HPO_REPO>/tests/test_hpo.sh -c native [--tctype=functional|system] [--testsuite=Group of tests that you want to perform] [--testcase=Particular test case that you want to test] [--resultsdir=results directory]
 ```
 
 Where values for test_hpo.sh are:
@@ -71,7 +77,7 @@ Note: If you want to run a particular testcase then it is mandatory to specify t
 For example,
 
 ```
-To run all tests for Hyperparameter Optimization (hpo) module execute the below command:
+To run all functional tests for Hyperparameter Optimization (hpo) module execute the below command:
 <HPO_REPO>/tests/test_hpo.sh -c native --testsuite=hpo_api_tests --resultsdir=/home/results
 ```
 
@@ -85,4 +91,9 @@ To run a specific testcase execute the below command:
 To run only the basic sanity test execute the below command:
 ```
 <HPO_REPO>/tests/test_hpo.sh -c docker --testsuite=hpo_api_tests --testcase=hpo_sanity_test --resultsdir=/home/results
+```
+
+To run the scale test execute the below command:
+```
+<HPO_REPO>/tests/test_hpo.sh -c openshift -o kruize/hpo:test --tctype=system --testsuite=hpo_scale_test --resultsdir=/home/results
 ```

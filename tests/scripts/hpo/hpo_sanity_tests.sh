@@ -46,6 +46,8 @@ function hpo_grpc_sanity_test() {
 
 	# Check if HPO services are started
 	check_server_status "${SERV_LOG}"
+	export HPO_HOST="${SERVER_IP}"
+	export PORT="${PORT}"
 
 	## Loop through the trials
 	for (( i=0 ; i<${N_TRIALS} ; i++ ))
@@ -117,10 +119,6 @@ function hpo_sanity_test() {
 	# Set the no. of trials
 	N_TRIALS=5
 	failed=0
-
-	# Form the url based on cluster type & API
-	form_hpo_api_url "experiment_trials"
-	echo "HPO URL = $hpo_url"  | tee -a ${LOG}
 
 	# Get the experiment id and name from the search space
 	exp_id=$(echo ${hpo_post_experiment_json["valid-experiment"]} | jq '.search_space.experiment_id')
