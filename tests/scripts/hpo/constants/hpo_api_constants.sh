@@ -20,10 +20,14 @@
 # Brief description about the HPO API tests
 declare -A hpo_api_test_description
 hpo_api_test_description=([hpo_post_experiment]="Start the required HPO services, post an experiment json to HPO /experiment_trials API with various combinations and validate the result"
+			  [hpo_grpc_post_experiment]="Start the required HPO services, post an experiment json to HPO using the grpc client with various combinations and validate the result"
                           [hpo_get_trial_json]="Start the required HPO services post a valid experiment json to HPO /experiment_trials API, query the API using different combinations of experiment id and trial_number and validate the result" 
                           [hpo_post_exp_result]="Start the required HPO services, post a valid experiment json to HPO /experiment_trials API and then post valid and invalid combinations of experiment result to the API and validate the result"
+                          [hpo_grpc_post_exp_result]="Start the required HPO services, post a valid experiment json to HPO using the grpc client and then post valid and invalid combinations of experiment result  and validate the result"
 			  [hpo_sanity_test]="Start the required HPO services, post a valid experiment json to HPO /experiment_trials API, get the config, post the experiment result and subsequent experiment repeatedly for the specified number of trials"
-			  [hpo_grpc_sanity_test]="Start the required HPO services, post a valid experiment json to HPO /experiment_trials API, get the config, post the experiment result and subsequent experimentrepeatedly for the specified number of trials")
+			  [hpo_grpc_sanity_test]="Start the required HPO services, post a valid experiment json to HPO /experiment_trials API, get the config, post the experiment result and subsequent experimentrepeatedly for the specified number of trials"
+			  [hpo_multiple_exp_test]="Start the required HPO services, post multiple valid experiments to HPO /experiment_trials API, get the config, post the experiment result and subsequent experiment repeatedly for the specified number of trials for multiple experiments"
+			  [hpo_grpc_multiple_exp_test]="Start the required HPO services, post multiple valid experiments to HPO using the grpc clinet, get the config, post the experiment result and subsequent experiment repeatedly for the specified number of trials for multiple experiments")
 
 # Tests to be carried out for HPO (Hyper Parameter Optimization) module API to post an experiment
 run_post_experiment_tests=(
@@ -42,7 +46,21 @@ run_post_experiment_tests=(
 "generate-subsequent"
 "invalid-searchspace")
 
+# Tests to be carried out for HPO (Hyper Parameter Optimization) module API to post an experiment
+run_grpc_post_experiment_tests=(
+"empty-id"
+"no-id"
+"null-id"
+"empty-name"
+"no-name"
+"null-name"
+"valid-experiment"
+"additional-field"
+"invalid-searchspace"
+)
+
 other_post_experiment_tests=("post-duplicate-experiments" "operation-generate-subsequent")
+other_grpc_post_experiment_tests=("post-grpc-duplicate-experiments")
 
 # Tests to be carried out for HPO module API to get trial json  
 declare -A hpo_get_trial_json_tests
@@ -90,6 +108,29 @@ run_post_exp_result_tests=("empty-name"
 "additional-field"
 )
 
+# Tests to be carried out for HPO module API to post experiment results 
+run_grpc_post_exp_result_tests=(
+"empty-name"
+"no-name"
+"null-name"
+"invalid-trial-number"
+"no-trial-number"
+"null-trial-number"
+"invalid-trial-result"
+"empty-trial-result"
+"no-trial-result"
+"null-trial-result"
+"invalid-result-value-type"
+"empty-result-value-type"
+"no-result-value-type"
+"null-result-value-type"
+"invalid-result-value"
+"no-result-value"
+"null-result-value"
+"valid-experiment-result"
+"additional-field"
+)
+
 other_exp_result_post_tests=("post-duplicate-exp-result" "post-same-id-different-exp-result")
 
 declare -A hpo_post_experiment_json=(
@@ -123,6 +164,26 @@ declare -A hpo_post_experiment_json=(
 	[invalid-searchspace]='{"operation":"EXP_TRIAL_GENERATE_NEW","search_space":{"experiment_name":"petclinic-sample-2-75884c5549-npvgd","total_trials":5,"parallel_trials":1,"experiment_id":"a123","value_type":"double","hpo_algo_impl":"optuna_tpe","objective_function":"transaction_response_time","tunables":[{"value_type":"double","lower_bound":150,"name":"memoryRequest","upper_bound":300,"step":1},{"value_type":"double","lower_bound":1,"name":"cpuRequest","upper_bound":3,"step":0.01}],"direction":"xyz"}}'
 )
 
+declare -A hpo_grpc_post_experiment_json=(
+	[empty-id]='{"experiment_name":"petclinic-sample-2-75884c5549-npvgd","total_trials":5,"parallel_trials":1,"experiment_id":" ","value_type":"double","hpo_algo_impl":"optuna_tpe","objective_function":"transaction_response_time","tunables":[{"value_type":"double","lower_bound":150,"name":"memoryRequest","upper_bound":300,"step":1},{"value_type":"double","lower_bound":1,"name":"cpuRequest","upper_bound":3,"step":0.01}],"direction":"minimize"}'
+
+	[no-id]='{"experiment_name":"petclinic-sample-2-75884c5549-npvgd","total_trials":5,"parallel_trials":1,"value_type":"double","hpo_algo_impl":"optuna_tpe","objective_function":"transaction_response_time","tunables":[{"value_type":"double","lower_bound":150,"name":"memoryRequest","upper_bound":300,"step":1},{"value_type":"double","lower_bound":1,"name":"cpuRequest","upper_bound":3,"step":0.01}],"direction":"minimize"}'
+
+	[null-id]='{"experiment_name":"petclinic-sample-2-75884c5549-npvgd","total_trials":5,"parallel_trials":1,"experiment_id":null,"value_type":"double","hpo_algo_impl":"optuna_tpe","objective_function":"transaction_response_time","tunables":[{"value_type":"double","lower_bound":150,"name":"memoryRequest","upper_bound":300,"step":1},{"value_type":"double","lower_bound":1,"name":"cpuRequest","upper_bound":3,"step":0.01}],"direction":"minimize"}'
+	
+	[empty-name]='{"experiment_name":" ","total_trials":5,"parallel_trials":1,"experiment_id":"a123","value_type":"double","hpo_algo_impl":"optuna_tpe","objective_function":"transaction_response_time","tunables":[{"value_type":"double","lower_bound":150,"name":"memoryRequest","upper_bound":300,"step":1},{"value_type":"double","lower_bound":1,"name":"cpuRequest","upper_bound":3,"step":0.01}],"direction":"minimize"}'
+
+	[no-name]='{"total_trials":5,"parallel_trials":1,"experiment_id":"a123","value_type":"double","hpo_algo_impl":"optuna_tpe","objective_function":"transaction_response_time","tunables":[{"value_type":"double","lower_bound":150,"name":"memoryRequest","upper_bound":300,"step":1},{"value_type":"double","lower_bound":1,"name":"cpuRequest","upper_bound":3,"step":0.01}],"direction":"minimize"}'
+
+	[null-name]='{"experiment_name":null,"total_trials":5,"parallel_trials":1,"experiment_id":"a123","value_type":"double","hpo_algo_impl":"optuna_tpe","objective_function":"transaction_response_time","tunables":[{"value_type":"double","lower_bound":150,"name":"memoryRequest","upper_bound":300,"step":1},{"value_type":"double","lower_bound":1,"name":"cpuRequest","upper_bound":3,"step":0.01}],"direction":"minimize"}'
+
+	[additional-field]='{"experiment_name":"petclinic-sample-2-75884c5549-npvgd","total_trials":5,"parallel_trials":1,"experiment_id":"a123","value_type":"double","hpo_algo_impl":"optuna_tpe","objective_function":"transaction_response_time","tunables":[{"value_type":"double","lower_bound":150,"name":"memoryRequest","upper_bound":300,"step":1},{"value_type":"double","lower_bound":1,"name":"cpuRequest","upper_bound":3,"step":0.01}],"direction":"minimize","cpu":"cputunable"}'
+
+	[valid-experiment]='{"experiment_name":"petclinic-sample-2-75884c5549-npvgd","total_trials":5,"parallel_trials":1,"experiment_id":"a123","value_type":"double","hpo_algo_impl":"optuna_tpe","objective_function":"transaction_response_time","tunables":[{"value_type":"double","lower_bound":150,"name":"memoryRequest","upper_bound":300,"step":1},{"value_type":"double","lower_bound":1,"name":"cpuRequest","upper_bound":3,"step":0.01}],"direction":"minimize"}'
+
+	[invalid-searchspace]='{"experiment_name":"petclinic-sample-2-75884c5549-npvgd","total_trials":5,"parallel_trials":1,"experiment_id":"a123","value_type":"double","hpo_algo_impl":"optuna_tpe","objective_function":"transaction_response_time","tunables":[{"value_type":"double","lower_bound":150,"name":"memoryRequest","upper_bound":300,"step":1},{"value_type":"double","lower_bound":1,"name":"cpuRequest","upper_bound":3,"step":0.01}],"direction":"xyz"}'
+)
+
 declare -A hpo_error_messages
 hpo_error_messages=(
 [empty-id]="Parameters cannot be empty or null"
@@ -138,6 +199,19 @@ hpo_error_messages=(
 [additional-field]="Additional properties are not allowed"
 [valid-experiment]="Starting Experiment"
 [generate-subsequent]="Experiment not found"
+[invalid-searchspace]="Direction not supported"
+)
+
+declare -A hpo_grpc_error_messages
+hpo_grpc_error_messages=(
+[empty-id]="Parameters cannot be empty or null"
+[no-id]="'experiment_id' is a required property"
+[null-id]="Parameters cannot be empty or null"
+[empty-name]="Parameters cannot be empty or null"
+[no-name]="'experiment_name' is a required property"
+[null-name]="Parameters cannot be empty or null"
+[additional-field]="Additional properties are not allowed"
+[valid-experiment]="Adding new experiment"
 [invalid-searchspace]="Direction not supported"
 )
 
@@ -202,3 +276,31 @@ hpo_exp_result_error_messages=(
 
 )
 
+declare -A hpo_grpc_exp_result_error_messages
+hpo_grpc_exp_result_error_messages=(
+[empty-name]="Parameters cannot be empty or null"
+[no-name]="'experiment_name' is a required property"
+[null-name]="Parameters cannot be empty or null"
+
+[invalid-trial-number]="Requested trial exceeds the completed trial limit"
+[no-trial-number]="'trial_number' is a required property"
+[null-trial-number]="Parameters cannot be empty or null"
+
+[invalid-trial-result]="Trial result status is invalid"
+[empty-trial-result]="Trial result status is invalid"
+[no-trial-result]="'trial_result' is a required property"
+[null-trial-result]="Parameters cannot be empty or null"
+
+[invalid-result-value-type]="Unsupported value type"
+[empty-result-value-type]="Unsupported value type"
+[no-result-value-type]="'result_value_type' is a required property"
+[null-result-value-type]="Parameters cannot be empty or null"
+
+[invalid-result-value]="result_value cannot be negative"
+[no-result-value]="'result_value' is a required property"
+[null-result-value]="Parameters cannot be empty or null"
+
+[additional-field]="Additional properties are not allowed"
+[valid-experiment-result]="Starting Experiment"
+
+)
