@@ -52,6 +52,29 @@ function post_duplicate_experiments() {
 	fi
 }
 
+# Do a post on experiment_trials for the same experiment id again with "operation: EXP_TRIAL_GENERATE_NEW" and check if experiments have started from the beginning
+function post_grpc_duplicate_experiments() {
+	# Get the length of the service log before the test
+	log_length_before_test=$(cat ${SERV_LOG} | wc -l)
+
+	experiment_name=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_name')
+	post_grpc_experiment_json "${hpo_grpc_post_experiment_json[$exp]}"
+
+	if [ "$?" == "0" ]; then
+		# Post the same experiment again 
+		echo "Posting the same experiment again" | tee -a ${LOG_} ${LOG}
+
+		echo ""
+		post_grpc_experiment_json "${hpo_grpc_post_experiment_json[$exp]}"
+	else
+		failed=1
+		expected_behaviour="return code not equal to 0"
+		echo "Posting valid experiment failed"
+		display_result "${expected_behaviour}" "${FUNCNAME}" "${failed}"
+	fi
+}
+
+
 # Do a post on experiment_trials for the same experiment id again with "operation: EXP_TRIAL_GENERATE_SUBSEQUENT" and check if same experiment continues
 function operation_generate_subsequent() {
 	current_id=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_id')
@@ -83,6 +106,7 @@ function operation_generate_subsequent() {
 # * Post the same experiment again with the operation set to "EXP_TRIAL_GENERATE_SUBSEQUENT" after we post the result for the previous trial, and check if subsequent trial number is generated
 # input: Test name
 function other_post_experiment_tests() {
+	service=$1
 	exp="valid-experiment"
 
 	SERV_LOG="${TEST_DIR}/other_post_exps_service.log"
@@ -96,7 +120,13 @@ function other_post_experiment_tests() {
 	# Check if HPO services are started
 	check_server_status "${SERV_LOG}"
 
-	for operation in "${other_post_experiment_tests[@]}"
+	if [ ${service} == "rest" ]; then
+		tests_to_run=${other_post_experiment_tests[@]}
+	else
+		tests_to_run=${other_grpc_post_experiment_tests[@]}
+	fi
+
+	for operation in "${tests_to_run[@]}"
 	do
 
 		TESTS_="${TEST_DIR}/${operation}"
@@ -123,8 +153,14 @@ function other_post_experiment_tests() {
 	echo "*********************************************************************************************************" | tee -a ${LOG_} ${LOG}
 }
 
+# Tests for GRPC HPO POST experiment
+function hpo_grpc_post_experiment() {
+	run_grpc_post_tests ${FUNCNAME}
+	other_post_experiment_tests "grpc"
+}
+
 # Tests for HPO /experiment_trials API POST experiment
 function hpo_post_experiment() {
 	run_post_tests ${FUNCNAME}
-	other_post_experiment_tests
+	other_post_experiment_tests "rest"
 }

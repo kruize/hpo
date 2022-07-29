@@ -97,6 +97,7 @@ function deploy_hpo() {
                 ./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}
         elif [ ${cluster_type} == "openshift" ]; then
                 namespace="openshift-tuning"
+		namespace="default"
                 cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}"
                 echo "Command to deploy hpo - ${cmd}"
                 ./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}
@@ -135,11 +136,12 @@ function deploy_hpo() {
 function terminate_hpo() {
 	cluster_type=$1
 
+	namespace="default"
 	pushd ${HPO_REPO} > /dev/null
 		echo  "Terminating hpo..."
-		cmd="./deploy_hpo.sh -c ${cluster_type} -t"
+		cmd="./deploy_hpo.sh -c ${cluster_type} -n ${namespace} -t"
 		echo "CMD = ${cmd}"
-		./deploy_hpo.sh -c ${cluster_type} -t
+		./deploy_hpo.sh -c ${cluster_type} -n ${namespace} -t
 	popd > /dev/null
 	echo "done"
 }
@@ -535,6 +537,7 @@ function form_hpo_api_url {
 			;;
 		 openshift)
                         hpo_ns="openshift-tuning"
+			hpo_ns="default"
                         SERVER_IP=$(oc -n ${hpo_ns} get pods -l=app=hpo -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
                         PORT=$(oc get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
                         ;;
@@ -732,5 +735,157 @@ function post_experiment_json() {
 
 	echo "Response is ${response}" >> ${LOG_} ${LOG}
 	echo "http_code is $http_code Response is ${response}"
+}
+
+# Post a JSON object to HPO (Hyper Parameter Optimization) module
+# input: JSON object
+# output: Create the command with given JSON and get the result
+function post_grpc_experiment_json() {
+	json_array_=$1
+	echo ""
+	echo "******************************************"
+	echo "json array = ${json_array_}"
+	echo "******************************************"
+
+	grpc_client="../src/grpc_client.py"
+	search_space="${TESTS_}/searchspace.json"
+
+	echo "${json_array_}" > ${search_space}
+
+	python ${grpc_client} new --file ${search_space} > ${TESTS_}/output.log 2>&1
+	post_exp_status=$?
+
+	post_experiment_cmd="python ${grpc_client} new --file ${search_space} > ${TESTS_}/output.log 2>&1"
+
+	echo "" | tee -a ${LOG_} ${LOG}
+	echo "Command used to post the experiment = ${post_experiment_cmd}" | tee -a ${LOG_} ${LOG}
+	echo "" | tee -a ${LOG_} ${LOG}
+
+	cat "${TESTS_}/output.log"	
+}
+
+# The test does the following:
+# In case of hpo_post_experiment test, Post valid and invalid experiments to HPO /experiment_trials API and validate the reslut
+# In case of hpo_post_exp_result test, Post valid and invalid experiments results to HPO /experiment_trials API and validate the result
+# input: Test name
+function run_grpc_post_tests(){
+	hpo_test_name=$1
+	
+	if [ "${hpo_test_name}" == "hpo_grpc_post_experiment" ]; then
+		exp_tests=("${run_grpc_post_experiment_tests[@]}")
+	else
+		exp_tests=("${run_grpc_post_exp_result_tests[@]}")
+	fi
+
+	SERV_LOG="${TEST_DIR}/service.log"
+	# Deploy hpo
+	if [ ${cluster_type} == "native" ]; then
+		deploy_hpo ${cluster_type} ${SERV_LOG}
+	else
+		deploy_hpo ${cluster_type} ${HPO_CONTAINER_IMAGE} ${SERV_LOG}
+	fi
+	
+	# Check if HPO services are started
+	check_server_status "${SERV_LOG}"
+
+	for post_test in "${exp_tests[@]}"
+	do
+
+		# Get the length of the service log before the test
+		log_length_before_test=$(cat ${SERV_LOG} | wc -l)
+
+		TESTS_="${TEST_DIR}/${post_test}"
+		mkdir -p ${TESTS_}
+		LOG_="${TEST_DIR}/${post_test}.log"
+		TEST_SERV_LOG="${TESTS_}/service.log"
+
+		echo "************************************* ${post_test} Test ****************************************" | tee -a ${LOG_} ${LOG}
+		echo "" | tee -a ${LOG_} ${LOG}
+
+		exp="${post_test}"	
+
+		experiment_name=""
+		if [ "${hpo_test_name}" == "hpo_grpc_post_exp_result" ]; then
+			exp="valid-experiment"
+
+			# Get the experiment id from search space JSON
+			experiment_name=$(echo ${hpo_grpc_post_experiment_json[${exp}]} | jq '.experiment_name')
+
+			# Post the experiment JSON to HPO /experiment_trials API
+			post_grpc_experiment_json "${hpo_grpc_post_experiment_json[${exp}]}"
+
+			# Post the experiment result to HPO /experiment_trials API
+			echo "Posting result - $post_test"
+			echo "${hpo_post_exp_result[$post_test]}"
+			post_grpc_experiment_result "${hpo_post_exp_result_json[${post_test}]}"
+
+			expected_log_msg="${hpo_grpc_exp_result_error_messages[$post_test]}"
+		else
+			# Get the experiment id from search space JSON
+			experiment_name=$(echo ${hpo_grpc_post_experiment_json[${post_test}]} | jq '.experiment_name')
+			# Post the experiment JSON to HPO /experiment_trials API
+			post_grpc_experiment_json "${hpo_grpc_post_experiment_json[$post_test]}"
+
+			expected_log_msg="${hpo_grpc_error_messages[$post_test]}"
+
+		fi
+
+		#if [[ "${post_test}" == valid* ]]; then
+		#	expected_result_="200"
+		#else
+	#		expected_result_="400"
+	#		if [[ "${post_test}" == "generate-subsequent" ]]; then
+	#			expected_result_="404"
+	#		fi
+	#	fi
+
+	#	actual_result="${http_code}"
+
+		echo "********** post_exp_status = $post_exp_status"
+		should_stop_experiment=false
+		if [[ "${post_exp_status}" -eq "0" ]]; then
+			should_stop_experiment=true
+		fi
+
+		# Extract the lines from the service log after log_length_before_test
+		extract_lines=`expr ${log_length_before_test} + 1`
+		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
+		
+		echo ""
+		echo "log_length_before_test ${log_length_before_test}"
+		echo "extract_lines ${extract_lines}"
+		echo ""
+
+		echo ""
+		if [[ "${http_code}" -eq "000" ]]; then
+			failed=1
+			((TOTAL_TESTS++))
+			((TESTS++))
+			error_message "${failed}" "${post_test}"
+		else
+			echo "actual_result = $actual_result expected_result = ${expected_result_}"
+			compare_result "${post_test}" "${expected_result_}" "${expected_log_msg}" "${TEST_SERV_LOG}"
+		fi
+
+		echo ""
+
+		if [ "$should_stop_experiment" == true ]; then
+			echo "Stopping experiment ${experiment_name}..."
+			python ../src/grpc_client.py list
+			exp_name=$(echo $experiment_name | sed "s/\"//g")
+			echo "exp_name = $exp_name"
+			python ../src/grpc_client.py stop --name ${exp_name}
+		fi
+
+		echo "" | tee -a ${LOG_} ${LOG}
+		
+	done
+	
+	# Stop the HPO servers
+	echo "Terminating any running HPO servers..." | tee -a ${LOG}
+	terminate_hpo ${cluster_type}
+	echo "Terminating any running HPO servers...Done" | tee -a ${LOG}
+
+	echo "*********************************************************************************************************" | tee -a ${LOG_} ${LOG}
 }
 

@@ -38,7 +38,8 @@ function hpo_api_tests() {
 	TESTS=0
 	((TOTAL_TEST_SUITES++))
 
-	hpo_api_tests=("hpo_post_experiment"  "hpo_get_trial_json" "hpo_post_exp_result" "hpo_sanity_test" "hpo_grpc_sanity_test" "hpo_multiple_exp_test" "hpo_grpc_multiple_exp_test")
+	hpo_api_tests=("hpo_post_experiment" "hpo_grpc_post_experiment" "hpo_get_trial_json" "hpo_post_exp_result" "hpo_grpc_post_exp_result" "hpo_sanity_test" "hpo_grpc_sanity_test" "hpo_multiple_exp_test" 
+			"hpo_grpc_multiple_exp_test")
 
 	# check if the test case is supported
 	if [ ! -z "${testcase}" ]; then

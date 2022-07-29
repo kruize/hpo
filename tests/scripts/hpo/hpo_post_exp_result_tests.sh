@@ -46,6 +46,48 @@ function post_experiment_result_json() {
 	echo "http_code = $http_code response = $response"
 }
 
+# Post the experiment result to HPO using the grpc client 
+# input: Experiment result
+# output: post the result
+function post_grpc_experiment_result() {
+	exp_result=$1
+
+	# Post the experiment result to hpo
+	echo "" | tee -a ${LOG}
+	echo "Post the experiment result for trial ${i}..." | tee -a ${LOG}
+
+	echo "exp_result - $exp_result"
+	exp_name=$(echo ${exp_result} | jq '.experiment_name')
+	trial_number=$(echo ${exp_result} | jq '.trial_number')
+	trial_result=$(echo ${exp_result} | jq '.trial_result')
+	trial_result=$(echo ${trial_result} | tr '[:lower:]' '[:upper:]')
+	trial_result=$(echo ${trial_result} | sed "s/\"//g")
+	
+	result_value=$(echo ${exp_result} | jq '.result_value')
+	result_value_type=$(echo ${exp_result} | jq '.result_value_type')
+
+	echo "**** exp_name = $exp_name"
+	echo "**** trial_number = $trial_number"
+	echo "**** result = $trial_result"
+	echo "**** result value = $result_value"
+	echo "**** result value type = $result_value_type"
+
+	result_value="98.7"
+
+	post_exp_result_cmd="python ../src/grpc_client.py result --name "${exp_name}" --trial "${trial_number}" --result ${trial_result} --value_type ${result_value_type} --value "${result_value}""
+
+	python ../src/grpc_client.py result --name "${exp_name}" --trial "${trial_number}" --result ${trial_result} --value_type ${result_value_type} --value "${result_value}"
+
+	verify_grpc_result "Post new experiment result for trial ${trial_number}" $?
+
+	echo "" | tee -a ${LOG_} ${LOG}
+	echo "Command used to post the experiment result= ${post_exp_result_cmd}" | tee -a ${LOG_} ${LOG}
+	echo "" | tee -a ${LOG_} ${LOG}
+
+	# Validate output of posting the result
+
+}
+
 # Post duplicate experiment results to HPO /experiment_trials API and validate the result
 function post_duplicate_exp_result() {
 	# Get the length of the service log before the test
@@ -171,6 +213,12 @@ function other_exp_result_post_tests() {
 	
 	# Sleep for few seconds to reduce the ambiguity
 	sleep 5
+}
+
+# Tests for GRPC HPO POST experiment results
+function hpo_grpc_post_exp_result() {
+	run_grpc_post_tests ${FUNCNAME}
+	#other_exp_result_post_tests
 }
 
 # Tests for HPO /experiment_trials API POST experiment results
