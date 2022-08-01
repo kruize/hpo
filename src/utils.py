@@ -20,7 +20,7 @@ class HPOSupportedTypes:
     VALUE_TYPES_SUPPORTED = ("double", "int", float)
     OPTUNA_ALGOS = ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt")
     ALGOS_SUPPORTED = (OPTUNA_ALGOS)
-    TRIAL_RESULT_STATUS = ("success", "failure", "error", "prune")
+    TRIAL_RESULT_STATUS = ("success", "failure", "error")
 
     # Default Values
     HPO_ALGO = "optuna_tpe"
