@@ -90,6 +90,16 @@ function deploy_hpo() {
 		cmd="./deploy_hpo.sh -c ${cluster_type} > ${log} 2>&1 &"
 		echo "Command to deploy hpo - ${cmd}"
 		./deploy_hpo.sh -c ${cluster_type} > ${log} 2>&1 &
+	elif [ ${cluster_type} == "minikube" ]; then
+                namespace="monitoring"
+                cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}"
+                echo "Command to deploy hpo - ${cmd}"
+                ./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}
+        elif [ ${cluster_type} == "openshift" ]; then
+                namespace="openshift-tuning"
+                cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}"
+                echo "Command to deploy hpo - ${cmd}"
+                ./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}
 	else
 		cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE}"
 		echo "Command to deploy hpo - ${cmd}"
@@ -104,9 +114,17 @@ function deploy_hpo() {
 	fi
 
 	if [ ${cluster_type} == "docker" ]; then
-		sleep 2
+  		sleep 2
+		echo "Capturing HPO service log into $3"
 		log=$3
 		docker logs hpo_docker_container > "${log}" 2>&1
+	elif [[ ${cluster_type} == "minikube" || ${cluster_type} == "openshift" ]]; then
+		sleep 2
+		echo "Capturing HPO service log into $3"
+		echo "Namespace = $namespace"
+		log=$3
+		hpo_pod=$(kubectl get pod -n ${namespace} | grep hpo | cut -d " " -f1)
+		kubectl -n ${namespace} logs -f ${hpo_pod} > "${log}" & 2>&1
 	fi
 
 	popd > /dev/null
@@ -434,29 +452,38 @@ function validate_exp_trial() {
 
 # Check if the servers have started
 function check_server_status() {
-  echo "Wait for HPO service to come up"
-  #if service does not start within 5 minutes (300s) fail the test
-  timeout 300 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://localhost:8085)" != "200" ]]; do sleep 1; done' || false
+	log=$1
 
+	echo "Wait for HPO service to come up"
+        form_hpo_api_url "experiment_trials"
+	echo "Server - $SERVER_IP PORT - $PORT"
+
+	#if service does not start within 5 minutes (300s) fail the test
+	timeout 30 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://${SERVER_IP}:${PORT})" != "200" ]]; do sleep 1; done' || false
+
+	if [ -z "${log}" ]; then
+		echo "Service log - $log not found!"
+		exit 1
+	fi
 
 	service_log_msg="Access REST Service at"
 
-	if grep -q "${service_log_msg}" "${TEST_DIR}/service.log" ; then
+	if grep -q "${service_log_msg}" "${log}" ; then
 		echo "HPO REST API service started successfully..." | tee -a ${LOG_} ${LOG}
 	else
 		echo "Error Starting the HPO REST API service..." | tee -a ${LOG_} ${LOG}
-		echo "See ${TEST_DIR}/service.log for more details" | tee -a ${LOG_} ${LOG}
-		cat "${TEST_DIR}/service.log"
+		echo "See ${log} for more details" | tee -a ${LOG_} ${LOG}
+		cat "${log}"
 		exit 1
 	fi
 
 	grpc_service_log_msg="Starting gRPC server at"
-	if grep -q "${grpc_service_log_msg}" "${TEST_DIR}/service.log" ; then
+	if grep -q "${grpc_service_log_msg}" "${log}" ; then
 		echo "HPO GRPC API service started successfully..." | tee -a ${LOG_} ${LOG}
 	else
 		echo "Error Starting the HPO GRPC API service..." | tee -a ${LOG_} ${LOG}
-		echo "See TEST_DIR{TEST_DIR}/service.log for more details" | tee -a ${LOG_} ${LOG}
-		cat "${TESTS_}/service.log"
+		echo "See ${log} for more details" | tee -a ${LOG_} ${LOG}
+		cat "${log}"
 		exit 1
 	fi
 }
@@ -495,19 +522,27 @@ function stop_experiment() {
 function form_hpo_api_url {
 	API=$1
 	# Form the URL command based on the cluster type
+
+	echo "***************** namespace = $namespace ****************"
 	case $cluster_type in
 		native|docker) 
 			PORT="8085"
 			SERVER_IP="localhost"
-			URL="http://${SERVER_IP}"
 			;;
+		minikube)
+			SERVER_IP=$(minikube ip)
+			PORT=$(kubectl -n monitoring get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+			;;
+		 openshift)
+                        hpo_ns="openshift-tuning"
+                        SERVER_IP=$(oc -n ${hpo_ns} get pods -l=app=hpo -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
+                        PORT=$(oc get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+                        ;;
 		*);;
 	esac
 
-	# Add conditions later for other cluster types
-	if [[ ${cluster_type} == "native" || ${cluster_type} == "docker" ]]; then
-		hpo_url="${URL}:${PORT}/${API}"
-	fi
+	hpo_url="http://${SERVER_IP}:${PORT}/${API}"
+        echo "HPO_URL = $hpo_url"
 }
 
 function verify_result() {

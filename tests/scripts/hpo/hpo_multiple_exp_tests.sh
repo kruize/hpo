@@ -48,7 +48,7 @@ function hpo_grpc_multiple_exp_test() {
 	fi
 
 	# Check if HPO services are started
-	check_server_status
+	check_server_status "${SERV_LOG}"
 
 	expected_http_code="200"
 
@@ -186,7 +186,7 @@ function hpo_multiple_exp_test() {
 	fi
 
 	# Check if HPO services are started
-	check_server_status
+	check_server_status "${SERV_LOG}"
 
 	expected_http_code="200"
 

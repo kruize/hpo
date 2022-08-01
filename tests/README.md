@@ -37,7 +37,7 @@ HPO functional tests to validate the functionality of Hyper parameter optimizati
 
 ## Prerequisites for running the tests:
 
-- None 
+- Minikube setup (To run tests on minikube) 
 
 Clone the kruize/hpo repo using the below command:
 
@@ -57,7 +57,7 @@ Use the below command to test:
 Where values for test_hpo.sh are:
 
 ```
-usage: test_hpo.sh [ -c ] : cluster type. Supported type - native
+usage: test_hpo.sh [ -c ] : cluster type. Supported types - docker, minikube, native
 			[ -r ] : Location of benchmarks
 			[ --tctype ] : optional. Testcases type to run, default is functional (runs all functional tests)
 			[ --testsuite ] : Testsuite to run. Use testsuite=help, to list the supported testsuites
@@ -84,5 +84,5 @@ To run a specific testcase execute the below command:
 
 To run only the basic sanity test execute the below command:
 ```
-<HPO_REPO>/tests/test_hpo.sh -c native --testsuite=hpo_api_tests --testcase=hpo_sanity_test --resultsdir=/home/results
+<HPO_REPO>/tests/test_hpo.sh -c docker --testsuite=hpo_api_tests --testcase=hpo_sanity_test --resultsdir=/home/results
 ```
