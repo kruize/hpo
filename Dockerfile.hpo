@@ -1,7 +1,6 @@
 #
 # Copyright (c) 2022, 2022 Red Hat, IBM Corporation and others.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
+#\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ersion 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
@@ -20,25 +19,43 @@
 FROM registry.access.redhat.com/ubi8/ubi-minimal:8.4
 
 ARG HPO_VERSION
+ARG USER=hpo
+ARG UID=1001
+ARG HPO_HOME=/home/$USER
 
-WORKDIR /opt/app
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=off
 
 # Install packages needed for python to function correctly
-# Create the non root user, same as the one used in the build phase.
-RUN microdnf install -y python3 gcc-c++ python3-devel \
+RUN microdnf install -y python39 gcc-c++ python39-devel python39-pip\
     && microdnf update -y \
     && microdnf -y install shadow-utils \
-    && adduser -u 1001 -G root -s /usr/sbin/nologin default \
-    && chown -R 1001:0 /opt/app \
-    && chmod -R g+rw /opt/app \
+    # Setup the user for non-arbitrary UIDs with OpenShift
+    && useradd -d ${HPO_HOME} -u ${UID} -g 0 -m -s /bin/bash ${USER} \
     && microdnf -y remove shadow-utils \
     && microdnf clean all
 
 # Switch to the non root user
-USER 1001
+USER ${UID}
 
-# Install optuna to the default user
-RUN python3 -m pip install --user optuna requests scikit-optimize jsonschema click grpcio protobuf==3.19.4
+# copy the requirements file to the app direcotry to install required modules
+COPY requirements.txt ${HPO_HOME}/app/requirements.txt
+
+# Copy ML hyperparameter tuning code
+COPY src ${HPO_HOME}/app/src/
+COPY index.html ${HPO_HOME}/app/
+
+WORKDIR ${HPO_HOME}/app
+# Install required python packages
+RUN python3 -m pip install --user --no-cache-dir --upgrade pip && \
+    python3 -m pip install --user --no-cache-dir --requirement ${HPO_HOME}/app/requirements.txt
+
+# make sure all files and modules are accessible by the user
+ENV PATH $HPO_HOME/.local/bin:$HPO_HOME/bin:$PATH
+ENV PYTHONUSERBASE $HPO_HOME/.local
+USER root
+RUN chmod -R g+rwx ${HPO_HOME}
+USER ${UID}
 
 LABEL name="Kruize HPO" \
       vendor="Red Hat" \
@@ -47,11 +64,6 @@ LABEL name="Kruize HPO" \
       run="docker run --rm -it -p 8085:8085 <image_name:tag>" \
       summary="Docker Image for HPO with ubi-minimal" \
       description="For more information on this image please see https://github.com/kruize/hpo/blob/main/README.md"
-
-# Copy ML hyperparameter tuning code
-COPY --chown=1001:0 src /opt/app/src/
-COPY --chown=1001:0 index.html /opt/app/
-
 
 EXPOSE 8085
 EXPOSE 50051

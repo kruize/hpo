@@ -123,16 +123,6 @@ function minikube_first() {
 	#Create a namespace
 	echo "Create hpo namespace ${hpo_ns}"
 	kubectl create namespace ${hpo_ns}
-
-	kubectl_cmd="kubectl -n ${hpo_ns}"
-	echo "Info: One time setup - Create a service account to deploy hpo"
-
-	${kubectl_cmd} apply -f ${HPO_SA_MANIFEST}
-	check_err "Error: Failed to create service account and RBAC"
-
-	sed -e "s|{{ HPO_NAMESPACE }}|${hpo_ns}|" ${HPO_RB_MANIFEST_TEMPLATE} > ${HPO_RB_MANIFEST}
-	${kubectl_cmd} apply -f ${HPO_RB_MANIFEST}
-	check_err "Error: Failed to create role binding"
 }
 
 # You can deploy using kubectl
@@ -178,19 +168,10 @@ function minikube_terminate() {
 	${kubectl_cmd} delete -f ${HPO_DEPLOY_MANIFEST} 2>/dev/null
 
 	echo
-	echo "Removing hpo service account"
-	${kubectl_cmd} delete -f ${HPO_SA_MANIFEST} 2>/dev/null
-
-	echo
-	echo "Removing hpo rolebinding"
-	${kubectl_cmd} delete -f ${HPO_RB_MANIFEST} 2>/dev/null
-
-	echo
 	echo "Removing HPO configmap"
 	${kubectl_cmd} delete -f ${HPO_CONFIGMAPS}/${cluster_type}-config.yaml 2>/dev/null
 
 	rm ${HPO_DEPLOY_MANIFEST}
-	rm ${HPO_RB_MANIFEST}
 	echo
 		
 	echo
