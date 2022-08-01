@@ -45,14 +45,16 @@ service_type="both"
 
 function usage() {
 	echo
-	echo "Usage: $0 [-a] [-c [docker|minikube|native|openshift]] [-o hpo container image] [-n namespace] [-d configmaps-dir ]"
-	echo " -s = start(default), -t = terminate"
-	echo " -c: cluster type."
-	echo " -o: build with specific hpo container image name [Default - kruize/hpo:<version>]"
-	echo " -n: Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
-	echo " -d: Config maps directory [Default - manifests/configmaps]"
-	echo " -b: install both REST and the gRPC service"
-	echo " -r: install REST only"
+	echo "Usage:"
+	echo " -a | --non_interactive	: interactive (default)"
+	echo " -s | --start				: start(default) the app"
+	echo " -t | --terminate			: terminate the app"
+	echo " -c | --cluster_type		: cluster type [docker|minikube|native|openshift]]"
+	echo " -o | --container_image	: build with specific hpo container image name [Default - kruize/hpo:<version>]"
+	echo " -n | --namespace			: Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
+	echo " -d | --configmaps		: Config maps directory [Default - manifests/configmaps]"
+	echo " -b | --both				: install both REST and the gRPC service"
+	echo " -r | --rest				: install REST only"
 	exit -1
 }
 
@@ -67,41 +69,55 @@ function check_cluster_type() {
 	esac
 }
 
+VALID_ARGS=$(getopt -o ac:d:o:n:strb --long non_interactive,cluster_type:,configmaps:,container_image:,namespace:,start,terminate,rest,both -- "$@")
+if [[ $? -ne 0 ]]; then
+	usage
+	exit 1;
+fi
+# safely convert the output of getopt to arguments
+eval set -- "$VALID_ARGS"
+
 # Iterate through the commandline options
-while getopts ac:d:o:n:strb gopts
-do
-	case ${gopts} in
-	a)
+while [ : ]; do
+	case "$1" in
+	-a | --non_interactive)
 		non_interactive=1
+		break
 		;;
-	c)
+	-c | --cluster_type)
 		cluster_type="${OPTARG}"
 		check_cluster_type
+		break
 		;;
-	d)
+	-d | --configmaps)
 		HPO_CONFIGMAPS="${OPTARG}"
+		break
 		;;
-	n)
-		hpo_ns="${OPTARG}"
-		;;
-	o)
+	-o | --container_image)
 		HPO_CONTAINER_IMAGE="${OPTARG}"
+		break
 		;;
-	s)
+	-n | --namespace)
+		hpo_ns="${OPTARG}"
+		break
+		;;
+	-s | --start)
 		setup=1
+		break
 		;;
-	t)
+	-t | --terminate)
 		setup=0
+		break
 		;;
-	b)
-		service_type="both"
-		;;
-	r)
+	-r | --rest)
 		service_type="REST"
+		break
 		;;
-	[?])
-		usage
-	esac
+	-b | --both)
+		service_type="both"
+		break
+		;;
+  esac
 done
 
 # check container runtime
