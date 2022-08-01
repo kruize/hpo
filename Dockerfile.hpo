@@ -26,6 +26,9 @@ ARG HPO_HOME=/home/$USER
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=off
+# make sure all files and modules are accessible by the user
+ENV PATH $HPO_HOME/.local/bin:$HPO_HOME/bin:$PATH
+ENV PYTHONUSERBASE $HPO_HOME/.local
 
 # Install packages needed for python to function correctly
 RUN microdnf install -y python39 gcc-c++ python39-devel python39-pip\
@@ -33,6 +36,7 @@ RUN microdnf install -y python39 gcc-c++ python39-devel python39-pip\
     && microdnf -y install shadow-utils \
     # Setup the user for non-arbitrary UIDs with OpenShift
     && useradd -d ${HPO_HOME} -u ${UID} -g 0 -m -s /bin/bash ${USER} \
+    && chmod -R g+rwx ${HPO_HOME} \
     && microdnf -y remove shadow-utils \
     && microdnf clean all
 
@@ -40,23 +44,15 @@ RUN microdnf install -y python39 gcc-c++ python39-devel python39-pip\
 USER ${UID}
 
 # copy the requirements file to the app direcotry to install required modules
-COPY requirements.txt ${HPO_HOME}/app/requirements.txt
+COPY requirements.txt index.html ${HPO_HOME}/app/
 
 # Copy ML hyperparameter tuning code
 COPY src ${HPO_HOME}/app/src/
-COPY index.html ${HPO_HOME}/app/
 
 WORKDIR ${HPO_HOME}/app
 # Install required python packages
-RUN python3 -m pip install --user --no-cache-dir --upgrade pip && \
-    python3 -m pip install --user --no-cache-dir --requirement ${HPO_HOME}/app/requirements.txt
-
-# make sure all files and modules are accessible by the user
-ENV PATH $HPO_HOME/.local/bin:$HPO_HOME/bin:$PATH
-ENV PYTHONUSERBASE $HPO_HOME/.local
-USER root
-RUN chmod -R g+rwx ${HPO_HOME}
-USER ${UID}
+RUN python3 -m pip install --user --no-cache-dir --upgrade pip \
+    && python3 -m pip install --user --no-cache-dir --requirement ${HPO_HOME}/app/requirements.txt
 
 LABEL name="Kruize HPO" \
       vendor="Red Hat" \
