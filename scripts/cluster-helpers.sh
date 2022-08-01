@@ -123,6 +123,8 @@ function minikube_first() {
 	#Create a namespace
 	echo "Create hpo namespace ${hpo_ns}"
 	kubectl create namespace ${hpo_ns}
+
+	kubectl_cmd="kubectl -n ${hpo_ns}"
 }
 
 # You can deploy using kubectl
