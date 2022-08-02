@@ -112,7 +112,6 @@ class HpoExperiment:
             trial_result = self.trialDetails.trial_result
         finally:
             self.resultsAvailableCond.release()
-        trial_result = "prune"
         return result_value, trial_result
 
     def recommend(self):
@@ -262,7 +261,7 @@ class Objective(TrialDetails):
 
         trials.append(config)
 
-        if experiment_status == "prune":
+        if experiment_status == "failure":
             raise optuna.TrialPruned()
 
         actual_slo_value = round(float(actual_slo_value), 2)
