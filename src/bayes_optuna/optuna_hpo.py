@@ -112,7 +112,6 @@ class HpoExperiment:
             trial_result = self.trialDetails.trial_result
         finally:
             self.resultsAvailableCond.release()
-        trial_result = "failure"
         return result_value, trial_result
 
     def recommend(self):
