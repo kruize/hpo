@@ -25,10 +25,10 @@ ARG UID=1001
 ARG HPO_HOME=/home/$USER
 
 ENV PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=off
-# make sure all files and modules are accessible by the user
-ENV PATH $HPO_HOME/.local/bin:$HPO_HOME/bin:$PATH
-ENV PYTHONUSERBASE $HPO_HOME/.local
+    PIP_NO_CACHE_DIR=off \
+    # make sure all files and modules are accessible by the user
+    PATH=$HPO_HOME/.local/bin:$HPO_HOME/bin:$PATH \
+    PYTHONUSERBASE=$HPO_HOME/.local
 
 # Install packages needed for python to function correctly
 RUN microdnf install -y python39 gcc-c++ python39-devel python39-pip\
