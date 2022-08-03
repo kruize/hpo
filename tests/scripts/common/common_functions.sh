@@ -532,7 +532,7 @@ function form_hpo_api_url {
 			;;
 		 openshift)
                         SERVER_IP=$(oc -n ${namespace} get pods -l=app=hpo -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
-                        PORT=$(oc get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+                        PORT=$(oc -n ${namespace} get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
                         ;;
 		*);;
 	esac
