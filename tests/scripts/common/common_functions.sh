@@ -606,7 +606,7 @@ function run_post_tests(){
 	fi
 	
 	# Check if HPO services are started
-	check_server_status
+    check_server_status "${SERV_LOG}"
 
 	for post_test in "${exp_tests[@]}"
 	do

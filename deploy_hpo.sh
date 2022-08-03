@@ -78,41 +78,44 @@ while [ : ]; do
 	case "$1" in
 	-a | --non_interactive)
 		non_interactive=1
-		break
+		shift
 		;;
 	-c | --cluster_type)
-		cluster_type="${OPTARG}"
+		cluster_type="$2"
 		check_cluster_type
-		break
+		shift 2
 		;;
 	-d | --configmaps)
-		HPO_CONFIGMAPS="${OPTARG}"
-		break
+		HPO_CONFIGMAPS="$2"
+		shift 2
 		;;
 	-o | --container_image)
-		HPO_CONTAINER_IMAGE="${OPTARG}"
-		break
+		HPO_CONTAINER_IMAGE="$2"
+		shift 2
 		;;
 	-n | --namespace)
-		hpo_ns="${OPTARG}"
-		break
+		hpo_ns="$2"
+		shift 2
 		;;
 	-s | --start)
 		setup=1
-		break
+		shift
 		;;
 	-t | --terminate)
 		setup=0
-		break
+		shift
 		;;
 	-r | --rest)
 		service_type="REST"
-		break
+		shift
 		;;
 	-b | --both)
 		service_type="both"
-		break
+		shift
 		;;
+    --) shift;
+        break
+        ;;
   esac
 done
 
