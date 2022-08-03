@@ -71,9 +71,9 @@ function native_start() {
 	echo
 
 	if [ "$1" = "REST" ]; then
-		req="-r requirements.txt"
+		req="-r rest_requirements.txt"
 	else
-		req="-r requirements.txt -r grpc_requirements.txt"
+		req="-r requirements.txt"
 	fi
 
 	echo
