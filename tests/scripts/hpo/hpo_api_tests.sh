@@ -29,8 +29,6 @@ SCRIPTS_DIR="${CURRENT_DIR}/hpo"
 . ${SCRIPTS_DIR}/hpo_multiple_exp_tests.sh
 . ${SCRIPTS_DIR}/hpo_sanity_tests.sh
 
-export hpo_base_url=http://localhost:8085
-
 # Tests to validate the HPO APIs
 function hpo_api_tests() {
 	start_time=$(get_date)

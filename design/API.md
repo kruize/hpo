@@ -63,6 +63,11 @@ curl -H 'Content-Type: application/json' http://<URL>:<PORT>/experiment_trials -
     "result_value": abc
 }’
 
+success : The experiment trial runs successfully without any error.
+failure : The experiment trial fails due to reason such as invalid tunable value in the search_space. 
+          Trial will be skipped and experiment continues with the next trial. 
+error : The experiment terminates due to reasons such as network error. 
+   
 Response:
 Status code   Response body
 200            Result Status

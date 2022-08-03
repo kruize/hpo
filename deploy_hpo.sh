@@ -20,33 +20,42 @@ SCRIPTS_DIR="${ROOT_DIR}/scripts"
 HPO_REPO="kruize/hpo"
 HPO_VERSION=$(grep -a -m 1 "HPO_VERSION" ${ROOT_DIR}/version.py | cut -d= -f2)
 HPO_VERSION=$(sed -e 's/^"//' -e 's/"$//' <<<"$HPO_VERSION")
-echo
-echo "Using version: ${HPO_VERSION}"
-HPO_CONTAINER_IMAGE=${HPO_REPO}:${HPO_VERSION}
+
+HPO_DEPLOY_MANIFEST_TEMPLATE="manifests/hpo-deployment.yaml_template"
+HPO_DEPLOY_MANIFEST="manifests/hpo-deployment.yaml"
+HPO_CONFIGMAPS="manifests/configmaps"
 
 #default values
 setup=1
 cluster_type="native"
 CONTAINER_RUNTIME="docker"
+non_interactive=0
+hpo_ns=""
+# docker: loop timeout is turned off by default
+timeout=-1
 LOG_LEVEL="info"
 
 # source the helpers script
 . ${SCRIPTS_DIR}/cluster-helpers.sh
+. ${SCRIPTS_DIR}/openshift-helpers.sh
 
 function usage() {
 	echo
-	echo "Usage: $0 [-c [docker|minikube|native]] [-o hpo container image] [-l [info|debug|warning|error|critical]]"
-    echo "  -s = start(default), -t = terminate"
-	echo "  -c: cluster type."
-	echo "  -o: build with specific hpo container image name [Default - kruize/hpo:<version>]"
+	echo "Usage: $0 [-a] [-c [docker|minikube|native|openshift]] [-o hpo container image] [-n namespace] [-d configmaps-dir ]"
+	echo " -s = start(default), -t = terminate"
+	echo " -c: cluster type."
+	echo " -o: build with specific hpo container image name [Default - kruize/hpo:<version>]"
+	echo " -n: Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
+	echo " -d: Config maps directory [Default - manifests/configmaps]"
+
 	echo "  -l: set specific logging level [Default - info]"
 	exit -1
 }
 
-# Check if the cluster_type is one of icp or openshift
+# Check the cluster_type
 function check_cluster_type() {
 	case "${cluster_type}" in
-	docker|minikube|native)
+	docker|minikube|native|openshift)
 		;;
 	*)
 		echo "Error: unsupported cluster type: ${cluster_type}"
@@ -66,12 +75,21 @@ function check_log_level() {
 }
 
 # Iterate through the commandline options
-while getopts c:o:stl: gopts
+while getopts ac:o:n:stl: gopts
 do
 	case ${gopts} in
+	a)
+		non_interactive=1
+		;;
 	c)
 		cluster_type="${OPTARG}"
 		check_cluster_type
+		;;
+	d)
+		HPO_CONFIGMAPS="${OPTARG}"
+		;;
+	n)
+		hpo_ns="${OPTARG}"
 		;;
 	o)
 		HPO_CONTAINER_IMAGE="${OPTARG}"
@@ -91,7 +109,15 @@ do
 	esac
 done
 
+# check container runtime
 resolve_container_runtime
+
+# check if user has specified any custom image else use default
+if [ -n "${HPO_CONTAINER_IMAGE}" ]; then
+	echo "Using version: ${HPO_VERSION}"
+else
+	HPO_CONTAINER_IMAGE=${HPO_REPO}:${HPO_VERSION}
+fi
 
 # Get Service Status
 SERVICE_STATUS_NATIVE=$(ps -u | grep service.py | grep -v grep)

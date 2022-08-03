@@ -174,8 +174,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
         trialValidationError = self.validate_trialNumber(json_object["experiment_name"],
                                                          str(json_object["trial_number"]))
-        resultDataValidationError = self.validate_result_data(json_object["trial_result"],
-                                                              json_object["result_value_type"],
+
+        resultDataValidationError = self.validate_result_data(json_object["trial_result"], json_object["result_value_type"],
                                                               json_object["result_value"])
         if trialValidationError:
             self._set_response(400, trialValidationError)
