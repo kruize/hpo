@@ -50,12 +50,6 @@ function usage() {
 	echo " Environment Variables to be set: REG_EMAIL, REG_UNAME, REG_PASS"
 	exit -1
 }
-# check if registry credentials are set as Environment Variables
-if [ -z $REG_UNAME ] || [ -z $REG_PASS ] || [ -z $REG_EMAIL ]; then
-    echo "You need to set the environment variables first for Kubernetes secret creation"
-    usage
-    exit -1
-fi
 
 # Check the cluster_type
 function check_cluster_type() {
@@ -112,6 +106,15 @@ fi
 # Get Service Status
 SERVICE_STATUS_NATIVE=$(ps -u | grep service.py | grep -v grep)
 SERVICE_STATUS_DOCKER=$(${CONTAINER_RUNTIME} ps | grep hpo_docker_container)
+
+# In case of Minikube and Openshift, check if registry credentials are set as Environment Variables
+if [ ${cluster_type} != "native" ]; then
+    if [ -z $REG_UNAME ] || [ -z $REG_PASS ] || [ -z $REG_EMAIL ]; then
+        echo "You need to set the environment variables first for Kubernetes secret creation"
+        usage
+        exit -1
+    fi
+fi
 
 # Call the proper setup function based on the cluster_type
 if [ ${setup} == 1 ]; then

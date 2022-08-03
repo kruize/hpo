@@ -23,6 +23,12 @@ function openshift_first() {
 	kubectl create namespace ${hpo_ns}
 
 	kubectl_cmd="kubectl -n ${hpo_ns}"
+
+    # create a kube secret each time app is deployed
+    kubectl create secret docker-registry hpodockersecret --docker-server=docker.io --docker-username=$REG_UNAME \
+     --docker-password=$REG_PASS --docker-email=$REG_EMAIL -n ${hpo_ns}
+    # link the secret to the service account
+    oc secrets link default hpodockersecret --for=pull -n ${hpo_ns}
 }
 
 # You can deploy using kubectl
