@@ -241,9 +241,11 @@ function hpo_multiple_exp_test() {
 			http_code=$(tail -n1 <<< "${get_trial_json}")
 			response=$(echo -e "${get_trial_json}" | tail -2 | head -1)
 
-            if [ ${response::3} == "000" ]; then
-                response=$(echo ${response} | cut -c 4-)
-            fi
+			# Added condition to check for '000' as sometimes cURL command returns it due to reasons such as
+			# 'Failed DNS resolution','connection refused' or 'timed out'
+			if [ ${response::3} == "000" ]; then
+				response=$(echo ${response} | cut -c 4-)
+			fi
 
 			result="${TEST_DIR}/hpo_config_exp${i}_trial${trial_num}.json"
 			expected_json="${TEST_DIR}/expected_hpo_config_exp${i}.json"

@@ -126,11 +126,8 @@ function minikube_first() {
 
 	kubectl_cmd="kubectl -n ${hpo_ns}"
 
-    # create a kube secret each time app is deployed
-    kubectl create secret docker-registry hpodockersecret --docker-server=docker.io --docker-username=$REG_UNAME \
-     --docker-password=$REG_PASS --docker-email=$REG_EMAIL -n ${hpo_ns}
-    # link the secret to the service account
-    oc secrets link default hpodockersecret --for=pull -n ${hpo_ns}
+	# call function to create kube secret
+	create_secret ${hpo_ns}
 }
 
 # You can deploy using kubectl
@@ -181,7 +178,7 @@ function minikube_terminate() {
 
 	rm ${HPO_DEPLOY_MANIFEST}
 	echo
-		
+
 	echo
 	echo "Removing HPO namespace"
 	kubectl delete ns ${hpo_ns}
@@ -270,4 +267,15 @@ function check_prereq() {
 			exit -1
 		fi
 	fi
+}
+
+# create kubernetes secret
+function create_secret() {
+
+	namespace="$1"
+	# create a kube secret each time app is deployed
+	kubectl create secret docker-registry hpodockersecret --docker-server=docker.io --docker-username=$REG_UNAME \
+	--docker-password=$REG_PASS --docker-email=$REG_EMAIL -n ${namespace}
+	# link the secret to the service account
+	oc secrets link default hpodockersecret --for=pull -n ${namespace}
 }

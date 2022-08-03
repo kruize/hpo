@@ -79,7 +79,7 @@ function hpo_grpc_sanity_test() {
 		# Generate a subsequent trial
 		if [[ ${i} < $((N_TRIALS-1)) ]]; then
 			echo "" | tee -a ${LOG}
-		        echo "Generate subsequent config after trial ${i} ..." | tee -a ${LOG}
+			echo "Generate subsequent config after trial ${i} ..." | tee -a ${LOG}
 			python ../src/grpc_client.py next --name ${exp_name}
 			verify_grpc_result "Post subsequent experiment after trial ${i}" $?
 		fi
@@ -177,6 +177,8 @@ function hpo_sanity_test() {
 		http_code=$(tail -n1 <<< "${get_trial_json}")
 		response=$(echo -e "${get_trial_json}" | tail -2 | head -1)
 
+		# Added condition to check for '000' as sometimes cURL command returns it due to reasons such as
+		# 'Failed DNS resolution','connection refused' or 'timed out'
 		if [ ${response::3} == "000" ]; then
 			response=$(echo ${response} | cut -c 4-)
 		fi
