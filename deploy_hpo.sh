@@ -42,15 +42,15 @@ service_type="both"
 function usage() {
 	echo
 	echo "Usage:"
-	echo " -a | --non_interactive	: interactive (default)"
-	echo " -s | --start				: start(default) the app"
-	echo " -t | --terminate			: terminate the app"
-	echo " -c | --cluster_type		: cluster type [docker|minikube|native|openshift]]"
-	echo " -o | --container_image	: build with specific hpo container image name [Default - kruize/hpo:<version>]"
-	echo " -n | --namespace			: Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
-	echo " -d | --configmaps		: Config maps directory [Default - manifests/configmaps]"
-	echo " -b | --both				: install both REST and the gRPC service"
-	echo " -r | --rest				: install REST only"
+	echo " -a | --non_interactive: interactive (default)"
+	echo " -s | --start: start(default) the app"
+	echo " -t | --terminate: terminate the app"
+	echo " -c | --cluster_type: cluster type [docker|minikube|native|openshift]]"
+	echo " -o | --container_image: build with specific hpo container image name [Default - kruize/hpo:<version>]"
+	echo " -n | --namespace : Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
+	echo " -d | --configmaps_dir : Config maps directory [Default - manifests/configmaps]"
+	echo " --both: install both REST and the gRPC service"
+	echo " --rest: install REST only"
 	exit -1
 }
 
@@ -105,18 +105,18 @@ while [ : ]; do
 		setup=0
 		shift
 		;;
-	-r | --rest)
+	--rest)
 		service_type="REST"
 		shift
 		;;
-	-b | --both)
+	--both)
 		service_type="both"
 		shift
 		;;
-    --) shift;
-        break
-        ;;
-  esac
+	--) shift;
+		break
+		;;
+	esac
 done
 
 # check container runtime
