@@ -112,6 +112,7 @@ jobs:
 
   test_on_minikube:
     # The type of runner that the job will run on
+    needs: test_on_docker
     runs-on: ubuntu-latest
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
@@ -125,15 +126,6 @@ jobs:
         run: |
           kubectl cluster-info
           kubectl get pods -n kube-system
-      - name: Build hpo
-        run: |
-          echo Software versions
-          python --version
-          curl -V
-          echo Building hpo container image
-          ls
-          ./build_hpo.sh -o hpo:test
-          docker images | grep hpo
       - name: Sanity test on minikube
         run: |
           ps -ef | grep python
@@ -141,7 +133,7 @@ jobs:
           ls
           cd tests
           kubectl create namespace monitoring
-          ./test_hpo.sh -c minikube -o hpo:test --resultsdir=${GITHUB_WORKSPACE} --testsuite=hpo_api_tests --testcase=hpo_sanity_test
+          ./test_hpo.sh -c minikube -o kruize/hpo:test --resultsdir=${GITHUB_WORKSPACE} --testsuite=hpo_api_tests --testcase=hpo_sanity_test
       - name: Archive results
         if: always()
         run: |
