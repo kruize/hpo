@@ -274,8 +274,8 @@ function create_secret() {
 
 	namespace="$1"
 	# create a kube secret each time app is deployed
-	kubectl create secret docker-registry hpodockersecret --docker-server=docker.io --docker-username=$REG_UNAME \
-	--docker-password=$REG_PASS --docker-email=$REG_EMAIL -n ${namespace}
+	kubectl create secret docker-registry hpodockersecret --docker-server=$REGISTRY --docker-username=$REGISTRY_USERNAME \
+	--docker-password=$REGISTRY_PASSWORD --docker-email=$REGISTRY_EMAIL -n ${namespace}
 	# link the secret to the service account
 	oc secrets link default hpodockersecret --for=pull -n ${namespace}
 }

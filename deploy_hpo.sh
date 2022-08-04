@@ -47,7 +47,7 @@ function usage() {
 	echo " -o: build with specific hpo container image name [Default - kruize/hpo:<version>]"
 	echo " -n: Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
 	echo " -d: Config maps directory [Default - manifests/configmaps]"
-	echo " Environment Variables to be set: REGISTRY_EMAIL, REGISTRY_USERNAME, REGISTRY_PASSWORD"
+	echo " Environment Variables to be set: REGISTRY, REGISTRY_EMAIL, REGISTRY_USERNAME, REGISTRY_PASSWORD"
 	exit -1
 }
 
@@ -109,11 +109,11 @@ SERVICE_STATUS_DOCKER=$(${CONTAINER_RUNTIME} ps | grep hpo_docker_container)
 
 # In case of Minikube and Openshift, check if registry credentials are set as Environment Variables
 if [[ "${cluster_type}" == "minikube" || "${cluster_type}" == "openshift" ]]; then
-    if [ -z "${REGISTRY_USERNAME}" ] || [ -z "${REGISTRY_PASSWORD}" ] || [ -z "${REGISTRY_EMAIL}" ]; then
-        echo "You need to set the environment variables first for Kubernetes secret creation"
-        usage
-        exit -1
-    fi
+	if [ -z "${REGISTRY}" ] || [ -z "${REGISTRY_USERNAME}" ] || [ -z "${REGISTRY_PASSWORD}" ] || [ -z "${REGISTRY_EMAIL}" ]; then
+		echo "You need to set the environment variables first for Kubernetes secret creation"
+		usage
+		exit -1
+	fi
 fi
 
 # Call the proper setup function based on the cluster_type
