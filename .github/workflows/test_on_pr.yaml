@@ -127,9 +127,11 @@ jobs:
           kubectl get pods -n kube-system
       - name: Build hpo
         run: |
-          echo Build hpo container image
+          echo Software versions
+          python --version
+          curl -V
+          echo Building hpo container image
           ls
-          cd hpo
           ./build_hpo.sh -o hpo:test
           docker images | grep hpo
       - name: Sanity test on minikube
@@ -137,7 +139,7 @@ jobs:
           ps -ef | grep python
           echo Running sanity test on minikube
           ls
-          cd hpo/tests
+          cd tests
           kubectl create namespace monitoring
           ./test_hpo.sh -c minikube -o hpo:test --resultsdir=${GITHUB_WORKSPACE} --testsuite=hpo_api_tests --testcase=hpo_sanity_test
       - name: Archive results
