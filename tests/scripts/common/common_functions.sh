@@ -729,4 +729,11 @@ function post_experiment_json() {
 	echo "Response is ${response}" >> ${LOG_} ${LOG}
 	echo "http_code is $http_code Response is ${response}"
 }
-
+# Added condition to check for '000' as sometimes cURL command returns it due to reasons such as
+# 'Failed DNS resolution','connection refused' or 'timed out'
+function curl_error_check() {
+	if [ ${response::3} == "000" ]; then
+		response=$(echo ${response} | cut -c 4-)
+	fi
+	echo "$response"
+}
