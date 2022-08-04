@@ -168,11 +168,6 @@ function hpo_multiple_exp_test() {
 	N_TRIALS=3
 	failed=0
 
-	# Form the url based on cluster type & API
-	form_hpo_api_url "experiment_trials"
-	echo "HPO URL = $hpo_url"  | tee -a ${LOG}
-
-
 	TESTS_=${TEST_DIR}
 	SERV_LOG="${TESTS_}/service.log"
 	echo "RESULTSDIR - ${TEST_DIR}" | tee -a ${LOG}

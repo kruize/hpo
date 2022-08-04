@@ -91,12 +91,10 @@ function deploy_hpo() {
 		echo "Command to deploy hpo - ${cmd}"
 		./deploy_hpo.sh -c ${cluster_type} > ${log} 2>&1 &
 	elif [ ${cluster_type} == "minikube" ]; then
-                namespace="monitoring"
                 cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}"
                 echo "Command to deploy hpo - ${cmd}"
                 ./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}
         elif [ ${cluster_type} == "openshift" ]; then
-                namespace="openshift-tuning"
                 cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}"
                 echo "Command to deploy hpo - ${cmd}"
                 ./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}
@@ -137,9 +135,9 @@ function terminate_hpo() {
 
 	pushd ${HPO_REPO} > /dev/null
 		echo  "Terminating hpo..."
-		cmd="./deploy_hpo.sh -c ${cluster_type} -t"
+		cmd="./deploy_hpo.sh -c ${cluster_type} -t -n ${namespace}"
 		echo "CMD = ${cmd}"
-		./deploy_hpo.sh -c ${cluster_type} -t
+		./deploy_hpo.sh -c ${cluster_type} -t -n ${namespace}
 	popd > /dev/null
 	echo "done"
 }
@@ -523,7 +521,6 @@ function form_hpo_api_url {
 	API=$1
 	# Form the URL command based on the cluster type
 
-	echo "***************** namespace = $namespace ****************"
 	case $cluster_type in
 		native|docker) 
 			PORT="8085"
@@ -531,12 +528,11 @@ function form_hpo_api_url {
 			;;
 		minikube)
 			SERVER_IP=$(minikube ip)
-			PORT=$(kubectl -n monitoring get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+			PORT=$(kubectl -n ${namespace} get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 			;;
 		 openshift)
-                        hpo_ns="openshift-tuning"
-                        SERVER_IP=$(oc -n ${hpo_ns} get pods -l=app=hpo -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
-                        PORT=$(oc get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+                        SERVER_IP=$(oc -n ${namespace} get pods -l=app=hpo -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
+                        PORT=$(oc -n ${namespace} get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
                         ;;
 		*);;
 	esac
