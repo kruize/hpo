@@ -27,7 +27,7 @@ SCRIPTS_DIR="${CURRENT_DIR}"
 . ${SCRIPTS_DIR}/hpo/hpo_api_tests.sh
 
 # Iterate through the commandline options
-while getopts o:-: gopts
+while getopts o:n:-: gopts
 do
 	case ${gopts} in
 	-)
@@ -54,6 +54,9 @@ do
 		;;
 	o)
 		HPO_CONTAINER_IMAGE="${OPTARG}"		
+		;;
+	n)
+		namespace="${OPTARG}"
 		;;
 	esac
 done

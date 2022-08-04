@@ -46,6 +46,8 @@ function hpo_grpc_sanity_test() {
 
 	# Check if HPO services are started
 	check_server_status "${SERV_LOG}"
+	export HPO_HOST="${SERVER_IP}"
+	export PORT="${PORT}"
 
 	## Loop through the trials
 	for (( i=0 ; i<${N_TRIALS} ; i++ ))
@@ -118,8 +120,6 @@ function hpo_sanity_test() {
 	N_TRIALS=5
 	failed=0
 
-	echo "HPO URL = $hpo_url"  | tee -a ${LOG}
-
 	# Get the experiment id and name from the search space
 	exp_id=$(echo ${hpo_post_experiment_json["valid-experiment"]} | jq '.search_space.experiment_id')
 	exp_name=$(echo ${hpo_post_experiment_json["valid-experiment"]} | jq '.search_space.experiment_name')
@@ -176,7 +176,6 @@ function hpo_sanity_test() {
 
 		http_code=$(tail -n1 <<< "${get_trial_json}")
 		response=$(echo -e "${get_trial_json}" | tail -2 | head -1)
-
 		# Added condition to check for '000' as sometimes cURL command returns it due to reasons such as
 		# 'Failed DNS resolution','connection refused' or 'timed out'
 		if [ ${response::3} == "000" ]; then
@@ -239,4 +238,3 @@ function hpo_sanity_test() {
 		echo "Test failed" | tee -a ${LOG}
 	fi
 }
-
