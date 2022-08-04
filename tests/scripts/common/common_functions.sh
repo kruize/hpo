@@ -463,7 +463,7 @@ function check_server_status() {
 	echo "Server - $SERVER_IP PORT - $PORT"
 
 	#if service does not start within 5 minutes (300s) fail the test
-	timeout 30 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://${SERVER_IP}:${PORT})" != "200" ]]; do sleep 1; done' || false
+	timeout 300 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://${SERVER_IP}:${PORT})" != "200" ]]; do sleep 1; done' || false
 
 	if [ -z "${log}" ]; then
 		echo "Service log - $log not found!"
