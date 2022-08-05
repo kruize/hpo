@@ -144,9 +144,7 @@ class HpoExperiment:
 
         # Create a study object
         try:
-            study = optuna.create_study(direction=self.direction, sampler=sampler, study_name=self.experiment_name)
-
-
+            study = optuna.create_study(direction=self.direction, sampler=sampler, study_name=self.experiment_name, storage="postgresql+psycopg2://hpodbuser:hpodbpwd@localhost:5432/hpodb")
             # Execute an optimization by using an 'Objective' instance
             study.optimize(Objective(self), n_trials=self.total_trials, n_jobs=self.parallel_trials)
 
@@ -160,6 +158,10 @@ class HpoExperiment:
             logger.info("Best trial: " + str(study.best_trial))
 
             logger.debug("All trials: " + str(trials))
+
+            # Get the hyper parameter importance
+            importance = optuna.importance.get_param_importances(study)
+            logger.info("Hyper Parameter Importances: " + str(importance))
 
             try:
                 self.resultsAvailableCond.acquire()
@@ -200,6 +202,18 @@ class HpoExperiment:
         finally:
             self.resultsAvailableCond.release()
 
+    def experiment_importance(self):
+        try:
+            # Load the study based on experiment name
+            logger.info("Experiment name " + self.experiment_name)
+            study = optuna.load_study(study_name=self.experiment_name, storage="postgresql+psycopg2://hpodbuser:hpodbpwd@localhost:5432/hpodb")
+            importance = optuna.importance.get_param_importances(study)
+            logger.info("Hyper Parameter Importances: " + str(importance))
+            return importance
+        except ValueError:
+            logger.warn("Cannot evaluate parameter importances with only a single trial")
+        except RuntimeError:
+            logger.warn("Encountered zero total variance in all trees")
 
 class Objective(TrialDetails):
     """

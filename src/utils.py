@@ -30,6 +30,7 @@ class HPOSupportedTypes:
     SERVER_HOSTNAME = "0.0.0.0"
     SERVER_PORT = 8085
     API_ENDPOINT = "/experiment_trials"
+    API_ENDPOINT_IMPORTANCE = "/importance"
     CONTENT_TYPE = "application/json"
 
 
@@ -44,6 +45,7 @@ class HPOErrorConstants:
     VALUE_MISSING = " cannot be empty or null!"
     HPO_ALGO_NOT_SUPPORTED = "HPO algorithm not supported!"
     INVALID_RESULT_STATUS = "Trial result status is invalid!"
+    NO_DATA_FOUND = "data not generated."
 
     MISSING_PARAMETERS = "Missing required parameters!"
     EXPERIMENT_NOT_FOUND = "Experiment not found!"
@@ -66,3 +68,4 @@ class HPOMessages:
     RESULT_STATUS = "Result posted successfully!"
     TRIAL_COMPLETION_STATUS = "Trials completed for experiment: "
     EXPERIMENT_STOP = "Experiment stopped!"
+

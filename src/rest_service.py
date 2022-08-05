@@ -115,6 +115,26 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 					hpo_service.instance.getExperiment(query["experiment_name"][0]).trialDetails.trial_number))
 				data = hpo_service.instance.get_trial_json_object(query["experiment_name"][0])
 				self._set_response(200, data)
+		if re.search(HPOSupportedTypes.API_ENDPOINT_IMPORTANCE, self.path):
+			query = parse_qs(urlparse(self.path).query)
+			if "experiment_name" not in query:
+				error_msg = HPOErrorConstants.MISSING_PARAMETERS
+				logger.error(error_msg)
+				self._set_response(400, error_msg)
+				return
+			error_msg = self.validate_experiment_name(query["experiment_name"][0])
+			if error_msg:
+				self._set_response(400, error_msg)
+			else:
+				logger.info("Experiment_Name = " + str(
+					hpo_service.instance.getExperiment(query["experiment_name"][0]).experiment_name))
+				data = hpo_service.instance.get_experiment_importance(query["experiment_name"][0])
+				logger.info("Hyper Parameter Importances: " + str(data))
+				data_error_msg = self.validate_importance_data(data)
+				if data_error_msg:
+					self._set_response(400, error_msg)
+				else:
+					self._set_response(200, data)
 		elif self.path == "/health":
 			if self.getHomeScreen():
 				self._set_response(200, 'OK')
@@ -225,6 +245,15 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 			errorMsg = HPOErrorConstants.VALUE_TYPE_MISMATCH
 		elif float(result_value) < 0:
 			errorMsg = HPOErrorConstants.NEGATIVE_VALUE
+
+		return errorMsg
+
+	def validate_importance_data(self, importance_result):
+		errorMsg = ""
+		if importance_result == "null":
+			errorMsg = "Parameter importance " + HPOErrorConstants.NO_DATA_FOUND
+			self._set_response(400, errorMsg)
+			logger.error(errorMsg)
 
 		return errorMsg
 

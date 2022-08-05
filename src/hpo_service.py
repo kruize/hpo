@@ -153,5 +153,15 @@ class HpoService:
 
         return recommendedConfig
 
+    def get_experiment_importance(self, id_):
+        experiment: optuna_hpo.HpoExperiment = self.getExperiment(id_)
+        try:
+            experiment.resultsAvailableCond.acquire()
+            importance = experiment.experiment_importance()
+        finally:
+            experiment.resultsAvailableCond.release()
+        ## Convert a dict into json object
+        return json.dumps(importance)
+
 
 instance: HpoService = HpoService()
