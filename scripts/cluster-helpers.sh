@@ -70,10 +70,16 @@ function native_start() {
 	echo "###   Installing HPO as a native App"
 	echo
 
+	if [ "$1" = "REST" ]; then
+		req="-r rest_requirements.txt"
+	else
+		req="-r requirements.txt"
+	fi
+
 	echo
 	echo "### Installing dependencies.........."
 	echo
-	python3 -m pip install --user -r requirements.txt >/dev/null 2>&1
+	python3 -m pip install --user ${req} >/dev/null 2>&1
 
 	echo
 	echo "### Starting the service..."
@@ -82,7 +88,11 @@ function native_start() {
 	# check if service is already running
 	check_prereq running ${SERVICE_STATUS_NATIVE}
 
-	python3 -u src/service.py
+	if [ "$1" = "REST" ]; then
+		python3 -u src/service.py "REST"
+	else
+		python3 -u src/service.py
+	fi
 }
 
 function native_terminate() {
@@ -175,7 +185,7 @@ function minikube_terminate() {
 
 	rm ${HPO_DEPLOY_MANIFEST}
 	echo
-		
+
 	echo
 	echo "Removing HPO namespace"
 	kubectl delete ns ${hpo_ns}

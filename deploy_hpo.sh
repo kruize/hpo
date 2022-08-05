@@ -33,6 +33,7 @@ non_interactive=0
 hpo_ns=""
 # docker: loop timeout is turned off by default
 timeout=-1
+service_type="both"
 
 # source the helpers script
 . ${SCRIPTS_DIR}/cluster-helpers.sh
@@ -40,12 +41,16 @@ timeout=-1
 
 function usage() {
 	echo
-	echo "Usage: $0 [-a] [-c [docker|minikube|native|openshift]] [-o hpo container image] [-n namespace] [-d configmaps-dir ]"
-	echo " -s = start(default), -t = terminate"
-	echo " -c: cluster type."
-	echo " -o: build with specific hpo container image name [Default - kruize/hpo:<version>]"
-	echo " -n: Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
-	echo " -d: Config maps directory [Default - manifests/configmaps]"
+	echo "Usage:"
+	echo " -a | --non_interactive: interactive (default)"
+	echo " -s | --start: start(default) the app"
+	echo " -t | --terminate: terminate the app"
+	echo " -c | --cluster_type: cluster type [docker|minikube|native|openshift]]"
+	echo " -o | --container_image: build with specific hpo container image name [Default - kruize/hpo:<version>]"
+	echo " -n | --namespace : Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
+	echo " -d | --configmaps_dir : Config maps directory [Default - manifests/configmaps]"
+	echo " --both: install both REST and the gRPC service"
+	echo " --rest: install REST only"
 	exit -1
 }
 
@@ -60,40 +65,64 @@ function check_cluster_type() {
 	esac
 }
 
+VALID_ARGS=$(getopt -o ac:d:o:n:strb --long non_interactive,cluster_type:,configmaps:,container_image:,namespace:,start,terminate,rest,both -- "$@")
+if [[ $? -ne 0 ]]; then
+	usage
+	exit 1;
+fi
+# safely convert the output of getopt to arguments
+eval set -- "$VALID_ARGS"
+
 # Iterate through the commandline options
-while getopts ac:o:n:st gopts
-do
-	case ${gopts} in
-	a)
+while [ : ]; do
+	case "$1" in
+	-a | --non_interactive)
 		non_interactive=1
+		shift
 		;;
-	c)
-		cluster_type="${OPTARG}"
+	-c | --cluster_type)
+		cluster_type="$2"
 		check_cluster_type
+		shift 2
 		;;
-	d)
-		HPO_CONFIGMAPS="${OPTARG}"
+	-d | --configmaps)
+		HPO_CONFIGMAPS="$2"
+		shift 2
 		;;
-	n)
-		hpo_ns="${OPTARG}"
+	-o | --container_image)
+		HPO_CONTAINER_IMAGE="$2"
+		shift 2
 		;;
-	o)
-		HPO_CONTAINER_IMAGE="${OPTARG}"
+	-n | --namespace)
+		hpo_ns="$2"
+		shift 2
 		;;
-	s)
+	-s | --start)
 		setup=1
+		shift
 		;;
-	t)
+	-t | --terminate)
 		setup=0
+		shift
 		;;
-	[?])
-		usage
+	--rest)
+		service_type="REST"
+		shift
+		;;
+	--both)
+		service_type="both"
+		shift
+		;;
+	--) shift;
+		break
+		;;
 	esac
 done
 
 # check container runtime
 resolve_container_runtime
 
+# Get Service Status
 # check if user has specified any custom image else use default
 if [ -n "${HPO_CONTAINER_IMAGE}" ]; then
 	echo "Using version: ${HPO_VERSION}"
@@ -107,7 +136,11 @@ SERVICE_STATUS_DOCKER=$(${CONTAINER_RUNTIME} ps | grep hpo_docker_container)
 
 # Call the proper setup function based on the cluster_type
 if [ ${setup} == 1 ]; then
-	${cluster_type}_start
+	if [ ${cluster_type} = "native" ]; then
+		${cluster_type}_start ${service_type}
+	else
+		${cluster_type}_start
+	fi
 else
 	${cluster_type}_terminate
 fi

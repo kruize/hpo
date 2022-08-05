@@ -98,12 +98,12 @@ function deploy_hpo() {
                 cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}"
                 echo "Command to deploy hpo - ${cmd}"
                 ./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}
-	else 
+	else
 		cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE}"
 		echo "Command to deploy hpo - ${cmd}"
 		./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE}
 	fi
-	
+
 	status="$?"
 	# Check if hpo is deployed.
 	if [[ "${status}" -eq "1" ]]; then
@@ -142,7 +142,7 @@ function terminate_hpo() {
 	echo "done"
 }
 
-# list of test cases supported 
+# list of test cases supported
 # input: testsuite
 # ouput: print the testcases supported for specified testsuite
 function test_case_usage() {
@@ -156,7 +156,7 @@ function test_case_usage() {
 	done
 }
 
-# Check if the given test case is supported 
+# Check if the given test case is supported
 # input: testsuite
 # output: check if the specified testcase is supported if not then call test_case_usage
 function check_test_case() {
@@ -168,12 +168,12 @@ function check_test_case() {
 			testcase_matched=1
 		fi
 	done
-	
+
 	if [ "${testcase}" == "help" ]; then
 		test_case_usage ${checkfor}
 		exit -1
 	fi
-	
+
 	if [[ "${testcase_matched}" -eq "0" ]]; then
 		echo ""
 		echo "Error: Invalid testcase **${testcase}** "
@@ -183,14 +183,14 @@ function check_test_case() {
 }
 
 # get the summary of each test suite
-# input: Test suite name for which you want to get the summary and the failed test cases 
+# input: Test suite name for which you want to get the summary and the failed test cases
 # output: summary of the specified test suite
 function testsuitesummary() {
 	TEST_SUITE_NAME=$1
 	elapsed_time=$2
 	FAILED_CASES=$3
 	((total_time=total_time+elapsed_time))
-	echo 
+	echo
 	echo "########### Results Summary of the test suite ${TEST_SUITE_NAME} ##########"
 	echo "${TEST_SUITE_NAME} took ${elapsed_time} seconds"
 	echo "Number of tests performed ${TESTS}"
@@ -207,7 +207,7 @@ function testsuitesummary() {
 		echo
 		echo "Check Log Directory: ${TEST_SUITE_DIR} for failed cases "
 		echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-	else 
+	else
 		echo "~~~~~~~~~~~~~~~~~~~~~~ ${TEST_SUITE_NAME} passed ~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	fi
 	echo ""
@@ -215,7 +215,7 @@ function testsuitesummary() {
 }
 
 # get the overall summary of the test
-# input: failed test suites 
+# input: failed test suites
 # output: summary of the overall tests performed
 function overallsummary(){
 	FAILED_TEST_SUITES=$1
@@ -288,7 +288,7 @@ function compare_json() {
 function run_curl_cmd() {
 	cmd=$1
 	json_file=$2
- 
+
 	echo "Curl cmd=${cmd}" | tee -a ${LOG}
 	echo "json file = ${json_file}" | tee -a ${LOG}
 	${cmd} > ${json_file}
@@ -334,7 +334,7 @@ function match_ids() {
 }
 
 # Compare the actual result with the expected result
-# input: Test name, expected result 
+# input: Test name, expected result
 function compare_result() {
 	failed=0
 	__test__=$1
@@ -464,7 +464,7 @@ function check_server_status() {
 		exit 1
 	fi
 
-	service_log_msg="Access server at"
+	service_log_msg="Access REST Service at"
 
 	if grep -q "${service_log_msg}" "${log}" ; then
 		echo "HPO REST API service started successfully..." | tee -a ${LOG_} ${LOG}
@@ -602,7 +602,7 @@ function run_post_tests(){
 	fi
 	
 	# Check if HPO services are started
-	check_server_status "${SERV_LOG}"
+    check_server_status "${SERV_LOG}"
 
 	for post_test in "${exp_tests[@]}"
 	do
