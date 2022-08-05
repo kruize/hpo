@@ -130,7 +130,7 @@ jobs:
           kubectl cluster-info
           kubectl get pods -n kube-system
       - name: Build hpo
-          run: |
+        run: |
             echo Software versions
             python --version
             curl -V
