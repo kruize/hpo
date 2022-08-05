@@ -51,8 +51,8 @@ function usage() {
 	echo " -d | --configmaps_dir : Config maps directory [Default - manifests/configmaps]"
 	echo " --both: install both REST and the gRPC service"
 	echo " --rest: install REST only"
-    echo " Environment Variables to be set: REGISTRY, REGISTRY_EMAIL, REGISTRY_USERNAME, REGISTRY_PASSWORD"
-    echo " [Example - REGISTRY: docker.io, quay.io, etc]"
+	echo " Environment Variables to be set: REGISTRY, REGISTRY_EMAIL, REGISTRY_USERNAME, REGISTRY_PASSWORD"
+	echo " [Example - REGISTRY: docker.io, quay.io, etc]"
 	exit -1
 }
 
