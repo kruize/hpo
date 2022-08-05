@@ -288,6 +288,11 @@ function create_secret() {
 	# create a kube secret each time app is deployed
 	kubectl create secret docker-registry hpodockersecret --docker-server=$REGISTRY --docker-username=$REGISTRY_USERNAME \
 	--docker-password=$REGISTRY_PASSWORD --docker-email=$REGISTRY_EMAIL -n ${namespace}
+
 	# link the secret to the service account
-	oc secrets link default hpodockersecret --for=pull -n ${namespace}
+	if [ "${cluster_type}" == "minikube" ]; then
+		kubectl patch serviceaccount default -p '{"imagePullSecrets": [{"name": "hpodockersecret"}]}'
+	else
+		oc secrets link default hpodockersecret --for=pull -n ${namespace}
+	fi
 }
