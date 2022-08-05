@@ -186,9 +186,11 @@ function minikube_terminate() {
 	rm ${HPO_DEPLOY_MANIFEST}
 	echo
 
-	echo
-	echo "Removing HPO namespace"
-	kubectl delete ns ${hpo_ns}
+	if [ ${hpo_ns} != "monitoring" ]; then
+		echo
+		echo "Removing HPO namespace"
+		kubectl delete ns ${hpo_ns}
+	fi
 }
 
 ###############################  utilities  #################################
