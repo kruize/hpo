@@ -87,7 +87,7 @@ function openshift_terminate() {
 	rm ${HPO_DEPLOY_MANIFEST}
 	echo
 
-	if [ ${hpo_ns} != "monitoring" ]; then
+	if [ ${hpo_ns} == "openshift-tuning" ]; then
 		echo
 		echo "Removing HPO namespace"
 		kubectl delete ns ${hpo_ns}
