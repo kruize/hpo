@@ -135,9 +135,15 @@ function terminate_hpo() {
 
 	pushd ${HPO_REPO} > /dev/null
 		echo  "Terminating hpo..."
-		cmd="./deploy_hpo.sh -c ${cluster_type} -t -n ${namespace}"
-		echo "CMD = ${cmd}"
-		./deploy_hpo.sh -c ${cluster_type} -t -n ${namespace}
+		if [[ ${cluster_type} == "minikube" || ${cluster_type} == "openshift" ]]; then
+			cmd="./deploy_hpo.sh -c ${cluster_type} -t -n ${namespace}"
+			echo "CMD = ${cmd}"
+			./deploy_hpo.sh -c ${cluster_type} -t -n ${namespace}
+		else
+			cmd="./deploy_hpo.sh -c ${cluster_type} -t"
+			echo "CMD = ${cmd}"
+			./deploy_hpo.sh -c ${cluster_type} -t
+		fi
 	popd > /dev/null
 	echo "done"
 }
@@ -456,8 +462,8 @@ function check_server_status() {
         form_hpo_api_url "experiment_trials"
 	echo "Server - $SERVER_IP PORT - $PORT"
 
-	#if service does not start within 5 minutes (300s) fail the test
-	timeout 30 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://${SERVER_IP}:${PORT})" != "200" ]]; do sleep 1; done' || false
+	# if service does not start within 2 minutes (120s) fail the test
+	timeout 120 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://${SERVER_IP}:${PORT})" != "200" ]]; do sleep 1; done' || false
 
 	if [ -z "${log}" ]; then
 		echo "Service log - $log not found!"
