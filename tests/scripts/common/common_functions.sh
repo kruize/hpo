@@ -462,8 +462,8 @@ function check_server_status() {
         form_hpo_api_url "experiment_trials"
 	echo "Server - $SERVER_IP PORT - $PORT"
 
-	#if service does not start within 5 minutes (300s) fail the test
-	timeout 300 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://${SERVER_IP}:${PORT})" != "200" ]]; do sleep 1; done' || false
+	# if service does not start within 2 minutes (120s) fail the test
+	timeout 120 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://${SERVER_IP}:${PORT})" != "200" ]]; do sleep 1; done' || false
 
 	if [ -z "${log}" ]; then
 		echo "Service log - $log not found!"
