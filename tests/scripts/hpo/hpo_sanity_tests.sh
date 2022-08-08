@@ -174,13 +174,8 @@ function hpo_sanity_test() {
 		get_trial_json_cmd="${curl} ${hpo_url}?experiment_name="petclinic-sample-2-75884c5549-npvgd"&trial_number=${i} -w '\n%{http_code}'"
 		echo "command used to query the experiment_trial API = ${get_trial_json_cmd}" | tee -a ${LOG}
 
-		http_code=$(tail -n1 <<< "${get_trial_json}")
-		response=$(echo -e "${get_trial_json}" | tail -2 | head -1)
-		# Added condition to check for '000' as sometimes cURL command returns it due to reasons such as
-		# 'Failed DNS resolution','connection refused' or 'timed out'
-		if [ ${response::3} == "000" ]; then
-			response=$(echo ${response} | cut -c 4-)
-		fi
+		# check for curl '000' error
+		curl_error_check
 
 		result="${TEST_DIR}/hpo_config_${i}.json"
 		expected_json="${TEST_DIR}/expected_hpo_config_${i}.json"

@@ -23,6 +23,9 @@ function openshift_first() {
 	kubectl create namespace ${hpo_ns}
 
 	kubectl_cmd="kubectl -n ${hpo_ns}"
+
+	# call function to create kube secret
+	create_secret ${hpo_ns}
 }
 
 # You can deploy using kubectl
