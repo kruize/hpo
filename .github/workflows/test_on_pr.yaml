@@ -145,8 +145,15 @@ jobs:
           ls
           cd tests
           kubectl create namespace monitoring
-          echo "REGISTRY=$REGISTRY"
-          ./test_hpo.sh -c minikube -o hpo:test --resultsdir=${GITHUB_WORKSPACE} --testsuite=hpo_api_tests --testcase=hpo_sanity_test
+          echo Test secrets
+          echo "Using env...."
+          kubectl create namespace monitoring
+          kubectl create secret docker-registry myprivaterepoaccess --docker-username="${REGISTRY_USERNAME}" \
+          --docker-server="${REGISTRY}" --docker-email="${REGISTRY_EMAIL}"  --docker-password="${REGISTRY_PASSWORD}" \
+          -n monitoring
+          echo "Creating secret...done"
+          ./test_hpo.sh -c minikube -o hpo:test --resultsdir=${GITHUB_WORKSPACE} --testsuite=hpo_api_tests \
+          --testcase=hpo_sanity_test
       - name: Archive results
         if: always()
         run: |

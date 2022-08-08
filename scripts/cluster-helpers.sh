@@ -286,8 +286,9 @@ function create_secret() {
 
 	namespace="$1"
 	# create a kube secret each time app is deployed
-	kubectl create secret docker-registry hpodockersecret --docker-server=$REGISTRY --docker-username=$REGISTRY_USERNAME \
-	--docker-password=$REGISTRY_PASSWORD --docker-email=$REGISTRY_EMAIL -n ${namespace}
+	kubectl create secret docker-registry hpodockersecret --docker-username="${REGISTRY_USERNAME}" \
+	--docker-server="${REGISTRY}" --docker-email="${REGISTRY_EMAIL}"  --docker-password="${REGISTRY_PASSWORD}" \
+	-n ${namespace}
 
 	# link the secret to the service account
 	if [ "${cluster_type}" == "minikube" ]; then
