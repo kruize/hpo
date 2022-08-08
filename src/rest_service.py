@@ -115,7 +115,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 					hpo_service.instance.getExperiment(query["experiment_name"][0]).trialDetails.trial_number))
 				data = hpo_service.instance.get_trial_json_object(query["experiment_name"][0])
 				self._set_response(200, data)
-		if re.search(HPOSupportedTypes.API_ENDPOINT_IMPORTANCE, self.path):
+		elif re.search(HPOSupportedTypes.API_ENDPOINT_IMPORTANCE, self.path):
 			query = parse_qs(urlparse(self.path).query)
 			if "experiment_name" not in query:
 				error_msg = HPOErrorConstants.MISSING_PARAMETERS
@@ -129,12 +129,32 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 				logger.info("Experiment_Name = " + str(
 					hpo_service.instance.getExperiment(query["experiment_name"][0]).experiment_name))
 				data = hpo_service.instance.get_experiment_importance(query["experiment_name"][0])
-				logger.info("Hyper Parameter Importances: " + str(data))
+				#logger.info("Hyper Parameter Importances: " + str(data))
 				data_error_msg = self.validate_importance_data(data)
 				if data_error_msg:
 					self._set_response(400, error_msg)
 				else:
 					self._set_response(200, data)
+		elif re.search(HPOSupportedTypes.API_ENDPOINT_VISUALIZATION, self.path):
+			query = parse_qs(urlparse(self.path).query)
+			if "experiment_name" not in query:
+				error_msg = HPOErrorConstants.MISSING_PARAMETERS
+				logger.error(error_msg)
+				self._set_response(400, error_msg)
+				return
+			error_msg = self.validate_experiment_name(query["experiment_name"][0])
+			if error_msg:
+				self._set_response(400, error_msg)
+			else:
+				logger.info("Experiment_Name = " + str(
+					hpo_service.instance.getExperiment(query["experiment_name"][0]).experiment_name))
+				data = hpo_service.instance.get_experiment_plot(query["experiment_name"][0])
+				logger.info("Getting plot: " + str(data))
+				#data_error_msg = self.validate_importance_data(data)
+				#if data_error_msg:
+					#self._set_response(400, error_msg)
+				#else:
+				self._set_response(200, data)
 		elif self.path == "/health":
 			if self.getHomeScreen():
 				self._set_response(200, 'OK')

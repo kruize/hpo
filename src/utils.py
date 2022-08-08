@@ -31,6 +31,7 @@ class HPOSupportedTypes:
     SERVER_PORT = 8085
     API_ENDPOINT = "/experiment_trials"
     API_ENDPOINT_IMPORTANCE = "/importance"
+    API_ENDPOINT_VISUALIZATION = "/plot"
     CONTENT_TYPE = "application/json"
 
 

@@ -34,6 +34,7 @@ hpo_ns=""
 # docker: loop timeout is turned off by default
 timeout=-1
 service_type="both"
+IP_ADDR="localhost"
 
 # source the helpers script
 . ${SCRIPTS_DIR}/cluster-helpers.sh
@@ -136,11 +137,26 @@ SERVICE_STATUS_DOCKER=$(${CONTAINER_RUNTIME} ps | grep hpo_docker_container)
 
 # Call the proper setup function based on the cluster_type
 if [ ${setup} == 1 ]; then
+  # TODO: Add required pre-checks.
+## Start postgres DB
+  if [ ${cluster_type} = "native" ] || [ ${cluster_type} = "docker" ]; then
+    database_docker_start
+    # Get IP address of database
+    IP_ADDR=$(ip addr | grep "global" | head -1 | awk '{ print $2 }' | cut -f1 -d '/')
+    # export DATABASE_HOST; specific to native mode
+    export DATABASE_HOST=${IP_ADDR}
+  fi
+
 	if [ ${cluster_type} = "native" ]; then
 		${cluster_type}_start ${service_type}
+	elif [ ${cluster_type} = "docker" ]; then
+		${cluster_type}_start ${IP_ADDR}
 	else
 		${cluster_type}_start
 	fi
 else
 	${cluster_type}_terminate
+	# Stop the database. specific to native and docker.
+	# TODO for other modes.
+	database_docker_terminate
 fi

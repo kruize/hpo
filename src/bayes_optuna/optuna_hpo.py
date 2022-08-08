@@ -16,6 +16,7 @@ limitations under the License.
 
 import optuna
 import threading
+import os
 
 from logger import get_logger
 
@@ -23,6 +24,8 @@ logger = get_logger(__name__)
 
 trials = []
 
+if 'DATABASE_HOST' in os.environ:
+    DATABASE_HOST = os.environ['DATABASE_HOST']
 
 class TrialDetails:
     """
@@ -144,7 +147,8 @@ class HpoExperiment:
 
         # Create a study object
         try:
-            study = optuna.create_study(direction=self.direction, sampler=sampler, study_name=self.experiment_name, storage="postgresql+psycopg2://hpodbuser:hpodbpwd@localhost:5432/hpodb")
+            # Execute an optimization by using an 'Objective' instance)
+            study = optuna.create_study(direction=self.direction, sampler=sampler, study_name=self.experiment_name, storage=f"postgresql+psycopg2://hpodbuser:hpodbpwd@{DATABASE_HOST}:5432/hpodb")
             # Execute an optimization by using an 'Objective' instance
             study.optimize(Objective(self), n_trials=self.total_trials, n_jobs=self.parallel_trials)
 
@@ -158,7 +162,6 @@ class HpoExperiment:
             logger.info("Best trial: " + str(study.best_trial))
 
             logger.debug("All trials: " + str(trials))
-
             # Get the hyper parameter importance
             importance = optuna.importance.get_param_importances(study)
             logger.info("Hyper Parameter Importances: " + str(importance))
@@ -206,14 +209,26 @@ class HpoExperiment:
         try:
             # Load the study based on experiment name
             logger.info("Experiment name " + self.experiment_name)
-            study = optuna.load_study(study_name=self.experiment_name, storage="postgresql+psycopg2://hpodbuser:hpodbpwd@localhost:5432/hpodb")
+            study = optuna.load_study(study_name=self.experiment_name, storage=f"postgresql+psycopg2://hpodbuser:hpodbpwd@{DATABASE_HOST}:5432/hpodb")
             importance = optuna.importance.get_param_importances(study)
-            logger.info("Hyper Parameter Importances: " + str(importance))
+            #logger.info("Hyper Parameter Importances: " + str(importance))
             return importance
         except ValueError:
             logger.warn("Cannot evaluate parameter importances with only a single trial")
         except RuntimeError:
             logger.warn("Encountered zero total variance in all trees")
+
+    def experiment_plot(self):
+        try:
+            # Load the study based on experiment name
+            logger.info("Experiment name " + self.experiment_name)
+            study = optuna.load_study(study_name=self.experiment_name, storage=f"postgresql+psycopg2://hpodbuser:hpodbpwd@{DATABASE_HOST}:5432/hpodb")
+            plot = optuna.visualization.plot_optimization_history(study)
+            plot.show()
+            logger.info("Hyper Parameter Importances: " + str(plot))
+            return plot
+        except:
+            logger.warn("Cannot generate graphs")
 
 class Objective(TrialDetails):
     """

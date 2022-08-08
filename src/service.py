@@ -19,8 +19,8 @@ import rest_service, grpc_service
 import threading
 import signal
 from logger import get_logger
-from db import database
-from db.database import POSTGRESQL_DB
+#from db import database
+#from db.database import POSTGRESQL_DB
 
 shutdown = threading.Event()
 logger = get_logger("hpo-service")
@@ -32,7 +32,7 @@ signal.signal(signal.SIGINT, signal_handler)
 def main():
 
     logger.info('Starting HPO service')
-    if len(sys.argv) == 1:
+    if len(sys.argv) == 2:
         gRPCservice = threading.Thread(target=grpc_service.serve)
         gRPCservice.daemon = True
         gRPCservice.start()
@@ -42,8 +42,8 @@ def main():
     restService.start()
 
     # Start postgresDB service
-    database.instance.start_postgres()
-    time.sleep(120)
+    #database.instance.start_postgres()
+    #time.sleep(120)
 
     shutdown.wait()
 

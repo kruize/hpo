@@ -2,3 +2,4 @@ optuna
 requests
 scikit-optimize
 jsonschema
+psycopg2-binary

@@ -32,7 +32,7 @@ function docker_start() {
 
 	check_prereq running ${SERVICE_STATUS_DOCKER}
 
-	${CONTAINER_RUNTIME} run -d --name hpo_docker_container -p 8085:8085 -p 50051:50051 ${HPO_CONTAINER_IMAGE} >/dev/null 2>&1
+	${CONTAINER_RUNTIME} run -d --name hpo_docker_container --network=hpo-net -e DATABASE_HOST=$1  -p 8085:8085 -p 50051:50051 ${HPO_CONTAINER_IMAGE} >/dev/null 2>&1
 	check_err "Unexpected error occured. Service Stopped!"
 
 	echo
@@ -189,6 +189,54 @@ function minikube_terminate() {
 	echo
 	echo "Removing HPO namespace"
 	kubectl delete ns ${hpo_ns}
+}
+
+############################### v Database Docker v #################################
+
+function database_docker_start() {
+
+  POSTGRESQL_USER="hpodbuser"
+  POSTGRESQL_PASSWORD="hpodbpwd"
+  POSTGRESQL_DATABASE="hpodb"
+  POSTGRESQL_PORT=5432
+  POSTGRESQL_IMAGE="quay.io/centos7/postgresql-13-centos7:latest"
+  POSTGRESQL_DATA_DIR="/tmp/data"
+  POSTGRESQL_DOCKER_DBNAME="hpo-database"
+
+	echo
+	echo "Deploying with runtime: ${CONTAINER_RUNTIME}"
+
+	echo
+	echo "###   Starting Postgres on Docker"
+	echo
+	echo ${HPO_CONTAINER_IMAGE}
+	echo
+
+	# TODO: Check if the container with name 'hpo-database' is already running
+
+  ${CONTAINER_RUNTIME} run --name hpo-database --rm -d --network=hpo-net -e POSTGRESQL_USER=${POSTGRESQL_USER} -e POSTGRESQL_PASSWORD=${POSTGRESQL_PASSWORD} -e POSTGRESQL_DATABASE=${POSTGRESQL_DATABASE} -p 5432:${POSTGRESQL_PORT} -v ${POSTGRESQL_DATA_DIR}:/var/lib/postgresql/data ${POSTGRESQL_IMAGE} >/dev/null 2>&1
+  #check_err "Unexpected error occured. Database not started!"
+
+	echo
+	echo "### Postgres Docker started successfully"
+	echo
+}
+
+function database_docker_terminate() {
+
+	echo
+	echo "###   Removing HPO Docker Container"
+	echo
+
+	# TODO: Check if the container with name 'hpo-database' is already stopped
+
+	${CONTAINER_RUNTIME} stop hpo-database >/dev/null 2>&1
+	check_err "Failed to stop hpo_database_container!"
+
+	echo
+	echo "###   Postgres Docker Successfully Terminated"
+	echo
+
 }
 
 ###############################  utilities  #################################
