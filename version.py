@@ -6,4 +6,4 @@
 #  This is being read in multiple files and any change could lead to service failure.
 ###
 
-HPO_VERSION="0.0.1"
+HPO_VERSION="0.0.2"
