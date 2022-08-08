@@ -144,7 +144,7 @@ jobs:
           echo Running sanity test on minikube
           ls
           cd tests
-          ./test_hpo.sh -c minikube -o hpo:test --resultsdir=${GITHUB_WORKSPACE} --testsuite=hpo_api_tests \
+          ./test_hpo.sh -c minikube -o kruize/hpo:test --resultsdir=${GITHUB_WORKSPACE} --testsuite=hpo_api_tests \
           --testcase=hpo_sanity_test
       - name: Archive results
         if: always()

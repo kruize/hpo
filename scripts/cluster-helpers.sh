@@ -292,7 +292,7 @@ function create_secret() {
 
 	# link the secret to the service account
 	if [ "${cluster_type}" == "minikube" ]; then
-		kubectl patch serviceaccount default -p '{"imagePullSecrets": [{"name": "hpodockersecret"}]}'
+		kubectl patch serviceaccount default -p '{"imagePullSecrets": [{"name": "hpodockersecret"}]}' -n ${namespace}
 	else
 		oc secrets link default hpodockersecret --for=pull -n ${namespace}
 	fi
