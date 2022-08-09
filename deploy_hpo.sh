@@ -33,6 +33,7 @@ non_interactive=0
 hpo_ns=""
 # docker: loop timeout is turned off by default
 timeout=-1
+LOG_LEVEL="info"
 service_type="both"
 
 # source the helpers script
@@ -49,6 +50,7 @@ function usage() {
 	echo " -o | --container_image: build with specific hpo container image name [Default - kruize/hpo:<version>]"
 	echo " -n | --namespace : Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
 	echo " -d | --configmaps_dir : Config maps directory [Default - manifests/configmaps]"
+	echo " -l | --logs : set specific logging level [Default - info]"
 	echo " --both: install both REST and the gRPC service"
 	echo " --rest: install REST only"
 	echo " Environment Variables to be set: REGISTRY, REGISTRY_EMAIL, REGISTRY_USERNAME, REGISTRY_PASSWORD"
@@ -63,6 +65,17 @@ function check_cluster_type() {
 		;;
 	*)
 		echo "Error: unsupported cluster type: ${cluster_type}"
+		exit -1
+	esac
+}
+# Check if the cluster_type is one of icp or openshift
+function check_log_level() {
+	case "${LOG_LEVEL}" in
+	info|debug|warning|error|critical)
+		;;
+	*)
+		echo "Error: unsupported logging type: ${LOG_LEVEL}"
+		usage
 		exit -1
 	esac
 }
@@ -105,6 +118,11 @@ while [ : ]; do
 		;;
 	-t | --terminate)
 		setup=0
+		shift
+		;;
+	-l | --logs)
+		LOG_LEVEL="${OPTARG}"
+		check_log_level
 		shift
 		;;
 	--rest)

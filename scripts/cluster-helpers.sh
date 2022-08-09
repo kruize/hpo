@@ -89,9 +89,9 @@ function native_start() {
 	check_prereq running ${SERVICE_STATUS_NATIVE}
 
 	if [ "$1" = "REST" ]; then
-		python3 -u src/service.py "REST"
+		python3 -u src/service.py "REST" -log=${LOG_LEVEL}
 	else
-		python3 -u src/service.py
+		python3 -u src/service.py -log=${LOG_LEVEL}
 	fi
 }
 
