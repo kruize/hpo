@@ -21,6 +21,7 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal:8.4
 
 ARG HPO_VERSION
 ARG USER=hpo
+# This UID is referenced n the SCC file while deploying it in the openshift
 ARG UID=1001
 ARG HPO_HOME=/home/$USER
 

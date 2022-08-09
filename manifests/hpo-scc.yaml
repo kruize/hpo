@@ -12,6 +12,7 @@ allowPrivilegedContainer: false
 readOnlyRootFilesystem: false
 runAsUser:
   type: MustRunAsRange
+#  This UID is referenced in the docker file
   uidRangeMin: 1001
   uidRangeMax: 1001
 seLinuxContext:

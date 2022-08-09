@@ -110,6 +110,10 @@ function openshift_terminate() {
 	${kubectl_cmd} delete -f ${HPO_SA_MANIFEST} 2>/dev/null
 
 	echo
+	echo "Removing hpo SCC"
+	${kubectl_cmd} delete -f ${HPO_SCC} 2>/dev/null
+
+	echo
 	echo "Removing hpo rolebinding"
 	${kubectl_cmd} delete -f ${HPO_RB_MANIFEST} 2>/dev/null
 
