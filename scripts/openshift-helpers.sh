@@ -22,8 +22,24 @@ function openshift_first() {
 	echo "Create hpo namespace ${hpo_ns}"
 	kubectl create namespace ${hpo_ns}
 
+	echo
 	kubectl_cmd="kubectl -n ${hpo_ns}"
 
+	echo
+	echo "Info:  Create SCC "
+	${kubectl_cmd} apply -f ${HPO_SCC}
+
+	echo
+	echo "Info: One time setup - Create a service account to deploy hpo"
+	${kubectl_cmd} apply -f ${HPO_SA_MANIFEST}
+	check_err "Error: Failed to create service account and RBAC"
+
+	echo
+	sed -e "s|{{ HPO_NAMESPACE }}|${hpo_ns}|" ${HPO_RB_MANIFEST_TEMPLATE} > ${HPO_RB_MANIFEST}
+	${kubectl_cmd} apply -f ${HPO_RB_MANIFEST}
+	check_err "Error: Failed to create role binding"
+
+	echo
 	# call function to create kube secret
 	create_secret ${hpo_ns}
 }
@@ -34,12 +50,14 @@ function openshift_deploy() {
 	echo "Creating environment variable in openshift cluster using configMap"
 	${kubectl_cmd} apply -f ${HPO_CONFIGMAPS}/${cluster_type}-config.yaml
 
+	echo
 	echo "Info: Deploying hpo yaml to openshift cluster"
-
 	# Replace hpo docker image in deployment yaml
 	sed -e "s|{{ HPO_IMAGE }}|${HPO_CONTAINER_IMAGE}|" ${HPO_DEPLOY_MANIFEST_TEMPLATE} > ${HPO_DEPLOY_MANIFEST}
 
+	echo
 	${kubectl_cmd} apply -f ${HPO_DEPLOY_MANIFEST}
+	echo
 	sleep 2
 	check_running hpo
 	if [ "${err}" != "0" ]; then
@@ -87,9 +105,23 @@ function openshift_terminate() {
 	echo "Removing hpo"
 	${kubectl_cmd} delete -f ${HPO_DEPLOY_MANIFEST} 2>/dev/null
 
-	rm ${HPO_DEPLOY_MANIFEST}
 	echo
+	echo "Removing hpo service account"
+	${kubectl_cmd} delete -f ${HPO_SA_MANIFEST} 2>/dev/null
 
+	echo
+	echo "Removing hpo rolebinding"
+	${kubectl_cmd} delete -f ${HPO_RB_MANIFEST} 2>/dev/null
+
+	echo
+	echo "Removing HPO configmap"
+	${kubectl_cmd} delete -f ${HPO_CONFIGMAPS}/${cluster_type}-config.yaml 2>/dev/null
+
+	echo
+	rm ${HPO_DEPLOY_MANIFEST}
+	rm ${HPO_RB_MANIFEST}
+
+	echo
 	if [ ${hpo_ns} == "openshift-tuning" ]; then
 		echo
 		echo "Removing HPO namespace"

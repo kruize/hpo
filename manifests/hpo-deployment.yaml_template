@@ -16,10 +16,13 @@ spec:
         name: hpo
         operatorframework.io/os.linux: supported
     spec:
+      serviceAccountName: hpo-sa
       containers:
       - name: hpo
         image: "{{ HPO_IMAGE }}"
         imagePullPolicy: Always
+        securityContext:
+           runAsUser: 1001
         env:
           - name: LOGGING_LEVEL
             valueFrom:

@@ -1,0 +1,19 @@
+kind: SecurityContextConstraints
+apiVersion: security.openshift.io/v1
+metadata:
+  name: hpo-scc
+allowHostDirVolumePlugin: false
+allowHostIPC: false
+allowHostNetwork: false
+allowHostPID: false
+allowHostPorts: false
+allowedCapabilities: null
+allowPrivilegedContainer: false
+readOnlyRootFilesystem: false
+runAsUser:
+  type: MustRunAsRange
+  uidRangeMin: 1001
+  uidRangeMax: 1001
+seLinuxContext:
+  type: MustRunAs
+  User: hpo
