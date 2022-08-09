@@ -134,8 +134,19 @@ function minikube_first() {
 	echo "Create hpo namespace ${hpo_ns}"
 	kubectl create namespace ${hpo_ns}
 
+	echo
 	kubectl_cmd="kubectl -n ${hpo_ns}"
 
+	echo "Info: One time setup - Create a service account to deploy hpo"
+	${kubectl_cmd} apply -f ${HPO_SA_MANIFEST}
+	check_err "Error: Failed to create service account and RBAC"
+
+	echo
+	sed -e "s|{{ HPO_NAMESPACE }}|${hpo_ns}|" ${HPO_RB_MANIFEST_TEMPLATE} > ${HPO_RB_MANIFEST}
+	${kubectl_cmd} apply -f ${HPO_RB_MANIFEST}
+	check_err "Error: Failed to create role binding"
+
+	echo
 	# call function to create kube secret
 	create_secret ${hpo_ns}
 }
@@ -146,12 +157,14 @@ function minikube_deploy() {
 	echo "Creating environment variable in minikube cluster using configMap"
 	${kubectl_cmd} apply -f ${HPO_CONFIGMAPS}/${cluster_type}-config.yaml
 
+	echo
 	echo "Info: Deploying hpo yaml to minikube cluster"
-
 	# Replace hpo docker image in deployment yaml
 	sed -e "s|{{ HPO_IMAGE }}|${HPO_CONTAINER_IMAGE}|" ${HPO_DEPLOY_MANIFEST_TEMPLATE} > ${HPO_DEPLOY_MANIFEST}
 
+	echo
 	${kubectl_cmd} apply -f ${HPO_DEPLOY_MANIFEST}
+	echo
 	sleep 2
 	check_running hpo
 	if [ "${err}" != "0" ]; then
@@ -183,12 +196,22 @@ function minikube_terminate() {
 	${kubectl_cmd} delete -f ${HPO_DEPLOY_MANIFEST} 2>/dev/null
 
 	echo
+	echo "Removing hpo service account"
+	${kubectl_cmd} delete -f ${HPO_SA_MANIFEST} 2>/dev/null
+
+	echo
+	echo "Removing hpo rolebinding"
+	${kubectl_cmd} delete -f ${HPO_RB_MANIFEST} 2>/dev/null
+
+	echo
 	echo "Removing HPO configmap"
 	${kubectl_cmd} delete -f ${HPO_CONFIGMAPS}/${cluster_type}-config.yaml 2>/dev/null
 
-	rm ${HPO_DEPLOY_MANIFEST}
 	echo
+	rm ${HPO_DEPLOY_MANIFEST}
+	rm ${HPO_RB_MANIFEST}
 
+	echo
 	if [ ${hpo_ns} != "monitoring" ]; then
 		echo
 		echo "Removing HPO namespace"
@@ -285,11 +308,13 @@ function check_prereq() {
 function create_secret() {
 
 	namespace="$1"
+	echo
 	# create a kube secret each time app is deployed
 	kubectl create secret docker-registry hpodockersecret --docker-username="${REGISTRY_USERNAME}" \
 	--docker-server="${REGISTRY}" --docker-email="${REGISTRY_EMAIL}"  --docker-password="${REGISTRY_PASSWORD}" \
 	-n ${namespace}
 
+	echo
 	# link the secret to the service account
-	kubectl patch serviceaccount default -p '{"imagePullSecrets": [{"name": "hpodockersecret"}]}' -n ${namespace}
+	kubectl patch serviceaccount hpo-sa -p '{"imagePullSecrets": [{"name": "hpodockersecret"}]}' -n ${namespace}
 }
