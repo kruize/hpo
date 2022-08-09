@@ -165,7 +165,9 @@ function minikube_deploy() {
 	echo
 	${kubectl_cmd} apply -f ${HPO_DEPLOY_MANIFEST}
 	echo
-	sleep 2
+
+	# Included a sleep of 2 mins for hpo pods to come up
+	sleep 120
 	check_running hpo
 	if [ "${err}" != "0" ]; then
 		# Indicate deploy failed on error
