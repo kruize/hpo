@@ -168,11 +168,6 @@ function hpo_multiple_exp_test() {
 	N_TRIALS=3
 	failed=0
 
-	# Form the url based on cluster type & API
-	form_hpo_api_url "experiment_trials"
-	echo "HPO URL = $hpo_url"  | tee -a ${LOG}
-
-
 	TESTS_=${TEST_DIR}
 	SERV_LOG="${TESTS_}/service.log"
 	echo "RESULTSDIR - ${TEST_DIR}" | tee -a ${LOG}
@@ -238,9 +233,8 @@ function hpo_multiple_exp_test() {
 			get_trial_json_cmd="${curl} ${url}?experiment_name="${exp_name}"&trial_number=${trial_num} -w '\n%{http_code}'"
 			echo "command used to query the experiment_trial API = ${get_trial_json_cmd}" | tee -a ${LOG}
 
-			http_code=$(tail -n1 <<< "${get_trial_json}")
-			response=$(echo -e "${get_trial_json}" | tail -2 | head -1)
-			response=$(echo ${response} | cut -c 4-)
+			# check for curl '000' error
+			curl_error_check
 
 			result="${TEST_DIR}/hpo_config_exp${i}_trial${trial_num}.json"
 			expected_json="${TEST_DIR}/expected_hpo_config_exp${i}.json"

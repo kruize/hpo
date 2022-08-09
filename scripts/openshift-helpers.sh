@@ -23,6 +23,9 @@ function openshift_first() {
 	kubectl create namespace ${hpo_ns}
 
 	kubectl_cmd="kubectl -n ${hpo_ns}"
+
+	# call function to create kube secret
+	create_secret ${hpo_ns}
 }
 
 # You can deploy using kubectl
@@ -43,6 +46,8 @@ function openshift_deploy() {
 		# Indicate deploy failed on error
 		exit 1
 	fi
+	# Expose HPO service so that it can be accessed outside the cluster
+	oc expose svc/hpo -n $hpo_ns
 
 	# Get the HPO application port in openshift
 	OPENSHIFT_IP=$(${kubectl_cmd} get pods -l=app=hpo -o wide -n ${hpo_ns} -o=custom-columns=NODE:.spec.nodeName --no-headers)
@@ -85,7 +90,9 @@ function openshift_terminate() {
 	rm ${HPO_DEPLOY_MANIFEST}
 	echo
 
-	echo
-	echo "Removing HPO namespace"
-	kubectl delete ns ${hpo_ns}
+	if [ ${hpo_ns} == "openshift-tuning" ]; then
+		echo
+		echo "Removing HPO namespace"
+		kubectl delete ns ${hpo_ns}
+	fi
 }

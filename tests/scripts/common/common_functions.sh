@@ -82,7 +82,7 @@ function deploy_hpo() {
 	HPO_CONTAINER_IMAGE=$2
 
 	pushd ${HPO_REPO} > /dev/null
-	
+
 	if [ ${cluster_type} == "native" ]; then
 		echo
 		echo
@@ -91,21 +91,19 @@ function deploy_hpo() {
 		echo "Command to deploy hpo - ${cmd}"
 		./deploy_hpo.sh -c ${cluster_type} > ${log} 2>&1 &
 	elif [ ${cluster_type} == "minikube" ]; then
-                namespace="monitoring"
                 cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}"
                 echo "Command to deploy hpo - ${cmd}"
                 ./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}
         elif [ ${cluster_type} == "openshift" ]; then
-                namespace="openshift-tuning"
                 cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}"
                 echo "Command to deploy hpo - ${cmd}"
                 ./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE} -n ${namespace}
-	else 
+	else
 		cmd="./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE}"
 		echo "Command to deploy hpo - ${cmd}"
 		./deploy_hpo.sh -c ${cluster_type} -o ${HPO_CONTAINER_IMAGE}
 	fi
-	
+
 	status="$?"
 	# Check if hpo is deployed.
 	if [[ "${status}" -eq "1" ]]; then
@@ -137,14 +135,20 @@ function terminate_hpo() {
 
 	pushd ${HPO_REPO} > /dev/null
 		echo  "Terminating hpo..."
-		cmd="./deploy_hpo.sh -c ${cluster_type} -t"
-		echo "CMD = ${cmd}"
-		./deploy_hpo.sh -c ${cluster_type} -t
+		if [[ ${cluster_type} == "minikube" || ${cluster_type} == "openshift" ]]; then
+			cmd="./deploy_hpo.sh -c ${cluster_type} -t -n ${namespace}"
+			echo "CMD = ${cmd}"
+			./deploy_hpo.sh -c ${cluster_type} -t -n ${namespace}
+		else
+			cmd="./deploy_hpo.sh -c ${cluster_type} -t"
+			echo "CMD = ${cmd}"
+			./deploy_hpo.sh -c ${cluster_type} -t
+		fi
 	popd > /dev/null
 	echo "done"
 }
 
-# list of test cases supported 
+# list of test cases supported
 # input: testsuite
 # ouput: print the testcases supported for specified testsuite
 function test_case_usage() {
@@ -158,7 +162,7 @@ function test_case_usage() {
 	done
 }
 
-# Check if the given test case is supported 
+# Check if the given test case is supported
 # input: testsuite
 # output: check if the specified testcase is supported if not then call test_case_usage
 function check_test_case() {
@@ -170,12 +174,12 @@ function check_test_case() {
 			testcase_matched=1
 		fi
 	done
-	
+
 	if [ "${testcase}" == "help" ]; then
 		test_case_usage ${checkfor}
 		exit -1
 	fi
-	
+
 	if [[ "${testcase_matched}" -eq "0" ]]; then
 		echo ""
 		echo "Error: Invalid testcase **${testcase}** "
@@ -185,14 +189,14 @@ function check_test_case() {
 }
 
 # get the summary of each test suite
-# input: Test suite name for which you want to get the summary and the failed test cases 
+# input: Test suite name for which you want to get the summary and the failed test cases
 # output: summary of the specified test suite
 function testsuitesummary() {
 	TEST_SUITE_NAME=$1
 	elapsed_time=$2
 	FAILED_CASES=$3
 	((total_time=total_time+elapsed_time))
-	echo 
+	echo
 	echo "########### Results Summary of the test suite ${TEST_SUITE_NAME} ##########"
 	echo "${TEST_SUITE_NAME} took ${elapsed_time} seconds"
 	echo "Number of tests performed ${TESTS}"
@@ -209,7 +213,7 @@ function testsuitesummary() {
 		echo
 		echo "Check Log Directory: ${TEST_SUITE_DIR} for failed cases "
 		echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-	else 
+	else
 		echo "~~~~~~~~~~~~~~~~~~~~~~ ${TEST_SUITE_NAME} passed ~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	fi
 	echo ""
@@ -217,7 +221,7 @@ function testsuitesummary() {
 }
 
 # get the overall summary of the test
-# input: failed test suites 
+# input: failed test suites
 # output: summary of the overall tests performed
 function overallsummary(){
 	FAILED_TEST_SUITES=$1
@@ -290,7 +294,7 @@ function compare_json() {
 function run_curl_cmd() {
 	cmd=$1
 	json_file=$2
- 
+
 	echo "Curl cmd=${cmd}" | tee -a ${LOG}
 	echo "json file = ${json_file}" | tee -a ${LOG}
 	${cmd} > ${json_file}
@@ -336,7 +340,7 @@ function match_ids() {
 }
 
 # Compare the actual result with the expected result
-# input: Test name, expected result 
+# input: Test name, expected result
 function compare_result() {
 	failed=0
 	__test__=$1
@@ -458,15 +462,15 @@ function check_server_status() {
         form_hpo_api_url "experiment_trials"
 	echo "Server - $SERVER_IP PORT - $PORT"
 
-	#if service does not start within 5 minutes (300s) fail the test
-	timeout 30 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://${SERVER_IP}:${PORT})" != "200" ]]; do sleep 1; done' || false
+	# if service does not start within 2 minutes (120s) fail the test
+	timeout 120 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://${SERVER_IP}:${PORT})" != "200" ]]; do sleep 1; done' || false
 
 	if [ -z "${log}" ]; then
 		echo "Service log - $log not found!"
 		exit 1
 	fi
 
-	service_log_msg="Access server at"
+	service_log_msg="Access REST Service at"
 
 	if grep -q "${service_log_msg}" "${log}" ; then
 		echo "HPO REST API service started successfully..." | tee -a ${LOG_} ${LOG}
@@ -523,7 +527,6 @@ function form_hpo_api_url {
 	API=$1
 	# Form the URL command based on the cluster type
 
-	echo "***************** namespace = $namespace ****************"
 	case $cluster_type in
 		native|docker) 
 			PORT="8085"
@@ -531,12 +534,11 @@ function form_hpo_api_url {
 			;;
 		minikube)
 			SERVER_IP=$(minikube ip)
-			PORT=$(kubectl -n monitoring get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+			PORT=$(kubectl -n ${namespace} get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
 			;;
 		 openshift)
-                        hpo_ns="openshift-tuning"
-                        SERVER_IP=$(oc -n ${hpo_ns} get pods -l=app=hpo -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
-                        PORT=$(oc get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
+                        SERVER_IP=$(oc -n ${namespace} get pods -l=app=hpo -o wide -o=custom-columns=NODE:.spec.nodeName --no-headers)
+                        PORT=$(oc -n ${namespace} get svc hpo --no-headers -o=custom-columns=PORT:.spec.ports[*].nodePort)
                         ;;
 		*);;
 	esac
@@ -606,7 +608,7 @@ function run_post_tests(){
 	fi
 	
 	# Check if HPO services are started
-	check_server_status "${SERV_LOG}"
+    check_server_status "${SERV_LOG}"
 
 	for post_test in "${exp_tests[@]}"
 	do
@@ -733,4 +735,13 @@ function post_experiment_json() {
 	echo "Response is ${response}" >> ${LOG_} ${LOG}
 	echo "http_code is $http_code Response is ${response}"
 }
-
+# Added condition to check for '000' as sometimes cURL command returns it due to reasons such as
+# 'Failed DNS resolution','connection refused' or 'timed out'
+function curl_error_check() {
+	http_code=$(tail -n1 <<< "${get_trial_json}")
+	response="000$(echo -e "${get_trial_json}" | tail -2 | head -1)"
+	if [ ${response::3} == "000" ]; then
+		response=$(echo ${response} | cut -c 4-)
+	fi
+	echo "$response"
+}

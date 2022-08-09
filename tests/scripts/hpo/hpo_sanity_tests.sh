@@ -46,6 +46,8 @@ function hpo_grpc_sanity_test() {
 
 	# Check if HPO services are started
 	check_server_status "${SERV_LOG}"
+	export HPO_HOST="${SERVER_IP}"
+	export PORT="${PORT}"
 
 	## Loop through the trials
 	for (( i=0 ; i<${N_TRIALS} ; i++ ))
@@ -79,7 +81,7 @@ function hpo_grpc_sanity_test() {
 		# Generate a subsequent trial
 		if [[ ${i} < $((N_TRIALS-1)) ]]; then
 			echo "" | tee -a ${LOG}
-		        echo "Generate subsequent config after trial ${i} ..." | tee -a ${LOG}
+			echo "Generate subsequent config after trial ${i} ..." | tee -a ${LOG}
 			python ../src/grpc_client.py next --name ${exp_name}
 			verify_grpc_result "Post subsequent experiment after trial ${i}" $?
 		fi
@@ -117,10 +119,6 @@ function hpo_sanity_test() {
 	# Set the no. of trials
 	N_TRIALS=5
 	failed=0
-
-	# Form the url based on cluster type & API
-	form_hpo_api_url "experiment_trials"
-	echo "HPO URL = $hpo_url"  | tee -a ${LOG}
 
 	# Get the experiment id and name from the search space
 	exp_id=$(echo ${hpo_post_experiment_json["valid-experiment"]} | jq '.search_space.experiment_id')
@@ -173,12 +171,11 @@ function hpo_sanity_test() {
 
 		get_trial_json=$(${curl} ''${hpo_url}'?experiment_name=petclinic-sample-2-75884c5549-npvgd&trial_number='${i}'' -w '\n%{http_code}' 2>&1)
 
-		get_trial_json_cmd="${curl} ${url}?experiment_name="petclinic-sample-2-75884c5549-npvgd"&trial_number=${i} -w '\n%{http_code}'"
+		get_trial_json_cmd="${curl} ${hpo_url}?experiment_name="petclinic-sample-2-75884c5549-npvgd"&trial_number=${i} -w '\n%{http_code}'"
 		echo "command used to query the experiment_trial API = ${get_trial_json_cmd}" | tee -a ${LOG}
 
-		http_code=$(tail -n1 <<< "${get_trial_json}")
-		response=$(echo -e "${get_trial_json}" | tail -2 | head -1)
-		response=$(echo ${response} | cut -c 4-)
+		# check for curl '000' error
+		curl_error_check
 
 		result="${TEST_DIR}/hpo_config_${i}.json"
 		expected_json="${TEST_DIR}/expected_hpo_config_${i}.json"
@@ -236,4 +233,3 @@ function hpo_sanity_test() {
 		echo "Test failed" | tee -a ${LOG}
 	fi
 }
-

@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import sys
 
 import rest_service, grpc_service
 import threading
@@ -28,14 +29,15 @@ signal.signal(signal.SIGINT, signal_handler)
 
 def main():
 
+    logger.info('Starting HPO service')
+    if len(sys.argv) == 1:
+        gRPCservice = threading.Thread(target=grpc_service.serve)
+        gRPCservice.daemon = True
+        gRPCservice.start()
+
     restService = threading.Thread(target=rest_service.main)
     restService.daemon = True
-    gRPCservice = threading.Thread(target=grpc_service.serve)
-    gRPCservice.daemon = True
-
-    logger.info('Starting HPO service')
     restService.start()
-    gRPCservice.start()
 
     shutdown.wait()
 

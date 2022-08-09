@@ -34,6 +34,7 @@ hpo_ns=""
 # docker: loop timeout is turned off by default
 timeout=-1
 LOG_LEVEL="info"
+service_type="both"
 
 # source the helpers script
 . ${SCRIPTS_DIR}/cluster-helpers.sh
@@ -41,14 +42,19 @@ LOG_LEVEL="info"
 
 function usage() {
 	echo
-	echo "Usage: $0 [-a] [-c [docker|minikube|native|openshift]] [-o hpo container image] [-n namespace] [-d configmaps-dir ]"
-	echo " -s = start(default), -t = terminate"
-	echo " -c: cluster type."
-	echo " -o: build with specific hpo container image name [Default - kruize/hpo:<version>]"
-	echo " -n: Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
-	echo " -d: Config maps directory [Default - manifests/configmaps]"
-
-	echo "  -l: set specific logging level [Default - info]"
+	echo "Usage:"
+	echo " -a | --non_interactive: interactive (default)"
+	echo " -s | --start: start(default) the app"
+	echo " -t | --terminate: terminate the app"
+	echo " -c | --cluster_type: cluster type [docker|minikube|native|openshift]]"
+	echo " -o | --container_image: build with specific hpo container image name [Default - kruize/hpo:<version>]"
+	echo " -n | --namespace : Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
+	echo " -d | --configmaps_dir : Config maps directory [Default - manifests/configmaps]"
+	echo " -l | --logs : set specific logging level [Default - info]"
+	echo " --both: install both REST and the gRPC service"
+	echo " --rest: install REST only"
+	echo " Environment Variables to be set: REGISTRY, REGISTRY_EMAIL, REGISTRY_USERNAME, REGISTRY_PASSWORD"
+	echo " [Example - REGISTRY: docker.io, quay.io, etc]"
 	exit -1
 }
 
@@ -74,44 +80,69 @@ function check_log_level() {
 	esac
 }
 
+VALID_ARGS=$(getopt -o ac:d:o:n:strb --long non_interactive,cluster_type:,configmaps:,container_image:,namespace:,start,terminate,rest,both -- "$@")
+if [[ $? -ne 0 ]]; then
+	usage
+	exit 1;
+fi
+# safely convert the output of getopt to arguments
+eval set -- "$VALID_ARGS"
+
 # Iterate through the commandline options
-while getopts ac:o:n:stl: gopts
-do
-	case ${gopts} in
-	a)
+while [ : ]; do
+	case "$1" in
+	-a | --non_interactive)
 		non_interactive=1
+		shift
 		;;
-	c)
-		cluster_type="${OPTARG}"
+	-c | --cluster_type)
+		cluster_type="$2"
 		check_cluster_type
+		shift 2
 		;;
-	d)
-		HPO_CONFIGMAPS="${OPTARG}"
+	-d | --configmaps)
+		HPO_CONFIGMAPS="$2"
+		shift 2
 		;;
-	n)
-		hpo_ns="${OPTARG}"
+	-o | --container_image)
+		HPO_CONTAINER_IMAGE="$2"
+		shift 2
 		;;
-	o)
-		HPO_CONTAINER_IMAGE="${OPTARG}"
+	-n | --namespace)
+		hpo_ns="$2"
+		shift 2
 		;;
-	s)
+	-s | --start)
 		setup=1
+		shift
 		;;
-	t)
+	-t | --terminate)
 		setup=0
+		shift
 		;;
-	l)
+	-l | --logs)
 		LOG_LEVEL="${OPTARG}"
 		check_log_level
+		shift
 		;;
-	[?])
-		usage
+	--rest)
+		service_type="REST"
+		shift
+		;;
+	--both)
+		service_type="both"
+		shift
+		;;
+	--) shift;
+		break
+		;;
 	esac
 done
 
 # check container runtime
 resolve_container_runtime
 
+# Get Service Status
 # check if user has specified any custom image else use default
 if [ -n "${HPO_CONTAINER_IMAGE}" ]; then
 	echo "Using version: ${HPO_VERSION}"
@@ -123,9 +154,22 @@ fi
 SERVICE_STATUS_NATIVE=$(ps -u | grep service.py | grep -v grep)
 SERVICE_STATUS_DOCKER=$(${CONTAINER_RUNTIME} ps | grep hpo_docker_container)
 
+# In case of Minikube and Openshift, check if registry credentials are set as Environment Variables
+if [[ "${cluster_type}" == "minikube" || "${cluster_type}" == "openshift" ]]; then
+	if [ -z "${REGISTRY}" ] || [ -z "${REGISTRY_USERNAME}" ] || [ -z "${REGISTRY_PASSWORD}" ] || [ -z "${REGISTRY_EMAIL}" ]; then
+		echo "You need to set the environment variables first for Kubernetes secret creation"
+		usage
+		exit -1
+	fi
+fi
+
 # Call the proper setup function based on the cluster_type
 if [ ${setup} == 1 ]; then
-	${cluster_type}_start
+	if [ ${cluster_type} = "native" ]; then
+		${cluster_type}_start ${service_type}
+	else
+		${cluster_type}_start
+	fi
 else
 	${cluster_type}_terminate
 fi

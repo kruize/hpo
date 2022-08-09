@@ -7,7 +7,6 @@ on:
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-
 jobs:
   test_on_docker:
     # The type of runner that the job will run on
@@ -109,3 +108,4 @@ jobs:
            name: hpo-results
            path: ./hpo_grpc_native_results.tar
            retention-days: 2
+

@@ -27,7 +27,7 @@ SCRIPTS_DIR="${CURRENT_DIR}"
 . ${SCRIPTS_DIR}/hpo/hpo_api_tests.sh
 
 # Iterate through the commandline options
-while getopts o:-: gopts
+while getopts o:n:-: gopts
 do
 	case ${gopts} in
 	-)
@@ -54,6 +54,9 @@ do
 		;;
 	o)
 		HPO_CONTAINER_IMAGE="${OPTARG}"		
+		;;
+	n)
+		namespace="${OPTARG}"
 		;;
 	esac
 done
@@ -89,9 +92,9 @@ function execute_hpo_testsuites() {
 # Perform the specific testsuite if specified 
 if [ ! -z "${testmodule}" ]; then
 	case "${testmodule}" in
-           hpo)
-		# Execute tests for Hyperparameter Optimization (HPO) Module 
-                execute_hpo_testsuites
+		hpo)
+		# Execute tests for Hyperparameter Optimization (HPO) Module
+			execute_hpo_testsuites
 		;;
 	esac
 elif [ ! -z "${testsuite}" ]; then
@@ -117,4 +120,3 @@ if [ "${TOTAL_TESTS_FAILED}" -ne "0" ]; then
 else
 	exit 0
 fi
-

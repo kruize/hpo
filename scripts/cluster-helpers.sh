@@ -15,43 +15,6 @@
 # limitations under the License.
 #
 
-# Resolve Container runtime
-function resolve_container_runtime() {
-	IFS='=' read -r -a dockerDeamonState <<< $(systemctl show --property ActiveState docker)
-	[[ "${dockerDeamonState[1]}" == "inactive" ]] && CONTAINER_RUNTIME="podman"
-	if ! command -v podman &> /dev/null; then
-		echo "No Container Runtime available: Docker daemon is not running and podman command could not be found"
-		exit 1
-	fi
-}
-
-# Check error code from last command, exit on error
-function check_err() {
-	err=$?
-	if [ ${err} -ne 0 ]; then
-		echo "$*"
-		exit -1
-	fi
-}
-
-# Check if service is already running
-function check_prereq() {
-
-	if [ "$1" = "running" ]; then
-		if [ -n "$2" ]; then
-			echo "Error: Service is already Running."
-			echo
-			exit -1
-		fi
-	else
-		if [ -z "$2" ]; then
-			echo "Error: Service is already Stopped."
-			echo
-			exit -1
-		fi
-	fi
-}
-
 ###############################  v Docker v #################################
 
 function docker_start() {
@@ -107,10 +70,16 @@ function native_start() {
 	echo "###   Installing HPO as a native App"
 	echo
 
+	if [ "$1" = "REST" ]; then
+		req="-r rest_requirements.txt"
+	else
+		req="-r requirements.txt"
+	fi
+
 	echo
 	echo "### Installing dependencies.........."
 	echo
-	python3 -m pip install --user -r requirements.txt >/dev/null 2>&1
+	python3 -m pip install --user ${req} >/dev/null 2>&1
 
 	echo
 	echo "### Starting the service..."
@@ -119,7 +88,11 @@ function native_start() {
 	# check if service is already running
 	check_prereq running ${SERVICE_STATUS_NATIVE}
 
-	python3 -u src/service.py -log=${LOG_LEVEL}
+	if [ "$1" = "REST" ]; then
+		python3 -u src/service.py "REST" -log=${LOG_LEVEL}
+	else
+		python3 -u src/service.py -log=${LOG_LEVEL}
+	fi
 }
 
 function native_terminate() {
@@ -162,6 +135,9 @@ function minikube_first() {
 	kubectl create namespace ${hpo_ns}
 
 	kubectl_cmd="kubectl -n ${hpo_ns}"
+
+	# call function to create kube secret
+	create_secret ${hpo_ns}
 }
 
 # You can deploy using kubectl
@@ -213,9 +189,11 @@ function minikube_terminate() {
 	rm ${HPO_DEPLOY_MANIFEST}
 	echo
 
-	echo
-	echo "Removing HPO namespace"
-	kubectl delete ns ${hpo_ns}
+	if [ ${hpo_ns} != "monitoring" ]; then
+		echo
+		echo "Removing HPO namespace"
+		kubectl delete ns ${hpo_ns}
+	fi
 }
 
 ###############################  utilities  #################################
@@ -301,4 +279,17 @@ function check_prereq() {
 			exit -1
 		fi
 	fi
+}
+
+# create kubernetes secret
+function create_secret() {
+
+	namespace="$1"
+	# create a kube secret each time app is deployed
+	kubectl create secret docker-registry hpodockersecret --docker-username="${REGISTRY_USERNAME}" \
+	--docker-server="${REGISTRY}" --docker-email="${REGISTRY_EMAIL}"  --docker-password="${REGISTRY_PASSWORD}" \
+	-n ${namespace}
+
+	# link the secret to the service account
+	kubectl patch serviceaccount default -p '{"imagePullSecrets": [{"name": "hpodockersecret"}]}' -n ${namespace}
 }
