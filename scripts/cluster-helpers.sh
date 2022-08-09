@@ -135,6 +135,9 @@ function minikube_first() {
 	kubectl create namespace ${hpo_ns}
 
 	kubectl_cmd="kubectl -n ${hpo_ns}"
+
+	# call function to create kube secret
+	create_secret ${hpo_ns}
 }
 
 # You can deploy using kubectl
@@ -186,9 +189,11 @@ function minikube_terminate() {
 	rm ${HPO_DEPLOY_MANIFEST}
 	echo
 
-	echo
-	echo "Removing HPO namespace"
-	kubectl delete ns ${hpo_ns}
+	if [ ${hpo_ns} != "monitoring" ]; then
+		echo
+		echo "Removing HPO namespace"
+		kubectl delete ns ${hpo_ns}
+	fi
 }
 
 ###############################  utilities  #################################
@@ -274,4 +279,17 @@ function check_prereq() {
 			exit -1
 		fi
 	fi
+}
+
+# create kubernetes secret
+function create_secret() {
+
+	namespace="$1"
+	# create a kube secret each time app is deployed
+	kubectl create secret docker-registry hpodockersecret --docker-username="${REGISTRY_USERNAME}" \
+	--docker-server="${REGISTRY}" --docker-email="${REGISTRY_EMAIL}"  --docker-password="${REGISTRY_PASSWORD}" \
+	-n ${namespace}
+
+	# link the secret to the service account
+	kubectl patch serviceaccount default -p '{"imagePullSecrets": [{"name": "hpodockersecret"}]}' -n ${namespace}
 }
