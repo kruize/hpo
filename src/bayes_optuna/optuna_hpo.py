@@ -16,6 +16,7 @@ limitations under the License.
 
 import optuna
 import threading
+import json
 
 from logger import get_logger
 
@@ -163,7 +164,7 @@ class HpoExperiment:
 
             # Get the hyperparameter importance
             importance = optuna.importance.get_param_importances(study)
-            logger.info("Importance of all tunables: " + str(importance))
+            logger.info("Importance of all tunables: " + str(json.dumps(importance)))
 
             try:
                 self.resultsAvailableCond.acquire()
