@@ -161,6 +161,10 @@ class HpoExperiment:
 
             logger.debug("All trials: " + str(trials))
 
+            # Get the hyperparameter importance
+            importance = optuna.importance.get_param_importances(study)
+            logger.info("Importance of all tunables: " + str(importance))
+
             try:
                 self.resultsAvailableCond.acquire()
                 optimal_value = {"objective_function": {
