@@ -115,6 +115,28 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 					hpo_service.instance.getExperiment(query["experiment_name"][0]).trialDetails.trial_number))
 				data = hpo_service.instance.get_trial_json_object(query["experiment_name"][0])
 				self._set_response(200, data)
+		elif re.search("/plot", self.path):
+			query = parse_qs(urlparse(self.path).query)
+			if "experiment_name" not in query:
+				error_msg = HPOErrorConstants.MISSING_PARAMETERS
+				logger.error(error_msg)
+				self._set_response(400, error_msg)
+				return
+			# TODO : Validate plot type
+			if "type" not in query:
+				logger.info("Plot type not defined. Defaulting it to optimization_history")
+				plot_type = "tunable_importance"
+			else:
+				plot_type = query["type"][0]
+
+			error_msg = self.validate_experiment_name(query["experiment_name"][0])
+			if error_msg:
+				self._set_response(400, error_msg)
+			else:
+				logger.info("Experiment_Name = " + str(
+					hpo_service.instance.getExperiment(query["experiment_name"][0]).experiment_name))
+				data = self.getPlots(query["experiment_name"][0], plot_type)
+				self._set_response(200, data)
 		elif self.path == "/health":
 			if self.getHomeScreen():
 				self._set_response(200, 'OK')
@@ -128,6 +150,15 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
 	def getHomeScreen(self):
 		fin = open(welcome_page)
+		content = fin.read()
+		fin.close()
+		return content
+
+	def getPlots(self, experiment_name, plot_type):
+		dirName = "plots/" + experiment_name
+		plotsDir = os.path.dirname(os.path.realpath(dirName))
+		plotFile = plotsDir + "/" + experiment_name + "/" + plot_type + ".html"
+		fin = open(plotFile)
 		content = fin.read()
 		fin.close()
 		return content
