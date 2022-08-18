@@ -159,3 +159,24 @@ Status code   Response body
 200            OK
 503            Service Unavailable
 ```
+
+## Plots
+Generate various plots after an experiment is complete.
+```
+'GET /plot?experiment_name={name}&type={plot_type}'
+
+curl -o tunables_importance.html 'http://<URL>:<PORT>/plot?experiment_name=name&type=tunables_importance'
+
+Response:
+Status code   Response body
+200            html file containing the plot for the given type
+400            Corresponding error message for Bad request
+404            Experiment/Resource not found   
+
+Supported plot type:
+type                        Description
+tunables_importance         Plot importance of all tunables
+optimization_history        Plot optimization history of all trials
+parallel_coordinate         Plot the high-dimensional tunable relationships
+slice                       Plot the tunable relationship as slice
+```
