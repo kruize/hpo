@@ -1,8 +1,8 @@
-# HPOaaS REST API
-The HPOaaS REST API design is as follows
+# Kruize HPO REST API
+The Kruize HPO REST API design is as follows
 
 ##  Start an Experiment
-Start a new Experiment with HPOaaS. This requires a valid Search Space JSON to be passed in.
+Start a new Experiment with Kruize HPO. This requires a valid Search Space JSON to be passed in.
 
 ```
 'POST /experiment_trials'
@@ -46,8 +46,8 @@ Status code   Response body
 400            Corresponding error message for Bad request
 404            Experiment/Resource not found   
 ```
-## Send the Result of a Trial to HPOaaS.
-Send the result obtained by running a trial with the previously provided Trial Configuration back to HPOaaS.
+## Send the Result of a Trial to Kruize HPO
+Send the result obtained by running a trial with the previously provided Trial Configuration back to Kruize HPO.
 
 ```
 'POST /experiment_trials'
