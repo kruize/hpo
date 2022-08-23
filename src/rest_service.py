@@ -124,7 +124,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 				return
 			# TODO : Validate plot type
 			if "type" not in query:
-				logger.info("Plot type not defined. Defaulting it to optimization_history")
+				logger.info("Plot type not defined. Defaulting it to tunable_importance")
 				plot_type = "tunable_importance"
 			else:
 				plot_type = query["type"][0]
