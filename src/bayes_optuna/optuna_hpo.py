@@ -163,8 +163,15 @@ class HpoExperiment:
             logger.debug("ALL TRIALS: " + str(trials))
 
             # Get the hyperparameter importance
-            importance = optuna.importance.get_param_importances(study)
-            logger.info("TUNABLES IMPORTANCE: " + str(json.dumps(importance)))
+            try:
+                importance = optuna.importance.get_param_importances(study)
+                logger.info("TUNABLES IMPORTANCE: " + str(json.dumps(importance)))
+            except ValueError:
+                logger.warn("Cannot evaluate tunable importance with only a single trial")
+            except RuntimeError:
+                logger.warn("Encountered zero total variance to calculate tunable importance")
+            except:
+                logger.warn("Encountered issues calculating tunable importance")
 
             # Generate different plots
             plots = ["tunable_importance", "optimization_history", "slice", "parallel_coordinate"]
@@ -173,25 +180,24 @@ class HpoExperiment:
                     dirName = "plots/" + self.experiment_name
                     os.makedirs(dirName, exist_ok=True)
                     plotsDir = os.path.dirname(os.path.realpath(dirName))
-                except:
-                    logger.warn("Issues in creating the directory for plots")
-                if plot_type == "tunable_importance":
-                  plot = optuna.visualization.plot_param_importances(study)
-                  plotFile = plotsDir + "/" + self.experiment_name + "/tunable_importance.html"
-                if plot_type == "optimization_history":
-                    plot = optuna.visualization.plot_optimization_history(study)
-                    plotFile = plotsDir + "/" + self.experiment_name + "/optimization_history.html"
-                if plot_type == "slice":
-                    plot = optuna.visualization.plot_slice(study)
-                    plotFile = plotsDir + "/" + self.experiment_name + "/slice.html"
-                if plot_type == "parallel_coordinate":
-                    plot = optuna.visualization.plot_parallel_coordinate(study)
-                    plotFile = plotsDir + "/" + self.experiment_name + "/parallel_coordinate.html"
-                # Commenting out contour plots as it gets hung sometimes when there are lot of tunables for a 100 trial experiment
-                #if plot_type == "contour":
-                    #plot = optuna.visualization.plot_contour(study)
-                    #plotFile = plotsDir + "/" + self.experiment_name + "/contour.html"
-                try:
+
+                    if plot_type == "tunable_importance":
+                        plot = optuna.visualization.plot_param_importances(study)
+                        plotFile = plotsDir + "/" + self.experiment_name + "/tunable_importance.html"
+                    if plot_type == "optimization_history":
+                        plot = optuna.visualization.plot_optimization_history(study)
+                        plotFile = plotsDir + "/" + self.experiment_name + "/optimization_history.html"
+                    if plot_type == "slice":
+                        plot = optuna.visualization.plot_slice(study)
+                        plotFile = plotsDir + "/" + self.experiment_name + "/slice.html"
+                    if plot_type == "parallel_coordinate":
+                        plot = optuna.visualization.plot_parallel_coordinate(study)
+                        plotFile = plotsDir + "/" + self.experiment_name + "/parallel_coordinate.html"
+                    # Commenting out contour plots as it gets hung sometimes when there are lot of tunables for a 100 trial experiment
+                    #if plot_type == "contour":
+                        #plot = optuna.visualization.plot_contour(study)
+                        #plotFile = plotsDir + "/" + self.experiment_name + "/contour.html"
+
                     func = open(plotFile, "w")
                     func.write(plot.to_html())
                     func.close()
