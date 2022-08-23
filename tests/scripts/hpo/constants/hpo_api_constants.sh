@@ -23,7 +23,8 @@ declare -A hpo_api_test_description
     [hpo_get_trial_json]="Start the required HPO services post a valid experiment json to HPO /experiment_trials API, query the API using different combinations of experiment id and trial_number and validate the result"
     [hpo_post_exp_result]="Start the required HPO services, post a valid experiment json to HPO /experiment_trials API and then post valid and invalid combinations of experiment result to the API and validate the result"
     [hpo_sanity_test]="Start the required HPO services, post a valid experiment json to HPO /experiment_trials API, get the config, post the experiment result and subsequent experiment repeatedly for the specified number of trials"
-    [hpo_grpc_sanity_test]="Start the required HPO services, post a valid experiment json to HPO /experiment_trials API, get the config, post the experiment result and subsequent experimentrepeatedly for the specified number of trials")
+    [hpo_grpc_sanity_test]="Start the required HPO services, post a valid experiment json to HPO /experiment_trials API, get the config, post the experiment result and subsequent experimentrepeatedly for the specified number of trials"
+    [hpo_get_plot_test]="Start the required HPO services, post a valid experiment json to HPO /experiment_trials API and get the importance and other graphs using plot API")
 
 # Tests to be carried out for HPO (Hyper Parameter Optimization) module API to post an experiment
 run_post_experiment_tests=(
@@ -50,6 +51,11 @@ declare -A hpo_get_trial_json_tests
     [get_trial_json_valid_tests]='valid-exp-trial valid-exp-trial-generate-subsequent')
 
 
+# Tests to be carried out for HPO module API to get the plot
+declare -A hpo_get_plot_tests
+hpo_get_plot_tests=([get_plot_invalid_tests]='empty-name no-name null-name only-valid-name invalid-type empty-type no-type null-type only-valid-type'
+    [get_plot_valid_tests]='valid-exp-type')
+
 declare -A hpo_get_trial_msgs
 hpo_get_trial_msgs=(
 [empty-name]="Parameters cannot be empty or null"
@@ -63,6 +69,22 @@ hpo_get_trial_msgs=(
 [only-valid-trial-number]="Missing required parameters"
 
 )
+
+hpo_plot_types=("tunables_importance" "optimization_history" "parallel_coordinate" "slice")
+
+declare -A hpo_get_plot_msgs
+hpo_get_plot_msgs=(
+[empty-name]="Parameters cannot be empty or null"
+[no-name]="Missing required parameters"
+[null-name]="Parameters cannot be empty or null"
+[only-valid-name]="Missing required parameters"
+[invalid-type]="Missing required parameters"
+[empty-type]="Missing required parameters"
+[no-type]="Missing required parameters"
+[null-type]="Missing required parameters"
+[only-valid-type]="Missing required parameters"
+)
+
 
 # Tests to be carried out for HPO module API to post experiment results
 run_post_exp_result_tests=("empty-name"
