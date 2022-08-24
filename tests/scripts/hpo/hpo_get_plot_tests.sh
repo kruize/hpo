@@ -18,14 +18,26 @@
 ##### Script for validating HPO (Hyper Parameter Optimization) /experiment_trials API #####
 
 # Generate the curl command based on the test name passed and get the result by querying it.
-# input: Test name and Trial number
+# input: Test name and plot type
 function run_get_plot_test() {
 	exp_trial=$1
 	plot_type=$2
 
 	curl="curl -H 'Accept: application/json'"
+
+	if [[ "${exp_trial}" =~ "valid-exp" || "${exp_trial}" == "only-valid-name" ]]; then
+		if [ -z "${plot_type}" ]; then
+			plot_type="tunables_importance"
+		fi
+		html_file="${TESTS_}/${exp_trial}/${exp_trial}_${plot_type}.html"
+		echo "html_file = ${html_file}"
+		curl="curl -o ${html_file}"
+	fi
+
 	url="http://${SERVER_IP}:${PORT}/plot"
 	echo "url = $url"
+
+	echo "current_name = ${current_name} "
 
 	case "${exp_trial}" in
 		empty-name)
@@ -64,9 +76,9 @@ function run_get_plot_test() {
 			get_plot=$(${curl} ''${url}'?type=optimization_history' -w '\n%{http_code}' 2>&1)
 			get_plot_cmd="${curl} '${url}?type=optimization_history' -w '\n%{http_code}'"
 			;;
-		valid-exp-type)
-			get_plot=$(${curl} ''${url}'?experiment_name=petclinic-sample-2-75884c5549-npvgd&type='${plot_type}'' -w '\n%{http_code}' 2>&1)
-			get_plot_cmd="${curl} '${url}?experiment_name=petclinic-sample-2-75884c5549-npvgd&type=${plot_type}' -w '\n%{http_code}'"
+		valid-exp-parallel-coordinate|valid-exp-optimization-history|valid-exp-slice)
+			get_plot=$(${curl} ''${url}'?experiment_name='${current_name}'&type='${plot_type}'' -w '\n%{http_code}' 2>&1)
+			get_plot_cmd="${curl} '${url}?experiment_name='${current_name}'&type=${plot_type}' -w '\n%{http_code}'"
 			;;
 	esac
 
@@ -76,7 +88,10 @@ function run_get_plot_test() {
 	http_code=$(tail -n1 <<< "${get_plot}")
 	response=$(echo -e "${get_plot}" | tail -2 | head -1)
 	response=$(echo ${response} | cut -c 4-)
-	echo "${response}" > ${result}
+	echo "******************************************"
+	echo "$response}"
+	echo "******************************************"
+	echo "${response}" > ${result_log}
 }
 
 
@@ -106,7 +121,7 @@ function get_plot_invalid_tests() {
 		TESTS_="${TEST_DIR}/${exp_trial}"
 		mkdir -p ${TESTS_}
 		LOG_="${TEST_DIR}/${exp_trial}.log"
-		result="${TESTS_}/${exp_trial}_result.log"
+		result_log="${TESTS_}/${exp_trial}_result.log"
 
 		TEST_SERV_LOG="${TESTS_}/service.log"
 
@@ -175,35 +190,40 @@ function get_plot_valid_tests() {
 	for experiment_trial in "${get_plot_valid_tests[@]}"
 	do
 		TESTS_="${TEST_DIR}/${FUNCNAME}"
-		mkdir -p ${TESTS_}
+		mkdir -p ${TESTS_}/${experiment_trial}
 		LOG_="${TEST_DIR}/${FUNCNAME}.log"
-		result="${TESTS_}/${experiment_trial}_result.log"
+		result_log="${TESTS_}/${experiment_trial}/${experiment_trial}_result.log"
 		expected_json="${TESTS_}/${experiment_trial}_expected_json.json"
-		TEST_SERV_LOG="${TESTS_}/${experiment_trial}_service.log"
+		TEST_SERV_LOG="${TESTS_}/${experiment_trial}/${experiment_trial}_service.log"
 
 		echo "************************************* ${experiment_trial} Test ****************************************" | tee -a ${LOG_} ${LOG}
 
 		# Get the length of the service log before the test
 		log_length_before_test=$(cat ${SERV_LOG} | wc -l)
 
-		# Get the experiment id from search space JSON
-		exp="valid-experiment"
-		current_id=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_id')
-		current_name=$(echo ${hpo_post_experiment_json[${exp}]} | jq '.search_space.experiment_name')
+		exp_json='{"operation":"EXP_TRIAL_GENERATE_NEW","search_space":{"experiment_name":"petclinic-sample-2-75884c5549-npvgd","total_trials":10,"parallel_trials":1,"experiment_id":"a123","value_type":"double","hpo_algo_impl":"optuna_tpe","objective_function":"transaction_response_time","tunables":[{"value_type":"double","lower_bound":150,"name":"memoryRequest","upper_bound":300,"step":1},{"value_type":"double","lower_bound":1,"name":"cpuRequest","upper_bound":3,"step":0.01}],"direction":"minimize"}}'
+		
+		hpo_url=$( form_hpo_api_url "experiment_trials" "${cluster_type}" )
+		echo "hpo_url = ${hpo_url}"
 
-		N_TRIALS=5
+		N_TRIALS=10
 		expected_http_code="200"
 	
 		## Loop through the trials
 		for (( i=0 ; i<${N_TRIALS} ; i++ ))
 		do
+			j=$((i+1))
+			echo "j=$j"
 			echo ""
 			echo "*********************************** Trial ${i} *************************************"
 			LOG_="${TEST_DIR}/hpo-trial-${i}.log"
 			if [ ${i} == 0 ]; then
 				# Post the experiment
 				echo "Start a new experiment with the search space json..." | tee -a ${LOG}
-				post_experiment_json "${hpo_post_experiment_json["valid-experiment"]}"
+				# Replace the experiment name
+				json=$(echo $exp_json | sed -e 's/petclinic-sample-2-75884c5549-npvgd/petclinic-sample-'${experiment_trial}'/')
+				current_name="petclinic-sample-${experiment_trial}"
+				post_experiment_json "${json}"
 				verify_result "Post new experiment" "${http_code}" "${expected_http_code}"
 			fi
 
@@ -214,10 +234,11 @@ function get_plot_valid_tests() {
 
 			curl="curl -H 'Accept: application/json'"
 			hpo_url="http://${SERVER_IP}:${PORT}/experiment_trials"
+			echo "hpo_url = ${hpo_url}"
 
-			get_trial_json=$(${curl} ''${hpo_url}'?experiment_name=petclinic-sample-2-75884c5549-npvgd&trial_number='${i}'' -w '\n%{http_code}' 2>&1)
+			get_trial_json=$(${curl} ''${hpo_url}'?experiment_name='${current_name}'&trial_number='${i}'' -w '\n%{http_code}' 2>&1)
 
-			get_trial_json_cmd="${curl} ${hpo_url}?experiment_name="petclinic-sample-2-75884c5549-npvgd"&trial_number=${i} -w '\n%{http_code}'"
+			get_trial_json_cmd="${curl} ${hpo_url}?experiment_name=${current_name}&trial_number=${i} -w '\n%{http_code}'"
 			echo "command used to query the experiment_trial API = ${get_trial_json_cmd}" | tee -a ${LOG}
 
 			# check for curl '000' error
@@ -234,8 +255,8 @@ function get_plot_valid_tests() {
 			echo "" | tee -a ${LOG}
 			echo "Post the experiment result for trial ${i}..." | tee -a ${LOG}
 			trial_result="success"
-			result_value="98.7"
-			exp_result_json='{"experiment_name":'${exp_name}',"trial_number":'${i}',"trial_result":"'${trial_result}'","result_value_type":"double","result_value":'${result_value}',"operation":"EXP_TRIAL_RESULT"}'
+			result_value=$((300 * $j))
+			exp_result_json='{"experiment_name":"'${current_name}'","trial_number":'${i}',"trial_result":"'${trial_result}'","result_value_type":"double","result_value":'${result_value}',"operation":"EXP_TRIAL_RESULT"}'
 			post_experiment_result_json ${exp_result_json}
 			verify_result "Post experiment result for trial ${i}" "${http_code}" "${expected_http_code}"
 
@@ -243,16 +264,35 @@ function get_plot_valid_tests() {
 			if [[ ${i} < $((N_TRIALS-1)) ]]; then
 				echo "" | tee -a ${LOG}
 				echo "Generate subsequent config after trial ${i} ..." | tee -a ${LOG}
-				subsequent_trial='{"experiment_name":'${exp_name}',"operation":"EXP_TRIAL_GENERATE_SUBSEQUENT"}'
+				subsequent_trial='{"experiment_name":"'${current_name}'","operation":"EXP_TRIAL_GENERATE_SUBSEQUENT"}'
 				post_experiment_json ${subsequent_trial}
 				verify_result "Post subsequent experiment after trial ${i}" "${http_code}" "${expected_http_code}"
 			fi
 		done
 
+		# Check for CHART AT msg in the service log
+		found=false
+		msg="ACCESS parallel_coordinate CHART AT"
+		while [ "${found}" == "false" ]; do
+			sleep 1
+			if grep -q "${msg}" "${SERV_LOG}"; then
+				found="true"
+			fi
+		done
 
 		# Query the HPO /plot API for valid experiment id and plot type
-		type="parallel_coordinate"
-		run_get_plot_test "valid-exp-type" "${type}"
+		if [ ${experiment_trial} == "valid-exp-parallel-coordinate" ]; then
+			type="parallel_coordinate"
+			run_get_plot_test "${experiment_trial}" "${type}"
+		elif [ ${experiment_trial} == "valid-exp-optimization-history" ]; then
+			type="optimization_history"
+			run_get_plot_test "${experiment_trial}" "${type}"
+		elif [ ${experiment_trial} == "valid-exp-slice" ]; then
+			type="slice"
+			run_get_plot_test "${experiment_trial}" "${type}"
+		else
+			run_get_plot_test "${experiment_trial}"
+		fi
 
 		# Extract the lines from the service log after log_length_before_test
 		extract_lines=`expr ${log_length_before_test} + 1`
@@ -266,7 +306,8 @@ function get_plot_valid_tests() {
 		actual_result="${http_code}"
 
 		expected_result_="200"
-		expected_behaviour="Trial_Number = 0"
+		echo "actual_result = ${actual_result} expected_result = ${expected_result_}"
+		expected_behaviour="ACCESS parallel_coordinate CHART AT"
 	
 		compare_result ${experiment_trial} ${expected_result_} "${expected_behaviour}" "${TEST_SERV_LOG}"
 
@@ -274,7 +315,8 @@ function get_plot_valid_tests() {
 			FAILED_CASES+=(${experiment_trial})
 		fi
 
-		stop_experiment "$current_name"
+		stop_experiment "\"${current_name}"\"
+		sleep 5
 
 		echo "*********************************************************************************************************" | tee -a ${LOG_} ${LOG}
 	done
@@ -290,6 +332,7 @@ function get_plot_valid_tests() {
 
 # Tests for HPO GET PLOT API
 function hpo_get_plot_test(){
+	failed=0
 	for test in "${!hpo_get_plot_tests[@]}"
 	do
 		${test} "${FUNCNAME}"

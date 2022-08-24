@@ -53,8 +53,8 @@ declare -A hpo_get_trial_json_tests
 
 # Tests to be carried out for HPO module API to get the plot
 declare -A hpo_get_plot_tests
-hpo_get_plot_tests=([get_plot_invalid_tests]='empty-name no-name null-name only-valid-name invalid-type empty-type no-type null-type only-valid-type'
-    [get_plot_valid_tests]='valid-exp-type')
+hpo_get_plot_tests=([get_plot_invalid_tests]='empty-name no-name null-name invalid-type empty-type no-type null-type only-valid-type'
+    [get_plot_valid_tests]='valid-exp-parallel-coordinate valid-exp-optimization-history valid-exp-slice only-valid-name')
 
 declare -A hpo_get_trial_msgs
 hpo_get_trial_msgs=(
@@ -77,7 +77,6 @@ hpo_get_plot_msgs=(
 [empty-name]="Parameters cannot be empty or null"
 [no-name]="Missing required parameters"
 [null-name]="Parameters cannot be empty or null"
-[only-valid-name]="Missing required parameters"
 [invalid-type]="Missing required parameters"
 [empty-type]="Missing required parameters"
 [no-type]="Missing required parameters"
