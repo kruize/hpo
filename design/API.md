@@ -165,7 +165,7 @@ Generate various plots after an experiment is complete.
 ```
 'GET /plot?experiment_name={name}&type={plot_type}'
 
-curl -o tunables_importance.html 'http://<URL>:<PORT>/plot?experiment_name=name&type=tunables_importance'
+curl -o tunable_importance.html 'http://<URL>:<PORT>/plot?experiment_name=name&type=tunable_importance'
 
 Response:
 Status code   Response body
@@ -175,8 +175,9 @@ Status code   Response body
 
 Supported plot type:
 type                        Description
-tunables_importance         Plot importance of all tunables
+tunable_importance          Plot importance of all tunables
 optimization_history        Plot optimization history of all trials
 parallel_coordinate         Plot the high-dimensional tunable relationships
 slice                       Plot the tunable relationship as slice
 ```
+Note: In cases of a single trial experiment and no variance in objective function value, tunable_importance plot doesn't generate.
