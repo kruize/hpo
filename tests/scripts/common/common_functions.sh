@@ -115,14 +115,14 @@ function deploy_hpo() {
   		sleep 2
 		echo "Capturing HPO service log into $3"
 		log=$3
-		docker logs hpo_docker_container > "${log}" 2>&1
+		docker logs -f hpo_docker_container > "${log}" 2>&1 &
 	elif [[ ${cluster_type} == "minikube" || ${cluster_type} == "openshift" ]]; then
 		sleep 2
 		echo "Capturing HPO service log into $3"
 		echo "Namespace = $namespace"
 		log=$3
 		hpo_pod=$(kubectl get pod -n ${namespace} | grep hpo | cut -d " " -f1)
-		kubectl -n ${namespace} logs -f ${hpo_pod} > "${log}" & 2>&1
+		kubectl -n ${namespace} logs -f ${hpo_pod} > "${log}" 2>&1 &
 	fi
 
 	popd > /dev/null

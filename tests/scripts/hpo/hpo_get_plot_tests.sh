@@ -138,6 +138,9 @@ function get_plot_invalid_tests() {
 		# Run the get plot API test
 		run_get_plot_test ${exp_trial}
 
+		# sleep for service logs to be updated
+		sleep 5
+
 		# Extract the lines from the service log after log_length_before_test
 		extract_lines=`expr ${log_length_before_test} + 1`
 		cat ${SERV_LOG} | tail -n +${extract_lines} > ${TEST_SERV_LOG}
