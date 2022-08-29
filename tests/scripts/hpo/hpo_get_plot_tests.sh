@@ -27,7 +27,7 @@ function run_get_plot_test() {
 
 	if [[ "${exp_trial}" =~ "valid-exp" || "${exp_trial}" == "only-valid-name" ]]; then
 		if [ -z "${plot_type}" ]; then
-			plot_type="tunables_importance"
+			plot_type="tunable_importance"
 		fi
 		html_file="${TESTS_}/${exp_trial}/${exp_trial}_${plot_type}.html"
 		echo "html_file = ${html_file}"
@@ -41,16 +41,16 @@ function run_get_plot_test() {
 
 	case "${exp_trial}" in
 		empty-name)
-			get_plot=$(${curl} ''${url}'?experiment_name=%20&type=tunables_importance' -w '\n%{http_code}' 2>&1)
-			get_plot_cmd="${curl} '${url}?experiment_name=%20&type=tunables_importance' -w '\n%{http_code}'"
+			get_plot=$(${curl} ''${url}'?experiment_name=%20&type=tunable_importance' -w '\n%{http_code}' 2>&1)
+			get_plot_cmd="${curl} '${url}?experiment_name=%20&type=tunable_importance' -w '\n%{http_code}'"
 			;;
 		no-name)
-			get_plot=$(${curl} ''${url}'?&type=tunables_importance' -w '\n%{http_code}' 2>&1)
-			get_plot_cmd="${curl} '${url}?&type=tunables_importance' -w '\n%{http_code}'"
+			get_plot=$(${curl} ''${url}'?&type=tunable_importance' -w '\n%{http_code}' 2>&1)
+			get_plot_cmd="${curl} '${url}?&type=tunable_importance' -w '\n%{http_code}'"
 			;;
 		null-name)
-			get_plot=$(${curl} ''${url}'?experiment_name=null&type=tunables_importance' -w '\n%{http_code}' 2>&1)
-			get_plot_cmd="${curl} '${url}?experiment_name=null&type=tunables_importance' -w '\n%{http_code}'"
+			get_plot=$(${curl} ''${url}'?experiment_name=null&type=tunable_importance' -w '\n%{http_code}' 2>&1)
+			get_plot_cmd="${curl} '${url}?experiment_name=null&type=tunable_importance' -w '\n%{http_code}'"
 			;;
 		only-valid-name)
 			get_plot=$(${curl} ''${url}'?experiment_name='${current_name}'' -w '\n%{http_code}' 2>&1)
