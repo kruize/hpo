@@ -107,6 +107,9 @@ function native_terminate() {
 	ps -u | grep service.py | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1
 	check_err "Failed to stop HPO Service!"
 
+	# delete plots after HPO terminates
+	rm -r plots
+
 	echo
 	echo "### Successfully Terminated"
 	echo
