@@ -37,6 +37,7 @@ RUN microdnf install -y python39 gcc-c++ python39-devel python39-pip\
     && microdnf -y install shadow-utils \
     # Setup the user for non-arbitrary UIDs with OpenShift
     && useradd -d ${HPO_HOME} -u ${UID} -g 0 -m -s /bin/bash ${USER} \
+    && mkdir -p ${HPO_HOME}/app/src \
     && chmod -R g+rwx ${HPO_HOME} \
     && microdnf -y remove shadow-utils \
     && microdnf clean all
@@ -44,7 +45,7 @@ RUN microdnf install -y python39 gcc-c++ python39-devel python39-pip\
 # Switch to the non root user
 USER ${UID}
 
-# copy the requirements file to the app direcotry to install required modules
+# copy the requirements file to the app directory to install required modules
 COPY requirements.txt index.html ${HPO_HOME}/app/
 
 # Copy ML hyperparameter tuning code

@@ -5,3 +5,4 @@ jsonschema
 grpcio
 click
 protobuf==3.19.4
+plotly

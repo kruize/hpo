@@ -13,9 +13,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import os
 
 import optuna
 import threading
+import json
 
 from logger import get_logger
 
@@ -146,20 +148,25 @@ class HpoExperiment:
         try:
             study = optuna.create_study(direction=self.direction, sampler=sampler, study_name=self.experiment_name)
 
-
             # Execute an optimization by using an 'Objective' instance
             study.optimize(Objective(self), n_trials=self.total_trials, n_jobs=self.parallel_trials)
 
             self.trialDetails.trial_number = -1
 
             # Get the best parameter
-            logger.info("Best parameter: " + str(study.best_params))
+            logger.info("BEST PARAMETER: " + str(study.best_params))
             # Get the best value
-            logger.info("Best value: " + str(study.best_value))
+            logger.info("BEST VALUE: " + str(study.best_value))
             # Get the best trial
-            logger.info("Best trial: " + str(study.best_trial))
+            logger.info("BEST TRIAL: " + str(study.best_trial))
 
-            logger.debug("All trials: " + str(trials))
+            logger.debug("ALL TRIALS: " + str(trials))
+
+            # Generate tunable importance
+            self.generate_importance(study)
+
+            # Generate plots
+            self.generate_plots(study)
 
             try:
                 self.resultsAvailableCond.acquire()
@@ -188,7 +195,7 @@ class HpoExperiment:
             finally:
                 self.resultsAvailableCond.release()
 
-            logger.info("Recommended config: " + str(self.recommended_config))
+            logger.info("RECOMMENDED CONFIG: " + str(self.recommended_config))
         except:
             logger.warn("Experiment stopped: " + str(self.experiment_name))
 
@@ -199,6 +206,51 @@ class HpoExperiment:
             self.resultsAvailableCond.notify()
         finally:
             self.resultsAvailableCond.release()
+
+    def generate_importance(self, study):
+        try:
+            importance = optuna.importance.get_param_importances(study)
+            logger.info("TUNABLES IMPORTANCE: " + str(json.dumps(importance)))
+        except ValueError:
+            logger.warn("Cannot evaluate tunable importance with only a single trial")
+        except RuntimeError:
+            logger.warn("Encountered zero total variance to calculate tunable importance")
+        except:
+            logger.warn("Encountered issues calculating tunable importance")
+
+    def generate_plots(self, study):
+        # Generate different plots
+        plots = ["tunable_importance", "optimization_history", "slice", "parallel_coordinate"]
+        for plot_type in plots:
+            try:
+                dirName = "plots/" + self.experiment_name
+                os.makedirs(dirName, exist_ok=True)
+                plotsDir = os.path.dirname(os.path.realpath(dirName))
+
+                if plot_type == "tunable_importance":
+                    plot = optuna.visualization.plot_param_importances(study)
+                    plotFile = plotsDir + "/" + self.experiment_name + "/tunable_importance.html"
+                if plot_type == "optimization_history":
+                    plot = optuna.visualization.plot_optimization_history(study)
+                    plotFile = plotsDir + "/" + self.experiment_name + "/optimization_history.html"
+                if plot_type == "slice":
+                    plot = optuna.visualization.plot_slice(study)
+                    plotFile = plotsDir + "/" + self.experiment_name + "/slice.html"
+                if plot_type == "parallel_coordinate":
+                    plot = optuna.visualization.plot_parallel_coordinate(study)
+                    plotFile = plotsDir + "/" + self.experiment_name + "/parallel_coordinate.html"
+                # Commenting out contour plots as it gets hung sometimes when there are lot of tunables for a 100 trial experiment
+                #if plot_type == "contour":
+                #plot = optuna.visualization.plot_contour(study)
+                #plotFile = plotsDir + "/" + self.experiment_name + "/contour.html"
+
+                func = open(plotFile, "w")
+                func.write(plot.to_html())
+                func.close()
+                logger.info("ACCESS " + plot_type + " CHART AT <REST_SERVICE_URL>/plot?" + "experiment_name=" + self.experiment_name + "&type=" + plot_type)
+            except:
+                logger.warn("Issues creating" + plot_type + " html file")
+
 
 
 class Objective(TrialDetails):
