@@ -2,7 +2,7 @@
 
 ## Goal
 
-Provide Kruize Hyper Parameter Optimization (HPO) as a service to choose the optimal values for hyperparameters provided by the user for any model.
+Provide Kruize Hyper Parameter Optimization (HPO) to choose the optimal values for hyperparameters provided by the user for any model.
 
 ## Background
 
@@ -25,7 +25,7 @@ Hyperparameter optimization(HPO) is choosing a set of optimal hyperparameters th
 - **_Objective function:_** Typically an algebraic expression that either needs to be maximized or minimized. Eg, maximize throughput, minimize cost etc
 
 ## Kruize HPO Architecture
-![Kruize HPO Architecture](/design/hpoaas.png)
+![Kruize HPO Architecture](/design/kruize_hpo.png)
 The current architecture of Kruize HPO consists of a thin abstraction layer that provides a common REST API and gRPC interface. It provides an interface for integrating with Open Source projects / modules that provide HPO functionality. Currently it only supports the Optuna OSS Project. It provides a simple HTTP server through which the REST APIs can be accessed.
 
 Kruize HPO supports the following ways of deployment:
@@ -41,7 +41,7 @@ See the [API README](/design/API.md) for more details on the Autotune REST API.
 - Step 1: Arrive at an objective function for your specific performance goal and capture it as a single algebraic expression.
 - Step 2: Capture the relevant tunables and ranges within which they operate. Create a search space JSON with the tunable details.
 - Step 3: Start an experiment by doing a POST of the search space to the URL as mentioned in the REST API above. On success, this should return a “trial\_number”.
-- Step 4: Query the service for the “trial config” associated with the “trial\_number”.
+- Step 4: Query Kruize HPO for the “trial config” associated with the “trial\_number”.
 - Step 5: Start a benchmark run with the “trial config”.
 - Step 6: POST the results of the trial back to Kruize HPO.
 - Step 7: Generate a subsequent trial.
