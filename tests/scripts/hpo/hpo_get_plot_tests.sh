@@ -88,9 +88,6 @@ function run_get_plot_test() {
 	http_code=$(tail -n1 <<< "${get_plot}")
 	response=$(echo -e "${get_plot}" | tail -2 | head -1)
 	response=$(echo ${response} | cut -c 4-)
-	echo "******************************************"
-	echo "$response}"
-	echo "******************************************"
 	echo "${response}" > ${result_log}
 }
 
@@ -205,73 +202,9 @@ function get_plot_valid_tests() {
 		log_length_before_test=$(cat ${SERV_LOG} | wc -l)
 
 		exp_json='{"operation":"EXP_TRIAL_GENERATE_NEW","search_space":{"experiment_name":"petclinic-sample-2-75884c5549-npvgd","total_trials":10,"parallel_trials":1,"experiment_id":"a123","value_type":"double","hpo_algo_impl":"optuna_tpe","objective_function":"transaction_response_time","tunables":[{"value_type":"double","lower_bound":150,"name":"memoryRequest","upper_bound":300,"step":1},{"value_type":"double","lower_bound":1,"name":"cpuRequest","upper_bound":3,"step":0.01}],"direction":"minimize"}}'
-		
-		hpo_url=$( form_hpo_api_url "experiment_trials" "${cluster_type}" )
-		echo "hpo_url = ${hpo_url}"
-
-		N_TRIALS=10
-		expected_http_code="200"
 	
-		## Loop through the trials
-		for (( i=0 ; i<${N_TRIALS} ; i++ ))
-		do
-			j=$((i+1))
-			echo "j=$j"
-			echo ""
-			echo "*********************************** Trial ${i} *************************************"
-			LOG_="${TEST_DIR}/hpo-trial-${i}.log"
-			if [ ${i} == 0 ]; then
-				# Post the experiment
-				echo "Start a new experiment with the search space json..." | tee -a ${LOG}
-				# Replace the experiment name
-				json=$(echo $exp_json | sed -e 's/petclinic-sample-2-75884c5549-npvgd/petclinic-sample-'${experiment_trial}'/')
-				current_name="petclinic-sample-${experiment_trial}"
-				post_experiment_json "${json}"
-				verify_result "Post new experiment" "${http_code}" "${expected_http_code}"
-			fi
-
-			# Get the config from HPO
-			echo ""
-			echo "Generate the config for trial ${i}..." | tee -a ${LOG}
-			echo ""
-
-			curl="curl -H 'Accept: application/json'"
-			hpo_url="http://${SERVER_IP}:${PORT}/experiment_trials"
-			echo "hpo_url = ${hpo_url}"
-
-			get_trial_json=$(${curl} ''${hpo_url}'?experiment_name='${current_name}'&trial_number='${i}'' -w '\n%{http_code}' 2>&1)
-
-			get_trial_json_cmd="${curl} ${hpo_url}?experiment_name=${current_name}&trial_number=${i} -w '\n%{http_code}'"
-			echo "command used to query the experiment_trial API = ${get_trial_json_cmd}" | tee -a ${LOG}
-
-			# check for curl '000' error
-			curl_error_check
-	
-			result="${TEST_DIR}/hpo_config_${i}.json"
-			expected_json="${TEST_DIR}/expected_hpo_config_${i}.json"
-
-			echo "${response}" > ${result}
-			cat $result
-			verify_result "Get config from hpo trial ${i}" "${http_code}" "${expected_http_code}"
-
-			# Post the experiment result to hpo
-			echo "" | tee -a ${LOG}
-			echo "Post the experiment result for trial ${i}..." | tee -a ${LOG}
-			trial_result="success"
-			result_value=$((300 * $j))
-			exp_result_json='{"experiment_name":"'${current_name}'","trial_number":'${i}',"trial_result":"'${trial_result}'","result_value_type":"double","result_value":'${result_value}',"operation":"EXP_TRIAL_RESULT"}'
-			post_experiment_result_json ${exp_result_json}
-			verify_result "Post experiment result for trial ${i}" "${http_code}" "${expected_http_code}"
-
-			# Generate a subsequent trial
-			if [[ ${i} < $((N_TRIALS-1)) ]]; then
-				echo "" | tee -a ${LOG}
-				echo "Generate subsequent config after trial ${i} ..." | tee -a ${LOG}
-				subsequent_trial='{"experiment_name":"'${current_name}'","operation":"EXP_TRIAL_GENERATE_SUBSEQUENT"}'
-				post_experiment_json ${subsequent_trial}
-				verify_result "Post subsequent experiment after trial ${i}" "${http_code}" "${expected_http_code}"
-			fi
-		done
+		# Start the experiment using the specified search space
+		hpo_run_experiment "${exp_json}" "${experiment_trial}"
 
 		# Check for CHART AT msg in the service log
 		found=false
