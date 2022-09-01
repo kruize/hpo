@@ -88,6 +88,10 @@ function native_start() {
 	# check if service is already running
 	check_prereq running ${SERVICE_STATUS_NATIVE}
 
+	# copy experimenthtml temporarily to restore while terminating
+	# this is required only for native
+	cp experiment.html experiment_torestore.html
+
 	if [ "$1" = "REST" ]; then
 		python3 -u src/service.py "REST"
 	else
@@ -107,8 +111,10 @@ function native_terminate() {
 	ps -u | grep service.py | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1
 	check_err "Failed to stop HPO Service!"
 
+	# restore experiment.html after HPO terminates in native
 	# delete plots after HPO terminates
-	rm -r plots
+	cp experiment_torestore.html experiment.html
+	rm -r plots experiment_torestore.html
 
 	echo
 	echo "### Successfully Terminated"

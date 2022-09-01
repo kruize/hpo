@@ -34,7 +34,8 @@ search_space_json = []
 
 fileDir = os.path.dirname(os.path.realpath('index.html'))
 filename = os.path.join(fileDir, 'index.html')
-welcome_page = filename
+welcome_page = os.path.join(fileDir, 'index.html')
+experiment_page = os.path.join(fileDir, 'experiment.html')
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
@@ -115,6 +116,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 					hpo_service.instance.getExperiment(query["experiment_name"][0]).trialDetails.trial_number))
 				data = hpo_service.instance.get_trial_json_object(query["experiment_name"][0])
 				self._set_response(200, data)
+		elif re.search("/listexperiments", self.path):
+			data = self.listExperiments()
+			self._set_response(200, data)
 		elif re.search("/plot", self.path):
 			query = parse_qs(urlparse(self.path).query)
 			if "experiment_name" not in query:
@@ -150,6 +154,12 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
 	def getHomeScreen(self):
 		fin = open(welcome_page)
+		content = fin.read()
+		fin.close()
+		return content
+
+	def listExperiments(self):
+		fin = open(experiment_page)
 		content = fin.read()
 		fin.close()
 		return content

@@ -148,6 +148,12 @@ class HpoExperiment:
         try:
             study = optuna.create_study(direction=self.direction, sampler=sampler, study_name=self.experiment_name)
 
+            # Update experiment html with the experiment name
+            try:
+                self.updateExperimentHtml("Started")
+            except:
+                logger.info("Error in updating experiment html")
+
             # Execute an optimization by using an 'Objective' instance
             study.optimize(Objective(self), n_trials=self.total_trials, n_jobs=self.parallel_trials)
 
@@ -167,6 +173,9 @@ class HpoExperiment:
 
             # Generate plots
             self.generate_plots(study)
+
+            # Update experiment as complete
+            self.updateExperimentHtml("Completed")
 
             try:
                 self.resultsAvailableCond.acquire()
@@ -203,6 +212,8 @@ class HpoExperiment:
         try:
             self.resultsAvailableCond.acquire()
             self.isRunning = False
+            # Update experiment html that it has stopped.
+            self.updateExperimentHtml("Stopped")
             self.resultsAvailableCond.notify()
         finally:
             self.resultsAvailableCond.release()
@@ -251,7 +262,58 @@ class HpoExperiment:
             except:
                 logger.warn("Issues creating" + plot_type + " html file")
 
+    def updateExperimentHtml(self, exp_status):
+        try:
+            self.resultsAvailableCond.acquire()
+            expDir = os.path.dirname(os.path.realpath('experiment.html'))
+            filename = os.path.join(expDir, 'experiment.html')
+            addtable = """<table> \n
+                    <tr> <th>Experiment</th>    <th>Status</th>    <th>Plots Generated</th> </tr> \n
+                    <!--Add Experiments--> \n
+                    </table> \n """
+            if exp_status == "Completed":
+                addline = """ <tr> <td> """ + self.experiment_name + """ </td> <td> """ + exp_status + """ </td>  \n"""\
+                        """<td><details><summary> Yes! Check here </summary><ul> \n """\
+                        """<li><a href="/plot?experiment_name=""" + self.experiment_name + """&type=tunable_importance">Tunable_Importance</a></li>\n""" \
+                        """<li><a href="/plot?experiment_name=""" + self.experiment_name + """&type=slice">Slice</a></li>\n"""\
+                        """<li><a href="/plot?experiment_name=""" + self.experiment_name + """&type=optimization_history">Optimization History</a></li>\n"""\
+                        """<li><a href="/plot?experiment_name=""" + self.experiment_name + """&type=parallel_coordinate">Parallel_Coordinate</a></li></ul></li></ul>\n"""\
+                        """</ul></details></td> </tr> \n"""
+            else:
+                addline = """ <tr> <td> """ + self.experiment_name + """ </td> <td> """ + exp_status + """ </td> <td>  No </td> </tr> \n"""
 
+            if exp_status == "Started":
+                with open(filename, 'r+') as f:
+                    lines = f.readlines()
+                    for i, line in enumerate(lines):
+                        if line.__contains__('No Experiments found!'):
+                            lines[i] = ""
+                            lines[i] = lines[i] + addtable
+                        f.truncate()
+                        f.seek(0)
+                        # rewrite into the file
+                        for line in lines:
+                            f.write(line)
+
+            with open(filename, 'r+') as f:
+                lines = f.readlines()
+                for i, line in enumerate(lines):
+                    if exp_status == "Started":
+                        if line.__contains__('<!--Add Experiments-->'):
+                            lines[i] = lines[i] + addline
+                    elif exp_status == "Completed" or exp_status == "Stopped" or exp_status.__contains__("Running"):
+                        if line.__contains__("<td> " + self.experiment_name + " </td>"):
+                            lines[i] = ""
+                            lines[i] = lines[i] + addline
+                    f.truncate()
+                    f.seek(0)
+                    # rewrite into the file
+                    for line in lines:
+                        f.write(line)
+        except:
+            logger.info("Issue updating experiment html")
+        finally:
+            self.resultsAvailableCond.release()
 
 class Objective(TrialDetails):
     """
@@ -306,6 +368,11 @@ class Objective(TrialDetails):
             self.experiment.resultsAvailableCond.release()
 
         self.experiment.notifyStarted()
+
+        # update experiment html
+        trials_sum = self.experiment.total_trials - 1
+        status_to_send = "Running trial " + str(self.experiment.trialDetails.trial_number) + " of " + str(trials_sum)
+        self.experiment.updateExperimentHtml(status_to_send)
 
         actual_slo_value, experiment_status = self.experiment.perform_experiment()
 
