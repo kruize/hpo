@@ -140,7 +140,10 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 				logger.info("Experiment_Name = " + str(
 					hpo_service.instance.getExperiment(query["experiment_name"][0]).experiment_name))
 				data = self.getPlots(query["experiment_name"][0], plot_type)
-				self._set_response(200, data)
+				if data:
+					self._set_response(200, data)
+				else:
+					self._set_response(404, 'Plot Unavailable!')
 		elif self.path == "/health":
 			if self.getHomeScreen():
 				self._set_response(200, 'OK')

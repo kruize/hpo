@@ -233,14 +233,22 @@ class HpoExperiment:
         # Generate different plots
         plots = ["tunable_importance", "optimization_history", "slice", "parallel_coordinate"]
         for plot_type in plots:
+            plotmsg = ""
             try:
                 dirName = "plots/" + self.experiment_name
                 os.makedirs(dirName, exist_ok=True)
                 plotsDir = os.path.dirname(os.path.realpath(dirName))
 
                 if plot_type == "tunable_importance":
-                    plot = optuna.visualization.plot_param_importances(study)
-                    plotFile = plotsDir + "/" + self.experiment_name + "/tunable_importance.html"
+                    try:
+                        plotFile = plotsDir + "/" + self.experiment_name + "/tunable_importance.html"
+                        plot = optuna.visualization.plot_param_importances(study)
+                    except ValueError:
+                        plotmsg = "Cannot generate tunable importance with only a single trial!"
+                        logger.warn(plotmsg)
+                    except RuntimeError:
+                        plotmsg = "Encountered zero total variance to generate tunable importance!"
+                        logger.warn(plotmsg)
                 if plot_type == "optimization_history":
                     plot = optuna.visualization.plot_optimization_history(study)
                     plotFile = plotsDir + "/" + self.experiment_name + "/optimization_history.html"
@@ -256,11 +264,15 @@ class HpoExperiment:
                 #plotFile = plotsDir + "/" + self.experiment_name + "/contour.html"
 
                 func = open(plotFile, "w")
-                func.write(plot.to_html())
-                func.close()
-                logger.info("ACCESS " + plot_type + " CHART AT <REST_SERVICE_URL>/plot?" + "experiment_name=" + self.experiment_name + "&type=" + plot_type)
+                if plotmsg != "":
+                    func.write("<html><head></head> <body> <h2>" + plotmsg + " </h2></body></html>")
+                    func.close()
+                else:
+                    func.write(plot.to_html())
+                    func.close()
+                    logger.info("ACCESS " + plot_type + " CHART AT <REST_SERVICE_URL>/plot?" + "experiment_name=" + self.experiment_name + "&type=" + plot_type)
             except:
-                logger.warn("Issues creating" + plot_type + " html file")
+                logger.warn("Issues creating " + plot_type + " html file")
 
     def updateExperimentHtml(self, exp_status):
         try:
