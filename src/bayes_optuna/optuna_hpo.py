@@ -284,15 +284,15 @@ class HpoExperiment:
                     <!--Add Experiments--> \n
                     </table> \n """
             if exp_status == "Completed":
-                addline = """ <tr> <td> """ + self.experiment_name + """ </td> <td> """ + exp_status + """ </td>  \n"""\
-                        """<td><details><summary> Yes! Check here </summary><ul> \n """\
-                        """<li><a href="/plot?experiment_name=""" + self.experiment_name + """&type=tunable_importance">Tunable_Importance</a></li>\n""" \
-                        """<li><a href="/plot?experiment_name=""" + self.experiment_name + """&type=slice">Slice</a></li>\n"""\
-                        """<li><a href="/plot?experiment_name=""" + self.experiment_name + """&type=optimization_history">Optimization History</a></li>\n"""\
-                        """<li><a href="/plot?experiment_name=""" + self.experiment_name + """&type=parallel_coordinate">Parallel_Coordinate</a></li></ul></li></ul>\n"""\
-                        """</ul></details></td> </tr> \n"""
+                updaterow = "<tr> <td> " + self.experiment_name + " </td> <td> " + exp_status + " </td>  \n"\
+                        "<td><details><summary> Yes! Check here </summary><ul> \n "\
+                        "<li><a href=\"/plot?experiment_name=" + self.experiment_name + "&type=tunable_importance\">Tunable_Importance</a></li>\n" \
+                        "<li><a href=\"/plot?experiment_name=" + self.experiment_name + "&type=slice\">Slice</a></li>\n"\
+                        "<li><a href=\"/plot?experiment_name=" + self.experiment_name + "&type=optimization_history\">Optimization History</a></li>\n"\
+                        "<li><a href=\"/plot?experiment_name=" + self.experiment_name + "&type=parallel_coordinate\">Parallel_Coordinate</a></li></ul></li></ul>\n"\
+                        "</ul></details></td> </tr> \n"
             else:
-                addline = """ <tr> <td> """ + self.experiment_name + """ </td> <td> """ + exp_status + """ </td> <td>  No </td> </tr> \n"""
+                updaterow = " <tr> <td> " + self.experiment_name + " </td> <td> " + exp_status + " </td> <td>  No </td> </tr> \n"
 
             if exp_status == "Started":
                 with open(filename, 'r+') as f:
@@ -312,11 +312,11 @@ class HpoExperiment:
                 for i, line in enumerate(lines):
                     if exp_status == "Started":
                         if line.__contains__('<!--Add Experiments-->'):
-                            lines[i] = lines[i] + addline
+                            lines[i] = lines[i] + updaterow
                     elif exp_status == "Completed" or exp_status == "Stopped" or exp_status.__contains__("Running"):
                         if line.__contains__("<td> " + self.experiment_name + " </td>"):
                             lines[i] = ""
-                            lines[i] = lines[i] + addline
+                            lines[i] = lines[i] + updaterow
                     f.truncate()
                     f.seek(0)
                     # rewrite into the file
