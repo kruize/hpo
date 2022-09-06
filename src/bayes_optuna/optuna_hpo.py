@@ -285,7 +285,7 @@ class HpoExperiment:
                     </table> \n """
             if exp_status == "Completed":
                 updaterow = "<tr> <td> " + self.experiment_name + " </td> <td> " + exp_status + " </td>  \n"\
-                        "<td><details><summary> Yes! Check here </summary><ul> \n "\
+                        "<td><details><summary> Yes! Click here </summary><ul> \n "\
                         "<li><a href=\"/plot?experiment_name=" + self.experiment_name + "&type=tunable_importance\">Tunable_Importance</a></li>\n" \
                         "<li><a href=\"/plot?experiment_name=" + self.experiment_name + "&type=slice\">Slice</a></li>\n"\
                         "<li><a href=\"/plot?experiment_name=" + self.experiment_name + "&type=optimization_history\">Optimization History</a></li>\n"\
