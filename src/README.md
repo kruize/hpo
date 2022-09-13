@@ -2,7 +2,7 @@
 
 ## Entrypoint
 
-[`__main__.py`](./__main__.py) is the entrypoint for the ML module. Depending upon the value of `ml_algo_impl` received
+[`service.py`](./service.py) is the entrypoint for the ML module. Depending upon the value of `ml_algo_impl` received
 from [`tunables.get_all_tunables`](./tunables.py), the appropriate hyperparameter optimization library module is called
 to perform Bayesian Optimization.
 
