@@ -112,9 +112,11 @@ function native_terminate() {
 	check_err "Failed to stop HPO Service!"
 
 	# restore experiment.html after HPO terminates in native
-	# delete plots after HPO terminates
-	cp experiment_torestore.html experiment.html
-	rm -r plots experiment_torestore.html
+        mv experiment_torestore.html experiment.html
+        # delete plots after HPO terminates
+        if [ -d "plots" ]; then
+                rm -r plots
+        fi
 
 	echo
 	echo "### Successfully Terminated"
