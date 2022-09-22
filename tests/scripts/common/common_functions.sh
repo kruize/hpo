@@ -115,14 +115,14 @@ function deploy_hpo() {
   		sleep 2
 		echo "Capturing HPO service log into $3"
 		log=$3
-		docker logs hpo_docker_container > "${log}" 2>&1
+		docker logs -f hpo_docker_container > "${log}" 2>&1 &
 	elif [[ ${cluster_type} == "minikube" || ${cluster_type} == "openshift" ]]; then
 		sleep 2
 		echo "Capturing HPO service log into $3"
 		echo "Namespace = $namespace"
 		log=$3
 		hpo_pod=$(kubectl get pod -n ${namespace} | grep hpo | cut -d " " -f1)
-		kubectl -n ${namespace} logs -f ${hpo_pod} > "${log}" & 2>&1
+		kubectl -n ${namespace} logs -f ${hpo_pod} > "${log}" 2>&1 &
 	fi
 
 	popd > /dev/null
@@ -745,3 +745,77 @@ function curl_error_check() {
 	fi
 	echo "$response"
 }
+
+# Runs the experiment for the specified number of trial configs
+function hpo_run_experiment() {
+	exp_json=$1
+	experiment_trial=$2
+
+	experiment_name=$(echo ${exp_json} | jq '.search_space.experiment_name')
+	N_TRIALS=$(echo ${exp_json} | jq '.search_space.total_trials')
+	expected_http_code="200"
+
+	## Loop through the trials
+	for (( i=0 ; i<${N_TRIALS} ; i++ ))
+	do
+		j=$((i+1))
+		echo "j=$j"
+		echo ""
+		echo "*********************************** Trial ${i} *************************************"
+		LOG_="${TEST_DIR}/hpo-trial-${i}.log"
+		if [ ${i} == 0 ]; then
+			# Post the experiment
+			echo "Start a new experiment with the search space json..." | tee -a ${LOG}
+			# Replace the experiment name
+			current_name=$(echo ${experiment_name} | sed -e 's/"//g')
+			current_name="${current_name}-${experiment_trial}"
+			echo "current_name = ${current_name}"
+
+			json=$(echo ${exp_json} | sed 's/'${experiment_name}'/"'${current_name}'"/')
+			post_experiment_json "${json}"
+			verify_result "Post new experiment" "${http_code}" "${expected_http_code}"
+		fi
+
+		# Get the config from HPO
+		echo ""
+		echo "Generate the config for trial ${i}..." | tee -a ${LOG}
+		echo ""
+
+		curl="curl -H 'Accept: application/json'"
+		hpo_url="http://${SERVER_IP}:${PORT}/experiment_trials"
+		echo "hpo_url = ${hpo_url}"
+
+		get_trial_json=$(${curl} ''${hpo_url}'?experiment_name='${current_name}'&trial_number='${i}'' -w '\n%{http_code}' 2>&1)
+		get_trial_json_cmd="${curl} ${hpo_url}?experiment_name=${current_name}&trial_number=${i} -w '\n%{http_code}'"
+		echo "command used to query the experiment_trial API = ${get_trial_json_cmd}" | tee -a ${LOG}
+
+		# check for curl '000' error
+		curl_error_check
+	
+		result="${TEST_DIR}/hpo_config_${i}.json"
+		expected_json="${TEST_DIR}/expected_hpo_config_${i}.json"
+
+		echo "${response}" > ${result}
+		cat $result
+		verify_result "Get config from hpo trial ${i}" "${http_code}" "${expected_http_code}"
+
+		# Post the experiment result to hpo
+		echo "" | tee -a ${LOG}
+		echo "Post the experiment result for trial ${i}..." | tee -a ${LOG}
+		trial_result="success"
+		result_value=$((300 * $j))
+		exp_result_json='{"experiment_name":"'${current_name}'","trial_number":'${i}',"trial_result":"'${trial_result}'","result_value_type":"double","result_value":'${result_value}',"operation":"EXP_TRIAL_RESULT"}'
+		post_experiment_result_json ${exp_result_json}
+		verify_result "Post experiment result for trial ${i}" "${http_code}" "${expected_http_code}"
+
+		# Generate a subsequent trial
+		if [[ ${i} < $((N_TRIALS-1)) ]]; then
+			echo "" | tee -a ${LOG}
+			echo "Generate subsequent config after trial ${i} ..." | tee -a ${LOG}
+			subsequent_trial='{"experiment_name":"'${current_name}'","operation":"EXP_TRIAL_GENERATE_SUBSEQUENT"}'
+			post_experiment_json ${subsequent_trial}
+			verify_result "Post subsequent experiment after trial ${i}" "${http_code}" "${expected_http_code}"
+		fi
+	done
+}
+
