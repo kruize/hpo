@@ -31,13 +31,21 @@ class TrialDetails:
     A class containing the details of a trial such as trial number, tunable values suggested by Optuna, status of the
     experiment and the objective function value type and value.
     """
+    trial_number: int
+    trial_json_object: dict
+    trial_result_received: int
+    trial_result: str
+    result_value_type: str
+    result_value: float
 
-    trial_number = -1
-    trial_json_object = {}
-    trial_result_received = -1
-    trial_result = ""
-    result_value_type = ""
-    result_value = 0
+    def __init__(self, trial_number=-1,trial_json_object = {},trial_result_received = -1,trial_result = "",
+                 result_value_type = "",result_value = 0):
+        self.trial_number = trial_number
+        self.trial_json_object = trial_json_object
+        self.trial_result_received = trial_result_received
+        self.trial_result = trial_result
+        self.result_value_type = result_value_type
+        self.result_value = result_value
 
 
 class HpoExperiment:
@@ -54,16 +62,16 @@ class HpoExperiment:
     objective_function: str
     tunables: str
     value_type: str
-    trialDetails = TrialDetails()
-    resultsAvailableCond = threading.Condition()
-    experimentStartedCond = threading.Condition()
+    trialDetails: TrialDetails
+    resultsAvailableCond: threading.Condition
+    experimentStartedCond: threading.Condition
     isRunning = True
     started = False
     # recommended_config (json): A JSON containing the recommended config.
     recommended_config = {}
 
     def __init__(self, experiment_name, total_trials, parallel_trials, direction, hpo_algo_impl, id_,
-                 objective_function, tunables, value_type):
+                 objective_function, tunables, value_type, trialDetails):
         self.experiment_name = experiment_name
         self.total_trials = total_trials
         self.parallel_trials = parallel_trials
@@ -73,7 +81,9 @@ class HpoExperiment:
         self.objective_function = objective_function
         self.tunables = tunables
         self.value_type = value_type
-        self.trialDetails = TrialDetails()
+        self.trialDetails = trialDetails
+        self.resultsAvailableCond = threading.Condition()
+        self.experimentStartedCond = threading.Condition()
         self.thread = threading.Thread(target=self.recommend)
 
     def start(self) -> threading.Condition:

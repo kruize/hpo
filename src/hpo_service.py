@@ -37,9 +37,10 @@ class HpoService:
                       objective_function, tunables, value_type):
         try:
             self.expStateCond.acquire()
+            trial_details = optuna_hpo.TrialDetails()
             self.experiments[experiment_name] = optuna_hpo.HpoExperiment(experiment_name, total_trials, parallel_trials,
                                                                      direction, hpo_algo_impl, id_, objective_function,
-                                                                     tunables, value_type)
+                                                                     tunables, value_type, trial_details)
         finally:
             self.expStateCond.release()
 
