@@ -105,6 +105,10 @@ function openshift_terminate() {
 	echo "Removing hpo"
 	${kubectl_cmd} delete -f ${HPO_DEPLOY_MANIFEST} 2>/dev/null
 
+  echo
+	echo "Removing hpo-registry-secret"
+	${kubectl_cmd} delete secret hpo-registry-secret 2>/dev/null
+
 	echo
 	echo "Removing hpo service account"
 	${kubectl_cmd} delete -f ${HPO_SA_MANIFEST} 2>/dev/null
