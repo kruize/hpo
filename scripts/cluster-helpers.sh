@@ -208,6 +208,10 @@ function minikube_terminate() {
 	echo "Removing hpo"
 	${kubectl_cmd} delete -f ${HPO_DEPLOY_MANIFEST} 2>/dev/null
 
+  echo
+	echo "Removing hpo-registry-secret"
+	${kubectl_cmd} delete secret hpo-registry-secret 2>/dev/null
+
 	echo
 	echo "Removing hpo service account"
 	${kubectl_cmd} delete -f ${HPO_SA_MANIFEST} 2>/dev/null
@@ -323,11 +327,11 @@ function create_secret() {
 	namespace="$1"
 	echo
 	# create a kube secret each time app is deployed
-	kubectl create secret docker-registry hpodockersecret --docker-username="${REGISTRY_USERNAME}" \
+	kubectl create secret docker-registry hpo-registry-secret --docker-username="${REGISTRY_USERNAME}" \
 	--docker-server="${REGISTRY}" --docker-email="${REGISTRY_EMAIL}"  --docker-password="${REGISTRY_PASSWORD}" \
 	-n ${namespace}
 
 	echo
 	# link the secret to the service account
-	kubectl patch serviceaccount hpo-sa -p '{"imagePullSecrets": [{"name": "hpodockersecret"}]}' -n ${namespace}
+	kubectl patch serviceaccount hpo-sa -p '{"imagePullSecrets": [{"name": "hpo-registry-secret"}]}' -n ${namespace}
 }
