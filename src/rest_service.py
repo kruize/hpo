@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import re
 import cgi
@@ -183,6 +184,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 			logger.error(HPOErrorConstants.EXPERIMENT_EXISTS)
 			self._set_response(400, HPOErrorConstants.EXPERIMENT_EXISTS)
 		else:
+			logger.info("No. of threads running currently = "+str(threading.active_count()))
 			search_space_json = json_object["search_space"]
 			search_space = self.setDefaults(search_space_json)
 			if not search_space:
@@ -247,12 +249,13 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 		return error_msg
 
 	def validate_trialNumber(self, experiment_name, trial_number):
+		current_trial_number = hpo_service.instance.get_trial_number(experiment_name)
 		errorMsg = ""
-		if not trial_number == str(hpo_service.instance.get_trial_number(experiment_name)):
+		if not int(trial_number) == current_trial_number:
 			try:
 				if int(trial_number) < 0:
 					errorMsg = HPOErrorConstants.NEGATIVE_TRIAL
-				else:
+				elif int(trial_number) > current_trial_number:
 					errorMsg = HPOErrorConstants.TRIAL_EXCEEDED
 			except ValueError:
 				errorMsg = HPOErrorConstants.NON_INTEGER_VALUE
