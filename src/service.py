@@ -15,7 +15,7 @@ limitations under the License.
 """
 import sys
 
-import rest_service, grpc_service
+import rest_service
 import threading
 import signal
 from logger import get_logger
@@ -31,6 +31,7 @@ def main():
 
     logger.info('Starting HPO service')
     if len(sys.argv) == 1:
+        import grpc_service
         gRPCservice = threading.Thread(target=grpc_service.serve)
         gRPCservice.daemon = True
         gRPCservice.start()
