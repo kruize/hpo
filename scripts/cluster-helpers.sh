@@ -141,9 +141,11 @@ function minikube_start() {
 }
 
 function minikube_first() {
-	#Create a namespace
-	echo "Create hpo namespace ${hpo_ns}"
-	kubectl create namespace ${hpo_ns}
+	# Create namespace if it doesn't exist already
+	if [ ! "$(kubectl get namespace ${hpo_ns} 2>/dev/null)" ]; then
+	  echo "Create hpo namespace ${hpo_ns}"
+	  kubectl create namespace ${hpo_ns}
+  fi
 
 	echo
 	kubectl_cmd="kubectl -n ${hpo_ns}"
@@ -207,6 +209,13 @@ function minikube_terminate() {
 	echo
 	echo "Removing hpo"
 	${kubectl_cmd} delete -f ${HPO_DEPLOY_MANIFEST} 2>/dev/null
+
+  echo
+  # check if secret exists and remove accordingly
+  if [ "$(${kubectl_cmd} get secret hpo-registry-secret --ignore-not-found)" ]; then
+    echo "Removing hpo-registry-secret"
+    ${kubectl_cmd} delete secret hpo-registry-secret 2>/dev/null
+  fi
 
 	echo
 	echo "Removing hpo service account"
@@ -319,15 +328,16 @@ function check_prereq() {
 
 # create kubernetes secret
 function create_secret() {
-
-	namespace="$1"
-	echo
-	# create a kube secret each time app is deployed
-	kubectl create secret docker-registry hpodockersecret --docker-username="${REGISTRY_USERNAME}" \
-	--docker-server="${REGISTRY}" --docker-email="${REGISTRY_EMAIL}"  --docker-password="${REGISTRY_PASSWORD}" \
-	-n ${namespace}
-
-	echo
-	# link the secret to the service account
-	kubectl patch serviceaccount hpo-sa -p '{"imagePullSecrets": [{"name": "hpodockersecret"}]}' -n ${namespace}
+  #	For Minikube/Openshift, check if registry credentials are set as Env Variables and proceed for secret creation accordingly
+  if [ "${REGISTRY}" ] && [ "${REGISTRY_USERNAME}" ] && [ "${REGISTRY_PASSWORD}" ] && [ "${REGISTRY_EMAIL}" ]; then
+    namespace="$1"
+    echo
+    # create a kube secret each time app is deployed
+    kubectl create secret docker-registry hpo-registry-secret --docker-username="${REGISTRY_USERNAME}" \
+    --docker-server="${REGISTRY}" --docker-email="${REGISTRY_EMAIL}"  --docker-password="${REGISTRY_PASSWORD}" \
+    -n ${namespace}
+    echo
+    # link the secret to the service account
+    kubectl patch serviceaccount hpo-sa -p '{"imagePullSecrets": [{"name": "hpo-registry-secret"}]}' -n ${namespace}
+  fi
 }

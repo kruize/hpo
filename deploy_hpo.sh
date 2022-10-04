@@ -146,15 +146,6 @@ if [ ${setup} == 1 ]; then
 	if [ ${cluster_type} = "native" ]; then
 		${cluster_type}_start ${service_type}
 	else
-		# In case of Minikube and Openshift, check if registry credentials are set as Environment Variables
-		if [[ "${cluster_type}" == "minikube" || "${cluster_type}" == "openshift" ]]; then
-			if [ -z "${REGISTRY}" ] || [ -z "${REGISTRY_USERNAME}" ] || [ -z "${REGISTRY_PASSWORD}" ] || [ -z "${REGISTRY_EMAIL}" ]; then
-				echo
-				echo "You need to set the environment variables first for Kubernetes secret creation"
-				usage
-				exit -1
-			fi
-		fi
 		${cluster_type}_start
 	fi
 else
