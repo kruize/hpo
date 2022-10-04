@@ -328,6 +328,17 @@ function check_prereq() {
 
 # create kubernetes secret
 function create_secret() {
+
+	namespace="$1"
+	echo
+	# create a kube secret each time app is deployed
+	kubectl create secret docker-registry hpo-registry-secret --docker-username="${REGISTRY_USERNAME}" \
+	--docker-server="${REGISTRY}" --docker-email="${REGISTRY_EMAIL}"  --docker-password="${REGISTRY_PASSWORD}" \
+	-n ${namespace}
+
+	echo
+	# link the secret to the service account
+	kubectl patch serviceaccount hpo-sa -p '{"imagePullSecrets": [{"name": "hpo-registry-secret"}]}' -n ${namespace}
   #	For Minikube/Openshift, check if registry credentials are set as Env Variables and proceed for secret creation accordingly
   if [ "${REGISTRY}" ] && [ "${REGISTRY_USERNAME}" ] && [ "${REGISTRY_PASSWORD}" ] && [ "${REGISTRY_EMAIL}" ]; then
     namespace="$1"
