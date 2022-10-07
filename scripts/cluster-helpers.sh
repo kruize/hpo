@@ -95,7 +95,7 @@ function native_start() {
 	if [ "$1" = "REST" ]; then
 		python3 -u src/service.py "REST"
 	else
-		python3 -u src/service.py
+		python3 -u src/service.py "BOTH"
 	fi
 }
 

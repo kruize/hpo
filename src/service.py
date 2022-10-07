@@ -30,7 +30,7 @@ signal.signal(signal.SIGINT, signal_handler)
 def main():
 
     logger.info('Starting HPO service')
-    if len(sys.argv) == 1:
+    if sys.argv[1] == "BOTH":
         import grpc_service
         gRPCservice = threading.Thread(target=grpc_service.serve)
         gRPCservice.daemon = True
