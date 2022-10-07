@@ -20,9 +20,9 @@
 function openshift_first() {
 	# Create namespace if it doesn't exist already
 	if [ ! "$(kubectl get namespace ${hpo_ns} 2>/dev/null)" ]; then
-	  echo "Create hpo namespace ${hpo_ns}"
-	  kubectl create namespace ${hpo_ns}
-  fi
+		echo "Create hpo namespace ${hpo_ns}"
+		kubectl create namespace ${hpo_ns}
+	fi
 
 	echo
 	kubectl_cmd="kubectl -n ${hpo_ns}"
@@ -107,12 +107,12 @@ function openshift_terminate() {
 	echo "Removing hpo"
 	${kubectl_cmd} delete -f ${HPO_DEPLOY_MANIFEST} 2>/dev/null
 
-  echo
-  # check if secret exists and remove accordingly
-  if [ "$(${kubectl_cmd} get secret hpo-registry-secret --ignore-not-found)" ]; then
-    echo "Removing hpo-registry-secret"
-    ${kubectl_cmd} delete secret hpo-registry-secret 2>/dev/null
-  fi
+	echo
+	# check if secret exists and remove accordingly
+	if [ "$(${kubectl_cmd} get secret hpo-registry-secret --ignore-not-found)" ]; then
+		echo "Removing hpo-registry-secret"
+		${kubectl_cmd} delete secret hpo-registry-secret 2>/dev/null
+	fi
 
 	echo
 	echo "Removing hpo service account"
