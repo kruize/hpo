@@ -92,9 +92,9 @@ class HpoService(hpo_pb2_grpc.HpoServiceServicer):
             context.set_details('Invalid algorithm: %s' % request.hpo_algo_impl)
             return
 
-    def StopExperiment(self, request, context):
+    def DeleteExperiment(self, request, context):
         if hpo_service.instance.containsExperiment(request.experiment_name):
-            hpo_service.instance.stopExperiment(request.experiment_name)
+            hpo_service.instance.deleteExperiment(request.experiment_name)
         else:
             context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
             context.set_details('Invalid experiment name: %s' % request.experiment_name)
