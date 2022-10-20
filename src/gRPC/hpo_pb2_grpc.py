@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from . import hpo_pb2 as hpo__pb2
+import hpo_pb2 as hpo__pb2
 
 
 class HpoServiceStub(object):

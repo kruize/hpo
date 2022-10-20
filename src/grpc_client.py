@@ -96,7 +96,7 @@ def new(file):
 
 @main.command()
 @click.option("--name", prompt=" Experiment name", type=str)
-def stop(name):
+def delete(name):
     """Stop and remove running experiment"""
     expr: hpo_pb2.ExperimentNameParams = hpo_pb2.ExperimentNameParams()
     expr.experiment_name = name
