@@ -100,9 +100,9 @@ def stop(name):
     """Stop and remove running experiment"""
     expr: hpo_pb2.ExperimentNameParams = hpo_pb2.ExperimentNameParams()
     expr.experiment_name = name
-    fun = lambda stub: stub.StopExperiment(expr)
+    fun = lambda stub: stub.DeleteExperiment(expr)
     run(fun)
-    click.echo("Stopped: {}".format(name))
+    click.echo("Deleted: {}".format(name))
 
 
 @main.command()

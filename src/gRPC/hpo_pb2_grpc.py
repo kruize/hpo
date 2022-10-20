@@ -30,8 +30,8 @@ class HpoServiceStub(object):
                 request_serializer=hpo__pb2.ExperimentDetails.SerializeToString,
                 response_deserializer=hpo__pb2.NewExperimentsReply.FromString,
                 )
-        self.StopExperiment = channel.unary_unary(
-                '/helloworld.HpoService/StopExperiment',
+        self.DeleteExperiment = channel.unary_unary(
+                '/helloworld.HpoService/DeleteExperiment',
                 request_serializer=hpo__pb2.ExperimentNameParams.SerializeToString,
                 response_deserializer=hpo__pb2.ExperimentEmptyReply.FromString,
                 )
@@ -84,7 +84,7 @@ class HpoServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def StopExperiment(self, request, context):
+    def DeleteExperiment(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -138,8 +138,8 @@ def add_HpoServiceServicer_to_server(servicer, server):
                     request_deserializer=hpo__pb2.ExperimentDetails.FromString,
                     response_serializer=hpo__pb2.NewExperimentsReply.SerializeToString,
             ),
-            'StopExperiment': grpc.unary_unary_rpc_method_handler(
-                    servicer.StopExperiment,
+            'DeleteExperiment': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteExperiment,
                     request_deserializer=hpo__pb2.ExperimentNameParams.FromString,
                     response_serializer=hpo__pb2.ExperimentEmptyReply.SerializeToString,
             ),
@@ -231,7 +231,7 @@ class HpoService(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def StopExperiment(request,
+    def DeleteExperiment(request,
             target,
             options=(),
             channel_credentials=None,
@@ -241,7 +241,7 @@ class HpoService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/helloworld.HpoService/StopExperiment',
+        return grpc.experimental.unary_unary(request, target, '/helloworld.HpoService/DeleteExperiment',
             hpo__pb2.ExperimentNameParams.SerializeToString,
             hpo__pb2.ExperimentEmptyReply.FromString,
             options, channel_credentials,
