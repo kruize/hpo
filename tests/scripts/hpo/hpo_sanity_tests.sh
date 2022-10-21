@@ -88,7 +88,7 @@ function hpo_grpc_sanity_test() {
 	done
 
 	# Validate removing test
-	python ../src/grpc_client.py stop --name ${exp_name}
+	python ../src/grpc_client.py delete --name ${exp_name}
 	verify_grpc_result "Stop running experiment ${exp_name}" $?
 
 	# Terminate any running HPO servers
