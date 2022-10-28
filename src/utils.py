@@ -53,6 +53,7 @@ class HPOErrorConstants:
     INVALID_TOTAL_TRIALS = "Total trials should be greater than 0!"
     NEGATIVE_TRIAL = "Trial number cannot be negative!"
     TRIAL_EXCEEDED = "Requested trial exceeds the completed trial limit!"
+    TRIAL_PRECEDES = "Requested trial is already completed!"
     NON_INTEGER_VALUE = "Only Integer value is allowed!"
     NEGATIVE_VALUE = "result_value cannot be negative!"
     VALUE_TYPE_MISMATCH = "Value and value type do not match!"
