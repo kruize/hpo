@@ -148,18 +148,6 @@ function minikube_first() {
 	echo
 	kubectl_cmd="kubectl -n ${hpo_ns}"
 
-	echo "Info: One time setup - Create a service account to deploy hpo"
-	${kubectl_cmd} apply -f ${HPO_SA_MANIFEST}
-	check_err "Error: Failed to create service account and RBAC"
-
-	echo
-	sed -e "s|{{ HPO_NAMESPACE }}|${hpo_ns}|" ${HPO_RB_MANIFEST_TEMPLATE} > ${HPO_RB_MANIFEST}
-	${kubectl_cmd} apply -f ${HPO_RB_MANIFEST}
-	check_err "Error: Failed to create role binding"
-
-	echo
-	# call function to create kube secret
-	create_secret ${hpo_ns}
 }
 
 # You can deploy using kubectl
@@ -179,7 +167,7 @@ function minikube_deploy() {
 
 	# Included a sleep of 2 mins for hpo pods to come up
 	sleep 120
-	check_running hpo
+	check_running hpo minikube
 	if [ "${err}" != "0" ]; then
 		# Indicate deploy failed on error
 		exit 1
@@ -208,25 +196,12 @@ function minikube_terminate() {
 	echo "Removing hpo"
 	${kubectl_cmd} delete -f ${HPO_DEPLOY_MANIFEST} 2>/dev/null
 
-  echo
-	echo "Removing hpo-registry-secret"
-	${kubectl_cmd} delete secret hpo-registry-secret 2>/dev/null
-
-	echo
-	echo "Removing hpo service account"
-	${kubectl_cmd} delete -f ${HPO_SA_MANIFEST} 2>/dev/null
-
-	echo
-	echo "Removing hpo rolebinding"
-	${kubectl_cmd} delete -f ${HPO_RB_MANIFEST} 2>/dev/null
-
 	echo
 	echo "Removing HPO configmap"
 	${kubectl_cmd} delete -f ${HPO_CONFIGMAPS}/${cluster_type}-config.yaml 2>/dev/null
 
 	echo
 	rm ${HPO_DEPLOY_MANIFEST}
-	rm ${HPO_RB_MANIFEST}
 
 	echo
 	if [ ${hpo_ns} != "monitoring" ]; then
@@ -241,6 +216,7 @@ function minikube_terminate() {
 function check_running() {
 
 	check_pod=$1
+	cluster_type=$2
 	kubectl_cmd="kubectl -n ${hpo_ns}"
 
 	echo "Info: Waiting for ${check_pod} to come up..."
@@ -271,7 +247,7 @@ function check_running() {
 					echo
 					echo "Failed to deploy HPO! Reverting changes and Exiting..."
 					echo
-					minikube_terminate
+					"${cluster_type}"_terminate
 					exit 1
 				else
 					continue;
@@ -319,19 +295,4 @@ function check_prereq() {
 			exit -1
 		fi
 	fi
-}
-
-# create kubernetes secret
-function create_secret() {
-
-	namespace="$1"
-	echo
-	# create a kube secret each time app is deployed
-	kubectl create secret docker-registry hpo-registry-secret --docker-username="${REGISTRY_USERNAME}" \
-	--docker-server="${REGISTRY}" --docker-email="${REGISTRY_EMAIL}"  --docker-password="${REGISTRY_PASSWORD}" \
-	-n ${namespace}
-
-	echo
-	# link the secret to the service account
-	kubectl patch serviceaccount hpo-sa -p '{"imagePullSecrets": [{"name": "hpo-registry-secret"}]}' -n ${namespace}
 }
