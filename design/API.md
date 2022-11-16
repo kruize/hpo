@@ -99,29 +99,33 @@ Status code   Response body
 Here is an example Search Space JSON
 ```
 {
-  "experiment_name": "petclinic-sample-2-75884c5549-npvgd",
-  "total_trials": 100,
-  "parallel_trials": 1,
-  "hpo_algo_impl": "optuna_tpe",
-  "objective_function": "transaction_response_time",
-  "value_type": "double",
-  "direction": "minimize",
-  "tunables": [
-    {
-      "value_type": "double",
-      "lower_bound": 150,
-      "name": "memoryRequest",
-      "upper_bound": 300,
-      "step": 1
-    },
-    {
-      "value_type": "double",
-      "lower_bound": 1.0,
-      "name": "cpuRequest",
-      "upper_bound": 3.0,
-      "step": 0.01
-    }
-  ]
+  "operation": "EXP_TRIAL_GENERATE_NEW",
+  "search_space": {
+    "experiment_name": "<ENTER EXPERIMENT NAME>",
+    "experiment_id": "a123",
+    "total_trials": 5,
+    "parallel_trials": 1,
+    "value_type": "double",
+    "hpo_algo_impl": "optuna_tpe",
+    "objective_function": "transaction_response_time",
+    "tunables": [
+      {
+        "value_type": "double",
+        "lower_bound": 150,
+        "name": "memoryRequest",
+        "upper_bound": 300,
+        "step": 1
+      },
+      {
+        "value_type": "double",
+        "lower_bound": 1,
+        "name": "cpuRequest",
+        "upper_bound": 3,
+        "step": 0.01
+      }
+    ],
+    "direction": "minimize"
+  }
 }
 ```
 
