@@ -2,7 +2,7 @@
 The Kruize HPO REST API design is as follows
 
 ##  Start an Experiment
-Start a new Experiment with Kruize HPO. This requires a valid Search Space JSON to be passed in.
+Start a new Experiment with Kruize HPO. This requires a valid Search Space JSON to be passed in. We can use curl or any REST clients like Postman, ARC etc
 
 ```
 'POST /experiment_trials'
@@ -19,6 +19,40 @@ Status code   Response body
 200            trial_number
 400            Corresponding error message for Bad request
 404            Resource not found    
+```
+
+## Search Space JSON
+Here is an example Search Space JSON
+```
+{
+  "operation": "EXP_TRIAL_GENERATE_NEW",
+  "search_space": {
+    "experiment_name": "<ENTER EXPERIMENT NAME>",
+    "experiment_id": "a123",
+    "total_trials": 5,
+    "parallel_trials": 1,
+    "value_type": "double",
+    "hpo_algo_impl": "optuna_tpe",
+    "objective_function": "transaction_response_time",
+    "tunables": [
+      {
+        "value_type": "double",
+        "lower_bound": 150,
+        "name": "memoryRequest",
+        "upper_bound": 300,
+        "step": 1
+      },
+      {
+        "value_type": "double",
+        "lower_bound": 1,
+        "name": "cpuRequest",
+        "upper_bound": 3,
+        "step": 0.01
+      }
+    ],
+    "direction": "minimize"
+  }
+}
 ```
 
 ## Get a Trial JSON object
@@ -93,40 +127,6 @@ Status code   Response body
 200            trial_number
 400            Corresponding error message for Bad request
 404            Experiment/Resource not found
-```
-
-## Search Space JSON
-Here is an example Search Space JSON
-```
-{
-  "operation": "EXP_TRIAL_GENERATE_NEW",
-  "search_space": {
-    "experiment_name": "<ENTER EXPERIMENT NAME>",
-    "experiment_id": "a123",
-    "total_trials": 5,
-    "parallel_trials": 1,
-    "value_type": "double",
-    "hpo_algo_impl": "optuna_tpe",
-    "objective_function": "transaction_response_time",
-    "tunables": [
-      {
-        "value_type": "double",
-        "lower_bound": 150,
-        "name": "memoryRequest",
-        "upper_bound": 300,
-        "step": 1
-      },
-      {
-        "value_type": "double",
-        "lower_bound": 1,
-        "name": "cpuRequest",
-        "upper_bound": 3,
-        "step": 0.01
-      }
-    ],
-    "direction": "minimize"
-  }
-}
 ```
 
 ## Stop experiment
