@@ -61,7 +61,7 @@ function openshift_deploy() {
 	${kubectl_cmd} apply -f ${HPO_DEPLOY_MANIFEST}
 	echo
 	sleep 2
-	check_running hpo
+	check_running hpo ${hpo_ns}
 	if [ "${err}" != "0" ]; then
 		# Indicate deploy failed on error
 		exit 1
