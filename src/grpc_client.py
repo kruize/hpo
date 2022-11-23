@@ -97,7 +97,7 @@ def new(file):
 @main.command()
 @click.option("--name", prompt=" Experiment name", type=str)
 def delete(name):
-    """Stop and remove running experiment"""
+    """Delete an experiment"""
     expr: hpo_pb2.ExperimentNameParams = hpo_pb2.ExperimentNameParams()
     expr.experiment_name = name
     fun = lambda stub: stub.DeleteExperiment(expr)
@@ -149,7 +149,7 @@ def next(name):
 @main.command()
 @click.option("--name", prompt=" Enter name", type=str)
 def recommended(name):
-    """Generate next configuration set for running experiment"""
+    """Generate recommended configuration set for experiment"""
     experiment: hpo_pb2.ExperimentNameParams = hpo_pb2.ExperimentNameParams()
     experiment.experiment_name = name
     fun = lambda stub : stub.GetRecommendedConfig(experiment)
