@@ -29,6 +29,8 @@ jobs:
         run: |
           echo Installing grpcio package
           pip install grpcio
+          echo checking installed python packages..
+          pip freeze
           echo Running GRPC sanity test on docker
           ls
           cd tests

@@ -43,6 +43,7 @@ service_type="both"
 # source the helpers script
 . ${SCRIPTS_DIR}/cluster-helpers.sh
 . ${SCRIPTS_DIR}/openshift-helpers.sh
+. ${SCRIPTS_DIR}/common_utils.sh
 
 function usage() {
 	echo
