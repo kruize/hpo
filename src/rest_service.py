@@ -257,6 +257,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 					errorMsg = HPOErrorConstants.NEGATIVE_TRIAL
 				elif int(trial_number) > current_trial_number:
 					errorMsg = HPOErrorConstants.TRIAL_EXCEEDED
+				else:
+					errorMsg = HPOErrorConstants.TRIAL_PRECEDES
 			except ValueError:
 				errorMsg = HPOErrorConstants.NON_INTEGER_VALUE
 

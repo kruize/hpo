@@ -74,7 +74,7 @@ You can run a specific version of the Kruize HPO container
 
 ## How to make use of Kruize HPO for my use case?
 
-We would recomment that you start with the [hpo\_demo\_setup.sh](https://github.com/kruize/kruize-demos/blob/main/hpo_demo_setup.sh) script and customize it for your use case.
+We would recommend that you start with the [hpo\_demo\_setup.sh](https://github.com/kruize/kruize-demos/blob/main/hpo_demo_setup.sh) script and customize it for your use case.
 
 ## Contributing
 

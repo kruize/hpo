@@ -95,7 +95,7 @@ function native_start() {
 	if [ "$1" = "REST" ]; then
 		python3 -u src/service.py "REST"
 	else
-		python3 -u src/service.py
+		python3 -u src/service.py "BOTH"
 	fi
 }
 
@@ -141,9 +141,11 @@ function minikube_start() {
 }
 
 function minikube_first() {
-	#Create a namespace
-	echo "Create hpo namespace ${hpo_ns}"
-	kubectl create namespace ${hpo_ns}
+	# Create namespace if it doesn't exist already
+	if [ ! "$(kubectl get namespace ${hpo_ns} 2>/dev/null)" ]; then
+		echo "Create hpo namespace ${hpo_ns}"
+		kubectl create namespace ${hpo_ns}
+	fi
 
 	echo
 	kubectl_cmd="kubectl -n ${hpo_ns}"
@@ -294,5 +296,21 @@ function check_prereq() {
 			echo
 			exit -1
 		fi
+	fi
+}
+
+# create kubernetes secret
+function create_secret() {
+	#	For Minikube/Openshift, check if registry credentials are set as Env Variables and proceed for secret creation accordingly
+	if [ "${REGISTRY}" ] && [ "${REGISTRY_USERNAME}" ] && [ "${REGISTRY_PASSWORD}" ] && [ "${REGISTRY_EMAIL}" ]; then
+		namespace="$1"
+		echo
+		# create a kube secret each time app is deployed
+		kubectl create secret docker-registry hpo-registry-secret --docker-username="${REGISTRY_USERNAME}" \
+		--docker-server="${REGISTRY}" --docker-email="${REGISTRY_EMAIL}"  --docker-password="${REGISTRY_PASSWORD}" \
+		-n ${namespace}
+		echo
+		# link the secret to the service account
+		kubectl patch serviceaccount hpo-sa -p '{"imagePullSecrets": [{"name": "hpo-registry-secret"}]}' -n ${namespace}
 	fi
 }

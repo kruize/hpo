@@ -18,9 +18,11 @@
 ###############################  v OPENSHIFT v #################################
 
 function openshift_first() {
-	#Create a namespace
-	echo "Create hpo namespace ${hpo_ns}"
-	kubectl create namespace ${hpo_ns}
+	# Create namespace if it doesn't exist already
+	if [ ! "$(kubectl get namespace ${hpo_ns} 2>/dev/null)" ]; then
+		echo "Create hpo namespace ${hpo_ns}"
+		kubectl create namespace ${hpo_ns}
+	fi
 
 	echo
 	kubectl_cmd="kubectl -n ${hpo_ns}"

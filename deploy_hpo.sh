@@ -141,15 +141,6 @@ fi
 SERVICE_STATUS_NATIVE=$(ps -u | grep service.py | grep -v grep)
 SERVICE_STATUS_DOCKER=$(${CONTAINER_RUNTIME} ps | grep hpo_docker_container)
 
-# In case of Minikube and Openshift, check if registry credentials are set as Environment Variables
-if [[ "${cluster_type}" == "minikube" || "${cluster_type}" == "openshift" ]]; then
-	if [ -z "${REGISTRY}" ] || [ -z "${REGISTRY_USERNAME}" ] || [ -z "${REGISTRY_PASSWORD}" ] || [ -z "${REGISTRY_EMAIL}" ]; then
-		echo "You need to set the environment variables first for Kubernetes secret creation"
-		usage
-		exit -1
-	fi
-fi
-
 # Call the proper setup function based on the cluster_type
 if [ ${setup} == 1 ]; then
 	if [ ${cluster_type} = "native" ]; then

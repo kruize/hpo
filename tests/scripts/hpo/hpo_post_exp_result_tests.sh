@@ -70,7 +70,7 @@ function post_duplicate_exp_result() {
 
 		actual_result="${http_code}"
 		expected_result_="400"
-		expected_behaviour="Requested trial exceeds the completed trial limit"
+		expected_behaviour="Requested trial is already completed"
 
 		# Extract the lines from the service log after log_length_before_test
 		extract_lines=`expr ${log_length_before_test} + 1`
@@ -109,7 +109,7 @@ function post_same_id_different_exp_result() {
 
 		actual_result="${http_code}"
 		expected_result_="400"
-		expected_behaviour="Requested trial exceeds the completed trial limit"
+		expected_behaviour="Requested trial is already completed"
 
 		# Extract the lines from the service log after log_length_before_test
 		extract_lines=`expr ${log_length_before_test} + 1`
