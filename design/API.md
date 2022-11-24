@@ -130,7 +130,7 @@ Status code   Response body
 ```
 
 ## Delete experiment
-Delete an experiment. Data/plots available for the experiment also gets deleted.
+Deletes an experiment(running or completed). Data/plots available for the experiment also gets deleted.
 
 ```
 'POST /experiment_trials'
