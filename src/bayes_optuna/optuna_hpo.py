@@ -19,6 +19,7 @@ import optuna
 import threading
 import json
 import pathlib
+import shutil
 
 from logger import get_logger
 
@@ -218,13 +219,14 @@ class HpoExperiment:
             logger.info("RECOMMENDED CONFIG: " + str(self.recommended_config))
         except:
             logger.warn("Experiment stopped: " + str(self.experiment_name))
+            self.updateExperimentHtml("Stopped")
 
-    def stop(self):
+    def delete(self):
         try:
             self.resultsAvailableCond.acquire()
             self.isRunning = False
-            # Update experiment html that it has stopped.
-            self.updateExperimentHtml("Stopped")
+            # Update experiment html that it has deleted.
+            self.updateExperimentHtml("Deleted")
             self.resultsAvailableCond.notify()
         finally:
             self.resultsAvailableCond.release()
@@ -285,6 +287,16 @@ class HpoExperiment:
             except:
                 logger.warn("Issues creating " + plot_type + " html file")
 
+    def delete_plots(self):
+        try:
+            dirName = "plots/" + self.experiment_name
+            plotsDir = os.path.dirname(os.path.realpath(dirName))
+            exp_plots = os.path.join(plotsDir, self.experiment_name)
+            shutil.rmtree(exp_plots)
+            logger.info("Plots of experiment " + self.experiment_name + " are deleted.")
+        except:
+            logger.warn("Issue deleting the plots of " + self.experiment_name + " experiment")
+
     def updateExperimentHtml(self, exp_status):
         try:
             self.resultsAvailableCond.acquire()
@@ -295,13 +307,16 @@ class HpoExperiment:
                     <!--Add Experiments--> \n
                     </table> \n """
             if exp_status == "Completed":
-                updaterow = "<tr> <td> " + self.experiment_name + " </td> <td> " + exp_status + " </td>  \n"\
-                        "<td><details><summary> Yes! Click here </summary><ul> \n "\
-                        "<li><a href=\"/plot?experiment_name=" + self.experiment_name + "&type=tunable_importance\">Tunable_Importance</a></li>\n" \
-                        "<li><a href=\"/plot?experiment_name=" + self.experiment_name + "&type=slice\">Slice</a></li>\n"\
-                        "<li><a href=\"/plot?experiment_name=" + self.experiment_name + "&type=optimization_history\">Optimization History</a></li>\n"\
-                        "<li><a href=\"/plot?experiment_name=" + self.experiment_name + "&type=parallel_coordinate\">Parallel_Coordinate</a></li></ul></li></ul>\n"\
+                updaterow = "<tr> <td> " + self.experiment_name + " </td> <td> " + exp_status + " </td> "\
+                        "<td><details><summary> Yes! Click here </summary><ul> "\
+                        "<li><a href=\"/plot?experiment_name=" + self.experiment_name + "&type=tunable_importance\">Tunable_Importance</a></li>" \
+                        "<li><a href=\"/plot?experiment_name=" + self.experiment_name + "&type=slice\">Slice</a></li>"\
+                        "<li><a href=\"/plot?experiment_name=" + self.experiment_name + "&type=optimization_history\">Optimization History</a></li>"\
+                        "<li><a href=\"/plot?experiment_name=" + self.experiment_name + "&type=parallel_coordinate\">Parallel_Coordinate</a></li></ul></li></ul>"\
                         "</ul></details></td> </tr> \n"
+            elif exp_status == "Deleted":
+                self.delete_plots()
+                updaterow = " "
             else:
                 updaterow = " <tr> <td> " + self.experiment_name + " </td> <td> " + exp_status + " </td> <td>  No </td> </tr> \n"
 
@@ -324,7 +339,7 @@ class HpoExperiment:
                     if exp_status == "Started":
                         if line.__contains__('<!--Add Experiments-->'):
                             lines[i] = lines[i] + updaterow
-                    elif exp_status == "Completed" or exp_status == "Stopped" or exp_status.__contains__("Running"):
+                    elif exp_status == "Completed" or exp_status == "Deleted" or exp_status == "Stopped" or exp_status.__contains__("Running"):
                         if line.__contains__("<td> " + self.experiment_name + " </td>"):
                             lines[i] = ""
                             lines[i] = lines[i] + updaterow
@@ -387,6 +402,7 @@ class Objective(TrialDetails):
 
             logger.debug("Experiment tunables: " + str(experiment_tunables))
             self.experiment.trialDetails.trial_json_object = experiment_tunables
+
         finally:
             self.experiment.resultsAvailableCond.release()
 

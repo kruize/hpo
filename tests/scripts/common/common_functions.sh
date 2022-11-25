@@ -504,7 +504,7 @@ function stop_experiment() {
 
 	form_hpo_api_url "experiment_trials"
 
-	remove_experiment='{"experiment_name":'${exp_name}',"operation":"EXP_STOP"}'
+	remove_experiment='{"experiment_name":'${exp_name}',"operation":"EXP_DELETE"}'
 
 	post_cmd=$(curl -s -H 'Content-Type: application/json' ${hpo_url}  -d "${remove_experiment}"  -w '\n%{http_code}' 2>&1)
 

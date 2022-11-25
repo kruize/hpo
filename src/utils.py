@@ -67,4 +67,4 @@ class HPOMessages:
     EXPERIMENT_STATUS="Experiment posted successfully! "
     RESULT_STATUS = "Result posted successfully!"
     TRIAL_COMPLETION_STATUS = "Trials completed for experiment: "
-    EXPERIMENT_STOP = "Experiment stopped!"
+    EXPERIMENT_DELETE = "Experiment deleted!"

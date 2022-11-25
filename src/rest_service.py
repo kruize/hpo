@@ -86,8 +86,8 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 						self.handle_generate_subsequent_operation(json_object)
 					elif json_object["operation"] == "EXP_TRIAL_RESULT":
 						self.handle_result_operation(json_object)
-					elif json_object["operation"] == "EXP_STOP":
-						self.handle_stop_operation(json_object)
+					elif json_object["operation"] == "EXP_DELETE":
+						self.handle_delete_operation(json_object)
 					else:
 						self._set_response(400, HPOErrorConstants.INVALID_OPERATION)
 			else:
@@ -276,11 +276,11 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
 		return errorMsg
 
-	def handle_stop_operation(self, json_object):
-		"""Process EXP_STOP operation."""
+	def handle_delete_operation(self, json_object):
+		"""Process EXP_DELETE operation."""
 		if hpo_service.instance.containsExperiment(json_object["experiment_name"]):
-			hpo_service.instance.stopExperiment(json_object["experiment_name"])
-			self._set_response(200, HPOMessages.EXPERIMENT_STOP)
+			hpo_service.instance.deleteExperiment(json_object["experiment_name"])
+			self._set_response(200, HPOMessages.EXPERIMENT_DELETE)
 		else:
 			self._set_response(404, HPOErrorConstants.EXPERIMENT_NOT_FOUND)
 

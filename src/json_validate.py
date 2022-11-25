@@ -37,13 +37,13 @@ result_trial_schema = {
     "additionalProperties": False
 }
 
-stop_experiment_schema = {
+delete_experiment_schema = {
     "type": "object",
     "properties": {
         "experiment_name": {"type": "string"},
         "operation": {
             "enum": [
-                "EXP_STOP"
+                "EXP_DELETE"
             ]
         }
     },
@@ -108,8 +108,8 @@ def validate_trial_generate_json(trial_generate_json):
                      format_checker=draft7_format_checker)
         elif trial_generate_json["operation"] == "EXP_TRIAL_RESULT":
             validate(instance=trial_generate_json, schema=result_trial_schema, format_checker=draft7_format_checker)
-        elif trial_generate_json["operation"] == "EXP_STOP":
-            validate(instance=trial_generate_json, schema=stop_experiment_schema, format_checker=draft7_format_checker)
+        elif trial_generate_json["operation"] == "EXP_DELETE":
+            validate(instance=trial_generate_json, schema=delete_experiment_schema, format_checker=draft7_format_checker)
         elif not str(trial_generate_json["operation"]) or not str(trial_generate_json["operation"]).strip() or \
                 trial_generate_json["operation"] is None:
             errorMsg = "Parameters" + HPOErrorConstants.VALUE_MISSING

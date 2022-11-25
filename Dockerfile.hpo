@@ -21,23 +21,24 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal:8.4
 
 ARG HPO_VERSION
 ARG USER=hpo
-# This UID is referenced n the SCC file while deploying it in the openshift
 ARG UID=1001
 ARG HPO_HOME=/home/$USER
+WORKDIR $HPO_HOME/app
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=off \
     # make sure all files and modules are accessible by the user
-    PATH=$HPO_HOME/.local/bin:$HPO_HOME/bin:$PATH \
-    PYTHONUSERBASE=$HPO_HOME/.local
+    PATH=$HPO_HOME/app/.local/bin:$HPO_HOME/app/bin:$PATH \
+    PYTHONUSERBASE=$HPO_HOME/app/.local
 
 # Install packages needed for python to function correctly
 RUN microdnf install -y python39 gcc-c++ python39-devel python39-pip\
     && microdnf update -y \
     && microdnf -y install shadow-utils \
     # Setup the user for non-arbitrary UIDs with OpenShift
-    && useradd -d ${HPO_HOME} -u ${UID} -m -s /bin/bash ${USER} \
-    && chmod -R g+rwx ${HPO_HOME} \
+    && useradd -u ${UID} -s /usr/sbin/nologin default \
+    && chown -R ${UID}:0 ${HPO_HOME}/app \
+    && chmod -R g+rw ${HPO_HOME}/app \
     && microdnf -y remove shadow-utils \
     && microdnf clean all
 
@@ -45,12 +46,11 @@ RUN microdnf install -y python39 gcc-c++ python39-devel python39-pip\
 USER ${UID}
 
 # copy the requirements file to the app directory to install required modules
-COPY --chown=${USER} requirements.txt index.html experiment.html ${HPO_HOME}/app/
+COPY --chown=${UID}:0 requirements.txt index.html experiment.html ${HPO_HOME}/app/
 
 # Copy ML hyperparameter tuning code
-COPY --chown=${USER} src ${HPO_HOME}/app/src/
+COPY --chown=${UID}:0 src ${HPO_HOME}/app/src/
 
-WORKDIR ${HPO_HOME}/app
 # Install required python packages
 RUN python3 -m pip install --user --no-cache-dir --upgrade pip \
     && python3 -m pip install --user --no-cache-dir --requirement ${HPO_HOME}/app/requirements.txt
@@ -63,7 +63,6 @@ LABEL name="Kruize HPO" \
       summary="Docker Image for HPO with ubi-minimal" \
       description="For more information on this image please see https://github.com/kruize/hpo/blob/main/README.md"
 
-EXPOSE 8085
-EXPOSE 50051
+EXPOSE 8085 50051
 
 ENTRYPOINT python3 -u src/service.py

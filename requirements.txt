@@ -4,5 +4,5 @@ scikit-optimize
 jsonschema
 grpcio
 click
-protobuf==3.19.4
+protobuf==4.21.8
 plotly
