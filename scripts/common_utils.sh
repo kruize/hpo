@@ -19,20 +19,20 @@
 
 function check_running() {
 
-	check_pod=$1
-	check_pod_ns=$2
+	check_pod_ns=$1
+	cluster_type=$2
 	kubectl_cmd="kubectl -n ${check_pod_ns}"
 
-	echo "Info: Waiting for ${check_pod} to come up..."
+	echo "Info: Waiting for hpo to come up..."
 	err_wait=0
 	while true;
 	do
 		sleep 2
-		${kubectl_cmd} get pods | grep ${check_pod}
-		pod_stat=$(${kubectl_cmd} get pods | grep ${check_pod} | awk '{ print $3 }')
+		${kubectl_cmd} get pods | grep hpo
+		pod_stat=$(${kubectl_cmd} get pods | grep hpo | awk '{ print $3 }')
 		case "${pod_stat}" in
 			"Running")
-				echo "Info: ${check_pod} deploy succeeded: ${pod_stat}"
+				echo "Info: hpo deploy succeeded: ${pod_stat}"
 				err=0
 				break;
 				;;
@@ -40,7 +40,7 @@ function check_running() {
 				# On Error, wait for 10 seconds before exiting.
 				err_wait=$(( err_wait + 1 ))
 				if [ ${err_wait} -gt 5 ]; then
-					echo "Error: ${check_pod} deploy failed: ${pod_stat}"
+					echo "Error: hpo deploy failed: ${pod_stat}"
 					err=-1
 					break;
 				fi
@@ -51,7 +51,7 @@ function check_running() {
 					echo
 					echo "Failed to deploy HPO! Reverting changes and Exiting..."
 					echo
-					minikube_terminate
+					"${cluster_type}"_terminate
 					exit 1
 				else
 					continue;
@@ -60,7 +60,7 @@ function check_running() {
 		esac
 	done
 
-	${kubectl_cmd} get pods | grep ${check_pod}
+	${kubectl_cmd} get pods | grep hpo
 	echo
 }
 
