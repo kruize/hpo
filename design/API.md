@@ -129,8 +129,8 @@ Status code   Response body
 404            Experiment/Resource not found
 ```
 
-## Stop experiment
-Stop a running experiment before the experiment has finished
+## Delete experiment
+Deletes an experiment(running or completed). Data/plots available for the experiment also gets deleted.
 
 ```
 'POST /experiment_trials'
@@ -138,7 +138,7 @@ Stop a running experiment before the experiment has finished
 
 curl -H 'Content-Type: application/json' http://<URL>:<PORT>/experiment_trials -d 
 '{
-    "operation": EXP_STOP",
+    "operation": EXP_DELETE",
     "experiment_name" : "name"
 }'
 

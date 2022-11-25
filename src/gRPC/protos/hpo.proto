@@ -27,7 +27,7 @@ service HpoService {
   rpc NumberExperiments(NumberExperimentsParams) returns (NumberExperimentsReply) {}
   rpc ExperimentsList(ExperimentsListParams) returns (ExperimentsListReply) {}
   rpc NewExperiment(ExperimentDetails) returns (NewExperimentsReply) {}
-  rpc StopExperiment(ExperimentNameParams) returns (ExperimentEmptyReply) {}
+  rpc DeleteExperiment(ExperimentNameParams) returns (ExperimentEmptyReply) {}
   rpc GetExperimentDetails(ExperimentNameParams) returns (ExperimentDetails) {}
   rpc GetTrialConfig(ExperimentTrial) returns (TrialConfig) {}
   rpc UpdateTrialResult(ExperimentTrialResult) returns (ExperimentEmptyReply) {}

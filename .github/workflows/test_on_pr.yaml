@@ -29,6 +29,8 @@ jobs:
         run: |
           echo Installing grpcio package
           pip install grpcio
+          echo Install protobuf 4.21.8
+          pip install protobuf==4.21.8
           echo Running GRPC sanity test on docker
           ls
           cd tests

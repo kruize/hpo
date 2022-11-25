@@ -64,14 +64,15 @@ Options:
   --help  Show this message and exit.
 
 Commands:
-  config  Obtain a configuration set for a particular experiment trial
-  count   Return a count of experiments currently running
-  list    List names of all experiments currently running
-  new     Create a new experiment
-  next    Generate next configuration set for running experiment
-  result  Update results for a particular experiment trial
-  show    Show details of running experiment
-
+  config       Obtain a configuration set for a particular experiment trail
+  count        Return a count of experiments currently running
+  delete       Delete an experiment
+  list         List names of all experiments currently running
+  new          Create a new experiment
+  next         Generate next configuration set for running experiment
+  recommended  Generate recommended configuration set for experiment
+  result       Update results for a particular experiment trail
+  show         Show details of running experiment
 ```
 
 Commands provide interactive input for params or allow users to set params on the command line for scripted use;
