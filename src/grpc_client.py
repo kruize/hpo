@@ -96,13 +96,13 @@ def new(file):
 
 @main.command()
 @click.option("--name", prompt=" Experiment name", type=str)
-def stop(name):
-    """Stop and remove running experiment"""
+def delete(name):
+    """Delete an experiment"""
     expr: hpo_pb2.ExperimentNameParams = hpo_pb2.ExperimentNameParams()
     expr.experiment_name = name
-    fun = lambda stub: stub.StopExperiment(expr)
+    fun = lambda stub: stub.DeleteExperiment(expr)
     run(fun)
-    click.echo("Stopped: {}".format(name))
+    click.echo("Deleted: {}".format(name))
 
 
 @main.command()
@@ -149,7 +149,7 @@ def next(name):
 @main.command()
 @click.option("--name", prompt=" Enter name", type=str)
 def recommended(name):
-    """Generate next configuration set for running experiment"""
+    """Generate recommended configuration set for experiment"""
     experiment: hpo_pb2.ExperimentNameParams = hpo_pb2.ExperimentNameParams()
     experiment.experiment_name = name
     fun = lambda stub : stub.GetRecommendedConfig(experiment)

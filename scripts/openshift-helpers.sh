@@ -27,23 +27,6 @@ function openshift_first() {
 	echo
 	kubectl_cmd="kubectl -n ${hpo_ns}"
 
-	echo
-	echo "Info:  Create SCC "
-	${kubectl_cmd} apply -f ${HPO_SCC}
-
-	echo
-	echo "Info: One time setup - Create a service account to deploy hpo"
-	${kubectl_cmd} apply -f ${HPO_SA_MANIFEST}
-	check_err "Error: Failed to create service account and RBAC"
-
-	echo
-	sed -e "s|{{ HPO_NAMESPACE }}|${hpo_ns}|" ${HPO_RB_MANIFEST_TEMPLATE} > ${HPO_RB_MANIFEST}
-	${kubectl_cmd} apply -f ${HPO_RB_MANIFEST}
-	check_err "Error: Failed to create role binding"
-
-	echo
-	# call function to create kube secret
-	create_secret ${hpo_ns}
 }
 
 # You can deploy using kubectl
@@ -62,6 +45,7 @@ function openshift_deploy() {
 	echo
 	sleep 2
 	check_running hpo ${hpo_ns}
+	check_running hpo openshift
 	if [ "${err}" != "0" ]; then
 		# Indicate deploy failed on error
 		exit 1
@@ -108,31 +92,11 @@ function openshift_terminate() {
 	${kubectl_cmd} delete -f ${HPO_DEPLOY_MANIFEST} 2>/dev/null
 
 	echo
-	# check if secret exists and remove accordingly
-	if [ "$(${kubectl_cmd} get secret hpo-registry-secret --ignore-not-found)" ]; then
-		echo "Removing hpo-registry-secret"
-		${kubectl_cmd} delete secret hpo-registry-secret 2>/dev/null
-	fi
-
-	echo
-	echo "Removing hpo service account"
-	${kubectl_cmd} delete -f ${HPO_SA_MANIFEST} 2>/dev/null
-
-	echo
-	echo "Removing hpo SCC"
-	${kubectl_cmd} delete -f ${HPO_SCC} 2>/dev/null
-
-	echo
-	echo "Removing hpo rolebinding"
-	${kubectl_cmd} delete -f ${HPO_RB_MANIFEST} 2>/dev/null
-
-	echo
 	echo "Removing HPO configmap"
 	${kubectl_cmd} delete -f ${HPO_CONFIGMAPS}/${cluster_type}-config.yaml 2>/dev/null
 
 	echo
 	rm ${HPO_DEPLOY_MANIFEST}
-	rm ${HPO_RB_MANIFEST}
 
 	echo
 	if [ ${hpo_ns} == "openshift-tuning" ]; then
