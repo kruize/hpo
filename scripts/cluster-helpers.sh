@@ -169,7 +169,7 @@ function minikube_deploy() {
 
 	# Included a sleep of 2 mins for hpo pods to come up
 	sleep 120
-	check_running ${hpo_ns} minikube
+	check_running hpo ${hpo_ns} minikube
 	if [ "${err}" != "0" ]; then
 		# Indicate deploy failed on error
 		exit 1
