@@ -21,14 +21,11 @@ HPO_REPO="kruize/hpo"
 HPO_VERSION=$(grep -a -m 1 "HPO_VERSION" ${ROOT_DIR}/version.py | cut -d= -f2)
 HPO_VERSION=$(sed -e 's/^"//' -e 's/"$//' <<<"$HPO_VERSION")
 
-HPO_SCC="manifests/hpo-scc.yaml"
-HPO_SA_MANIFEST="manifests/hpo-sa.yaml"
 HPO_DEPLOY_MANIFEST_TEMPLATE="manifests/hpo-deployment.yaml_template"
 HPO_DEPLOY_MANIFEST="manifests/hpo-deployment.yaml"
-HPO_RB_MANIFEST_TEMPLATE="manifests/hpo-rolebinding.yaml_template"
-HPO_RB_MANIFEST="manifests/hpo-rolebinding.yaml"
-HPO_SA_NAME="hpo-sa"
 HPO_CONFIGMAPS="manifests/configmaps"
+# Operate-first Endpoint
+Op_first_URL="http://hpo-openshift-tuning.apps.smaug.na.operate-first.cloud/"
 
 #default values
 setup=1
@@ -64,7 +61,7 @@ function usage() {
 # Check the cluster_type
 function check_cluster_type() {
 	case "${cluster_type}" in
-	docker|minikube|native|openshift)
+	docker|minikube|native|openshift|operate-first)
 		;;
 	*)
 		echo "Error: unsupported cluster type: ${cluster_type}"
@@ -145,9 +142,20 @@ SERVICE_STATUS_DOCKER=$(${CONTAINER_RUNTIME} ps | grep hpo_docker_container)
 if [ ${setup} == 1 ]; then
 	if [ ${cluster_type} = "native" ]; then
 		${cluster_type}_start ${service_type}
+	elif [ ${cluster_type} = "operate-first" ]; then
+		echo
+		echo "Info: Access HPO at ${Op_first_URL}"
+		echo
 	else
 		${cluster_type}_start
 	fi
 else
-	${cluster_type}_terminate
+	if [ ${cluster_type} = "operate-first" ]; then
+		echo
+		echo "Error: You cannot terminate operate-first HPO instance."
+		echo
+		exit 1
+	else
+		${cluster_type}_terminate
+	fi
 fi
