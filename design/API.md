@@ -2,7 +2,7 @@
 The Kruize HPO REST API design is as follows
 
 ##  Start an Experiment
-Start a new Experiment with Kruize HPO. This requires a valid Search Space JSON to be passed in. We can use curl or any REST clients like Postman, ARC etc
+Start a new Experiment with Kruize HPO. This requires a valid Search Space JSON to be passed in. We can use curl or any REST clients like Postman, ARC etc. Note: For testing on rest clients please remove -d. 
 
 ```
 'POST /experiment_trials'
