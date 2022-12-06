@@ -18,6 +18,7 @@ import os
 import optuna
 import threading
 import json
+import pathlib
 import shutil
 
 from logger import get_logger
@@ -299,8 +300,8 @@ class HpoExperiment:
     def updateExperimentHtml(self, exp_status):
         try:
             self.resultsAvailableCond.acquire()
-            expDir = os.path.dirname(os.path.realpath('experiment.html'))
-            filename = os.path.join(expDir, 'experiment.html')
+            filePath = pathlib.PurePath(__file__)
+            filename = os.path.join(filePath.parents[2], 'experiment.html')
             addtable = """<table> \n
                     <tr> <th>Experiment</th>    <th>Status</th>    <th>Plots Generated</th> </tr> \n
                     <!--Add Experiments--> \n

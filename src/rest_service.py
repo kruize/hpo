@@ -19,6 +19,7 @@ import re
 import cgi
 import json
 import os
+import pathlib
 from json import JSONDecodeError
 from urllib.parse import urlparse, parse_qs
 
@@ -33,10 +34,9 @@ logger = get_logger(__name__)
 autotune_object_ids = {}
 search_space_json = []
 
-fileDir = os.path.dirname(os.path.realpath('index.html'))
-filename = os.path.join(fileDir, 'index.html')
-welcome_page = os.path.join(fileDir, 'index.html')
-experiment_page = os.path.join(fileDir, 'experiment.html')
+filePath = pathlib.PurePath(__file__)
+welcome_page = os.path.join(filePath.parents[1], 'index.html')
+experiment_page = os.path.join(filePath.parents[1], 'experiment.html')
 
 
 class HTTPRequestHandler(BaseHTTPRequestHandler):
@@ -184,7 +184,6 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 			logger.error(HPOErrorConstants.EXPERIMENT_EXISTS)
 			self._set_response(400, HPOErrorConstants.EXPERIMENT_EXISTS)
 		else:
-			logger.info("No. of threads running currently = "+str(threading.active_count()))
 			search_space_json = json_object["search_space"]
 			search_space = self.setDefaults(search_space_json)
 			if not search_space:
@@ -195,7 +194,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 					self._set_response(400, response)
 					return
 				trial_number = hpo_service.instance.get_trial_number(json_object["search_space"]["experiment_name"])
-				self._set_response(200, str(trial_number))
+				self._set_response(200, HPOMessages.EXPERIMENT_STATUS + str(trial_number).join(["Trial "," started.."]))
 
 	def handle_generate_subsequent_operation(self, json_object):
 		"""Process EXP_TRIAL_GENERATE_SUBSEQUENT operation."""
