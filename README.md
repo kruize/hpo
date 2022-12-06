@@ -59,7 +59,11 @@ The above tools mentioned supports Bayesian optimization which is part of a clas
 
 ## Installation
 
-Kruize HPO can be installed natively on Linux, as a container or in minikube / openshift
+You can access the Kruize HPO Operate-first instance to make use of it without installing by running the following command:
+
+`$ ./deploy_hpo.sh -c operate-first`
+
+Also, Kruize HPO can be installed natively on Linux, as a container or in minikube / openshift
 1. Native
     `$ ./deploy_hpo.sh -c native`
 2. Container
