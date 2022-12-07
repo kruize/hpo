@@ -86,6 +86,8 @@ jobs:
           ps -ef | grep python
           echo Running sanity test on minikube
           ls
+          cp ./manifests/hpo-deployment.yaml_template ./manifests/hpo-deployment.yaml_template.old
+          sed -e "s/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/g" ./manifests/hpo-deployment.yaml_template.old > ./manifests/hpo-deployment.yaml_template
           cd tests
           ./test_hpo.sh -c minikube -o hpo:test --resultsdir=${GITHUB_WORKSPACE} --testsuite=hpo_api_tests \
           --testcase=hpo_sanity_test
