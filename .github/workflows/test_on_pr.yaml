@@ -58,7 +58,7 @@ jobs:
            retention-days: 2
 
   test_on_native:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - name: Sanity test on native
@@ -85,7 +85,7 @@ jobs:
            retention-days: 2
 
   grpc_test_on_native:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
       - name: GRPC Sanity test on native
