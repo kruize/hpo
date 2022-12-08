@@ -118,7 +118,7 @@ Continue a previously started experiment and get the Next Trial Number.
 
 curl -H 'Content-Type: application/json' http://<URL>:<PORT>/experiment_trials -d 
 '{
-    "operation": EXP_TRIAL_GENERATE_SUBSEQUENT",
+    "operation": "EXP_TRIAL_GENERATE_SUBSEQUENT",
     "experiment_name" : "name"
 }'
 
@@ -138,7 +138,7 @@ Deletes an experiment(running or completed). Data/plots available for the experi
 
 curl -H 'Content-Type: application/json' http://<URL>:<PORT>/experiment_trials -d 
 '{
-    "operation": EXP_DELETE",
+    "operation": "EXP_DELETE",
     "experiment_name" : "name"
 }'
 
