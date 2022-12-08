@@ -58,7 +58,7 @@ Here is an example Search Space JSON
 ## Get a Trial JSON object
 Get a Trial Configuration JSON filled with values for each tunable that is part of the Search Space for a given trial number.
 ```
-'GET /experiment_trials?experiment_name={name}&trial_number={trial-number}'
+'GET /experiment_trials?experiment_name=<name>&trial_number=<trial-number>'
 
 curl -H 'Accept: application/json' 'http://<URL>:<PORT>/experiment_trials?experiment_name=name&trial_number=0'
 
@@ -167,7 +167,7 @@ Status code   Response body
 ## Plots
 Generate various plots after an experiment is complete.
 ```
-'GET /plot?experiment_name={name}&type={plot_type}'
+'GET /plot?experiment_name=<name>&type=<plot_type>'
 
 curl -o tunable_importance.html 'http://<URL>:<PORT>/plot?experiment_name=name&type=tunable_importance'
 
