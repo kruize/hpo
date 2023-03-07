@@ -72,6 +72,9 @@ Also, Kruize HPO can be installed natively on Linux, as a container or in miniku
     `$ ./deploy_hpo.sh -c minikube`
 4. Openshift
     `$ ./deploy_hpo.sh -c openshift`
+    
+To test in Operate first, please use
+ `$ ./deploy_hpo.sh -c operate-first`
 
 You can run a specific version of the Kruize HPO container
     `$ ./deploy_hpo.sh -c minikube -o image:tag`
