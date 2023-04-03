@@ -112,7 +112,7 @@ def validate_trial_generate_json(trial_generate_json):
             validate(instance=trial_generate_json, schema=delete_experiment_schema, format_checker=draft7_format_checker)
         elif not str(trial_generate_json["operation"]) or not str(trial_generate_json["operation"]).strip() or \
                 trial_generate_json["operation"] is None:
-            errorMsg = "Parameters" + HPOErrorConstants.VALUE_MISSING
+            errorMsg = "Parameters" + "operation" + HPOErrorConstants.VALUE_MISSING
         else:
             errorMsg = HPOErrorConstants.INVALID_OPERATION
 
@@ -120,7 +120,8 @@ def validate_trial_generate_json(trial_generate_json):
     except jsonschema.exceptions.ValidationError as err:
         # Check if the exception is due to empty or null required parameters and prepare the response accordingly
         if any(word in err.message for word in HPOErrorConstants.JSON_NULL_VALUES):
-            errorMsg = "Parameters" + HPOErrorConstants.VALUE_MISSING
+            words = ' '.join([word for word in HPOErrorConstants.JSON_NULL_VALUES if word in err.message])
+            errorMsg = "Parameters" + words + HPOErrorConstants.VALUE_MISSING
             return errorMsg
         # Modify the error response in case of additional properties error
         elif str(err.message).__contains__('('):
@@ -138,7 +139,7 @@ def validate_search_space(search_space):
 
         # Check if any of the key is empty or null
         if not (str(search_space[key]) and str(search_space[key]).strip()):
-            validationErrorMsg = ",".join([validationErrorMsg, "Parameters" + HPOErrorConstants.VALUE_MISSING])
+            validationErrorMsg = ",".join([validationErrorMsg, "Parameters" + key + HPOErrorConstants.VALUE_MISSING])
 
         # Check if total trials is less than one
         elif str(key) == "total_trials" and search_space[key] < 1:
