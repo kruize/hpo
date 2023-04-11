@@ -118,9 +118,11 @@ def validate_trial_generate_json(trial_generate_json):
 
         return errorMsg
     except jsonschema.exceptions.ValidationError as err:
-        # Check if the exception is due to empty or null required parameters and prepare the response accordingly
+        property_absolute_path = err.absolute_path
+        property_name = property_absolute_path[1]
+        # Check if the exception is due to parameters data type mismatch and prepare the response accordingly
         if any(word in err.message for word in HPOErrorConstants.JSON_NULL_VALUES):
-            errorMsg = "Parameters" + HPOErrorConstants.VALUE_MISSING
+            errorMsg = "Parameter " + property_name + " " + err.message
             return errorMsg
         # Modify the error response in case of additional properties error
         elif str(err.message).__contains__('('):
