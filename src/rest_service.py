@@ -100,7 +100,12 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 		if re.search(HPOSupportedTypes.API_ENDPOINT, self.path):
 			query = parse_qs(urlparse(self.path).query)
 			if "experiment_name" not in query or "trial_number" not in query:
-				error_msg = HPOErrorConstants.MISSING_PARAMETERS
+				missing_params = []
+				if "experiment_name" not in query:
+					missing_params.append("experiment_name")
+				if "trial_number" not in query:
+					missing_params.append("trial_number")
+				error_msg = HPOErrorConstants.MISSING_PARAMETERS[:-1] + ": " + ", ".join(str(param) for param in missing_params)
 				logger.error(error_msg)
 				self._set_response(400, error_msg)
 				return
