@@ -17,7 +17,7 @@
 #            Runtime Docker Image
 ##########################################################
 # Use ubi-minimal as the base image
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.4
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5-1733767867
 
 ARG HPO_VERSION
 ARG USER=hpo
@@ -32,7 +32,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONUSERBASE=$HPO_HOME/app/.local
 
 # Install packages needed for python to function correctly
-RUN microdnf install -y python39 gcc-c++ python39-devel python39-pip\
+RUN microdnf install -y python3 gcc-c++ python3-devel python3-pip\
     && microdnf update -y \
     && microdnf -y install shadow-utils \
     # Setup the user for non-arbitrary UIDs with OpenShift
