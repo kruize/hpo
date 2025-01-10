@@ -17,7 +17,7 @@
 
 ROOT_DIR="${PWD}"
 SCRIPTS_DIR="${ROOT_DIR}/scripts"
-HPO_REPO="kruize/hpo"
+HPO_REPO="quay.io/kruize/hpo"
 HPO_VERSION=$(grep -a -m 1 "HPO_VERSION" ${ROOT_DIR}/version.py | cut -d= -f2)
 HPO_VERSION=$(sed -e 's/^"//' -e 's/"$//' <<<"$HPO_VERSION")
 
@@ -38,9 +38,9 @@ timeout=-1
 service_type="both"
 
 # source the helpers script
-. ${SCRIPTS_DIR}/cluster-helpers.sh
-. ${SCRIPTS_DIR}/openshift-helpers.sh
-. ${SCRIPTS_DIR}/common_utils.sh
+source ${SCRIPTS_DIR}/cluster-helpers.sh
+source ${SCRIPTS_DIR}/openshift-helpers.sh
+source ${SCRIPTS_DIR}/common_utils.sh
 
 function usage() {
 	echo
@@ -49,7 +49,7 @@ function usage() {
 	echo " -s | --start: start(default) the app"
 	echo " -t | --terminate: terminate the app"
 	echo " -c | --cluster_type: cluster type [docker|minikube|native|openshift]]"
-	echo " -o | --container_image: build with specific hpo container image name [Default - kruize/hpo:<version>]"
+	echo " -o | --container_image: deploy specific hpo container image name [Default - kruize/hpo:<version>]"
 	echo " -n | --namespace : Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
 	echo " -d | --configmaps_dir : Config maps directory [Default - manifests/configmaps]"
 	echo " --both: install both REST and the gRPC service"

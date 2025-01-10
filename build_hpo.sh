@@ -17,7 +17,7 @@
 ROOT_DIR="${PWD}"
 SCRIPTS_DIR="${ROOT_DIR}/scripts"
 HPO_DOCKERFILE="Dockerfile.hpo"
-HPO_CONTAINER_REPO="kruize/hpo"
+HPO_CONTAINER_REPO="quay.io/kruize/hpo"
 HPO_VERSION=$(grep -a -m 1 "HPO_VERSION" ${ROOT_DIR}/version.py | cut -d= -f2)
 HPO_VERSION=$(sed -e 's/^"//' -e 's/"$//' <<<"$HPO_VERSION")
 echo
@@ -30,7 +30,8 @@ BUILD_PARAMS="--pull --no-cache"
 CONTAINER_RUNTIME="docker"
 
 # source the helpers script
-. ${SCRIPTS_DIR}/cluster-helpers.sh
+source ${SCRIPTS_DIR}/common_utils.sh
+source ${SCRIPTS_DIR}/cluster-helpers.sh
 
 function usage() {
 	echo "Usage: $0 [-d] [-v version_string][-o HPO_CONTAINER_IMAGE]"

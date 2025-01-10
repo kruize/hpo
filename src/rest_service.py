@@ -16,7 +16,7 @@ limitations under the License.
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import re
-import cgi
+from email.message import EmailMessage
 import json
 import os
 import pathlib
@@ -57,7 +57,9 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 	def do_POST(self):
 		"""Serve a POST request."""
 		if re.search(HPOSupportedTypes.API_ENDPOINT + "$", self.path):
-			content_type, params = cgi.parse_header(self.headers.get('content-type'))
+			msg = EmailMessage()
+			msg['content-type'] = self.headers.get('content-type')
+			content_type, params = msg.get_content_type(), msg['content-type'].params
 			if content_type == HPOSupportedTypes.CONTENT_TYPE:
 				length = int(self.headers.get('content-length'))
 				str_object = self.rfile.read(length).decode('utf8')
