@@ -108,7 +108,7 @@ function native_terminate() {
 	# check if service is already stopped
 	check_prereq stopped ${SERVICE_STATUS_NATIVE}
 
-	ps -u | grep service.py | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1
+	ps -ef | grep src/service.py | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1
 	check_err "Failed to stop HPO Service!"
 
 	# restore experiment.html after HPO terminates in native

@@ -136,7 +136,7 @@ else
 fi
 
 # Get Service Status
-SERVICE_STATUS_NATIVE=$(ps -u | grep service.py | grep -v grep)
+SERVICE_STATUS_NATIVE=$(ps -ef | grep src/service.py | grep -v grep)
 SERVICE_STATUS_DOCKER=$(${CONTAINER_RUNTIME} ps | grep hpo_docker_container)
 
 # Call the proper setup function based on the cluster_type
