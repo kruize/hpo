@@ -93,9 +93,9 @@ function native_start() {
 	cp experiment.html experiment_torestore.html
 
 	if [ "$1" = "REST" ]; then
-		python3 -u src/service.py "REST"
+		python3 -u src/service.py "REST" "$2"
 	else
-		python3 -u src/service.py "BOTH"
+		python3 -u src/service.py "BOTH" "$2"
 	fi
 }
 

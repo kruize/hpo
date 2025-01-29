@@ -322,11 +322,12 @@ def get_search_create_study(search_space_json, operation):
 			return response
 
 
-def main():
-	server = HTTPServer((HPOSupportedTypes.SERVER_HOSTNAME, HPOSupportedTypes.SERVER_PORT), HTTPRequestHandler)
-	logger.info("Access REST Service at http://%s:%s" % ("localhost", HPOSupportedTypes.SERVER_PORT))
-	server.serve_forever()
+def main(server_port=8085):
+    hpo_instance = HPOSupportedTypes(server_port=server_port)
+    server = HTTPServer((HPOSupportedTypes.SERVER_HOSTNAME,  hpo_instance.SERVER_PORT), HTTPRequestHandler)
+    logger.info("Access REST Service at http://%s:%s" % ("localhost",  hpo_instance.SERVER_PORT))
+    server.serve_forever()
 
 
 if __name__ == '__main__':
-	main()
+    main(server_port=8085)

@@ -36,6 +36,7 @@ hpo_ns=""
 # docker: loop timeout is turned off by default
 timeout=-1
 service_type="both"
+service_port="8085"
 
 # source the helpers script
 source ${SCRIPTS_DIR}/cluster-helpers.sh
@@ -70,7 +71,7 @@ function check_cluster_type() {
 	esac
 }
 
-VALID_ARGS=$(getopt -o ac:d:o:n:strb --long non_interactive,cluster_type:,configmaps:,container_image:,namespace:,start,terminate,rest,both -- "$@")
+VALID_ARGS=$(getopt -o ac:d:o:n:p:strb --long non_interactive,cluster_type:,configmaps:,container_image:,namespace:,start,terminate,rest,both,port: -- "$@")
 if [[ $? -ne 0 ]]; then
 	usage
 	exit 1;
@@ -102,6 +103,10 @@ while [ : ]; do
 		hpo_ns="$2"
 		shift 2
 		;;
+	-p | --port)
+                service_port="$2"
+                shift 2
+                ;;
 	-s | --start)
 		setup=1
 		shift
@@ -142,7 +147,7 @@ SERVICE_STATUS_DOCKER=$(${CONTAINER_RUNTIME} ps | grep hpo_docker_container)
 # Call the proper setup function based on the cluster_type
 if [ ${setup} == 1 ]; then
 	if [ ${cluster_type} = "native" ]; then
-		${cluster_type}_start ${service_type}
+		${cluster_type}_start ${service_type} ${service_port}
 	elif [ ${cluster_type} = "operate-first" ]; then
 		echo
 		echo "Info: Access HPO at ${Op_first_URL}"

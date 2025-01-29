@@ -29,14 +29,16 @@ signal.signal(signal.SIGINT, signal_handler)
 
 def main():
 
-    logger.info('Starting HPO service')
-    if ( len(sys.argv) == 1 ) or ( len(sys.argv) == 2 and sys.argv[1] == "BOTH" ):
+    if ( len(sys.argv) == 1 ) or ( len(sys.argv) == 2 and sys.argv[1] == "BOTH" ) or ( len(sys.argv) == 3 and sys.argv[1] == "BOTH" ):
         import grpc_service
         gRPCservice = threading.Thread(target=grpc_service.serve)
         gRPCservice.daemon = True
         gRPCservice.start()
-
-    restService = threading.Thread(target=rest_service.main)
+    if (sys.argv[2] != ''):
+        server_port = int(sys.argv[2])
+    else:
+        server_port=8085
+    restService = threading.Thread(target=rest_service.main, args=(server_port,))
     restService.daemon = True
     restService.start()
 

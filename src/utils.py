@@ -28,9 +28,13 @@ class HPOSupportedTypes:
     N_JOBS = 1
     N_TRIALS = 10
     SERVER_HOSTNAME = "0.0.0.0"
-    SERVER_PORT = 8092
+    #SERVER_PORT = 8085
     API_ENDPOINT = "/experiment_trials"
     CONTENT_TYPE = "application/json"
+
+    def __init__(self, server_port=None):
+        if server_port is not None:
+            self.SERVER_PORT = server_port
 
 
 class HPOErrorConstants:
