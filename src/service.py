@@ -34,7 +34,7 @@ def main():
         gRPCservice = threading.Thread(target=grpc_service.serve)
         gRPCservice.daemon = True
         gRPCservice.start()
-    if (sys.argv[2] != ''):
+    if ( len(sys.argv) == 3 and sys.argv[2] != '' ):
         server_port = int(sys.argv[2])
     else:
         server_port=8085

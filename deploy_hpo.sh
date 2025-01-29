@@ -53,6 +53,7 @@ function usage() {
 	echo " -o | --container_image: deploy specific hpo container image name [Default - kruize/hpo:<version>]"
 	echo " -n | --namespace : Namespace to which hpo is deployed [Default - monitoring namespace for cluster type minikube]"
 	echo " -d | --configmaps_dir : Config maps directory [Default - manifests/configmaps]"
+	echo " -p | --port: hpo rest server port for cluster_type=native [Default - 8085]"
 	echo " --both: install both REST and the gRPC service"
 	echo " --rest: install REST only"
 	echo " Environment Variables to be set: REGISTRY, REGISTRY_EMAIL, REGISTRY_USERNAME, REGISTRY_PASSWORD"
