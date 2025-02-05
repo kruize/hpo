@@ -22,7 +22,7 @@ jobs:
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build hpo
         run: |
           echo Build hpo
@@ -51,7 +51,7 @@ jobs:
           
       - name: Upload results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
            name: hpo-results
            path: ./hpo_docker_results.tar
@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Minikube
         uses: manusa/actions-setup-minikube@v2.3.0
         with:
@@ -91,7 +91,7 @@ jobs:
           ls
       - name: Upload results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
            name: hpo-results
            path: ./hpo_minikube_results.tar

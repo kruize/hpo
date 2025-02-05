@@ -14,7 +14,7 @@ jobs:
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build hpo
         run: |
           echo Software versions
@@ -51,7 +51,7 @@ jobs:
           
       - name: Upload results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
            name: hpo-results
            path: ./hpo_docker_results.tar
@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Minikube
         uses: manusa/actions-setup-minikube@v2.3.0
         with:
@@ -100,7 +100,7 @@ jobs:
           ls
       - name: Upload results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
            name: hpo-results
            path: ./hpo_minikube_results.tar
@@ -109,7 +109,7 @@ jobs:
   test_on_native:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Sanity test on native
         run: |
           echo Software versions
@@ -127,7 +127,7 @@ jobs:
           
       - name: Upload results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
            name: hpo-results
            path: ./hpo_native_results.tar
@@ -136,7 +136,7 @@ jobs:
   grpc_test_on_native:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: GRPC Sanity test on native
         run: |
           echo Software versions
@@ -154,7 +154,7 @@ jobs:
           
       - name: Upload results
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
            name: hpo-results
            path: ./hpo_grpc_native_results.tar
