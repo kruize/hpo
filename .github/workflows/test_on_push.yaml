@@ -53,7 +53,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-           name: hpo-results
+           name: hpo-docker-results
            path: ./hpo_docker_results.tar
            retention-days: 2
 
@@ -93,6 +93,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-           name: hpo-results
+           name: hpo-minikube-results
            path: ./hpo_minikube_results.tar
            retention-days: 2
