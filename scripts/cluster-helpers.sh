@@ -93,9 +93,9 @@ function native_start() {
 	cp experiment.html experiment_torestore.html
 
 	if [ "$1" = "REST" ]; then
-		python3 -u src/service.py "REST"
+		python3 -u src/service.py "REST" "$2"
 	else
-		python3 -u src/service.py "BOTH"
+		python3 -u src/service.py "BOTH" "$2"
 	fi
 }
 
@@ -108,7 +108,7 @@ function native_terminate() {
 	# check if service is already stopped
 	check_prereq stopped ${SERVICE_STATUS_NATIVE}
 
-	ps -u | grep service.py | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1
+	ps -ef | grep src/service.py | grep -v grep | awk '{print $2}' | xargs kill -9 >/dev/null 2>&1
 	check_err "Failed to stop HPO Service!"
 
 	# restore experiment.html after HPO terminates in native
