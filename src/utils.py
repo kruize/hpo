@@ -17,7 +17,7 @@ limitations under the License.
 
 class HPOSupportedTypes:
     DIRECTIONS_SUPPORTED = ("minimize", "maximize")
-    VALUE_TYPES_SUPPORTED = ("double", "int", float)
+    VALUE_TYPES_SUPPORTED = ("double", "int", "float")
     OPTUNA_ALGOS = ("optuna_tpe", "optuna_tpe_multivariate", "optuna_skopt")
     ALGOS_SUPPORTED = (OPTUNA_ALGOS)
     TRIAL_RESULT_STATUS = ("success", "failure", "error")
